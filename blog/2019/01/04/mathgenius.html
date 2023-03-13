@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Purr yourself into a math genius</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2019/01/04/mathgenius.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Purr yourself into a math genius</h1>
+    <p class="post-meta"><time datetime="2019-01-04T00:00:00+01:00" itemprop="datePublished">Jan 4, 2019</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>We use the purrr package to solve a popular math puzzle via a
+combinatorial functional programming approach. A small shiny app is
+provided to allow the user to solve their own variations of the
+puzzle.</p>
+<center>
+<img src="/blog/figure/source/2019-01-04-mathgenius/shinyapp.png" width="450">
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p><a href="http://www.briddles.com/2011/12/maths-puzzle.html">No. 4</a>
+of the <a href="http://www.briddles.com/riddles/top-5-hard-math">Top 5
+hard math puzzles</a> at <a href="www.briddles.com">briddles.com</a>
+goes like this:</p>
+<div class="blackbox">
+<em>How can I get the answer 24 by only using the numbers 8,8,3,3. You
+can use the main signs add, subtract multiply and divide.</em>
+</div>
+<p>
+<p>Note: a solution has to use each of the specified 4 numbers exactly
+ONCE, but they can be used in any order. In other words the standard
+scheme is to solve expressions of the kind:</p>
+<center>
+<code>a op1 b op2 c op3 d</code>
+</center>
+<p>
+<p>where <code>a</code>, <code>b</code>, <code>c</code> and
+<code>d</code> denote a permutation of the numbers 8, 8, 3, 3 and each
+of <code>op1</code>, <code>op2</code> and <code>op3</code> denotes the
+use of one binary operator selected from +, -, * or /. An example is the
+expression <code>8 + 3 + 8 * 3</code>. Parentheses are used to control
+the order in which the operators are applied, i.e.
+<code>(8 + 3 + 8) * 3</code> yields a different result than
+<code>8 + 3 + (8 * 3)</code>.</p>
+<p>After a few unsuccessful attempts to solve the above puzzle with pen
+and paper it felt more <em>efficient</em> and computationally
+<em>challenging</em> to solve this puzzle via a combinatorial approach:
+Simply try out all permutations of the 4 numbers, the 4 binary operators
+and all possible sets of parentheses to combine the operators. One can
+show that there are at most</p>
+<p><span class="math display">\[
+\begin{align*} &amp;&amp; \text{# permutations of the
+$k=4$ base numbers} \\ \times &amp;&amp; \text{# ways to select with
+replacement $(k-1)$ binary operators from the set $\{+,-,*,/\}$ }\\
+\times &amp;&amp;
+\text{# ways to parenthesize the $(k-1)$ binary operators} \\
+&amp;=&amp;k!
+\times 4^{(k-1)} \times \frac{1}{k} \binom{2k-2}p{k-1}
+\end{align*}
+\]</span></p>
+<p>different combinations to choose from <a href="#fn1"
+class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. As
+an example: for <span class="math inline">\(k=4\)</span> the maximal
+number of unique combinations is 21504.</p>
+<h4 id="strategy">Strategy</h4>
+<p>We will use a functional approach to solve the above combinatorial
+problem. Why?</p>
+<ul>
+<li>because it seems like a good use-case for <a
+href="https://en.wikipedia.org/wiki/Functional_programming">functional
+programming</a>,</li>
+<li>because it is important to extend your programming horizon every
+once in a while, and</li>
+<li>because the <a
+href="https://cran.r-project.org/web/packages/purrr/index.html"><code>purrr</code></a>
+functional programming toolkit for R allows you to experiment with this
+without having to leave the R universe <a href="#fn2"
+class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a>.</li>
+</ul>
+<p>For those not familar with <code>purrr</code> can find a wonderful
+didactic introduction in the <a
+href="https://github.com/cwickham/purrr-tutorial">useR! 2017
+tutorial</a> by <a href="https://twitter.com/CVWickham">Charlotte
+Wickham</a>. Furthermore, learning <code>purrr</code> was the 7th most
+frequent mentioned package in the <a
+href="https://masalmon.eu/2019/01/01/r-goals/">#rstats users’ 2019 R
+goals</a>. In other words: Attention #rstats new years resolution
+makers: reading this post is as <strong>obligatory</strong> as going to
+the gym on 01 Jan!</p>
+<h2 id="solving-the-math-puzzle">Solving the Math Puzzle</h2>
+<p>We will divide-and-conquer the solution along the lines of the number
+of combinations formula: Firstly, we will store all permutations of the
+<span class="math inline">\((k-1)\)</span> base numbers in a list
+<code>perm</code>. Secondly, we will store all possible combinations of
+the <span class="math inline">\((k-1)\)</span> operators in a list
+<code>operators</code> and, thirdly, we generate all possible ways of
+putting parentheses around the operators into a list
+<code>brackets</code>. Subsequently, we form the Cartesian product of
+these three lists and build the corresponding expression for each triple
+of permutation, operators and parentheses. Finally, each generated
+expression is evaluated. The entire result is a data frame containing
+all possible expressions and their associated value obtained when
+evaluating the expression.</p>
+<h3 id="permutations-of-the-base-numbers">Permutations of the base
+numbers</h3>
+<p>We let the variable <code>base_numbers</code> contain the
+specification of the numbers to permute for the expression. The code
+should be written general enough so it is possible to use a different
+base, e.g., <span class="math inline">\(k=3\)</span> or <span
+class="math inline">\(k=5\)</span>.</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="n">base_numbers</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">c</span><span class="p">(</span><span class="m">8</span><span class="p">,</span><span class="m">8</span><span class="p">,</span><span class="m">3</span><span class="p">,</span><span class="m">3</span><span class="p">)</span><span class="w">
+</span><span class="n">k</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">length</span><span class="p">(</span><span class="n">base_numbers</span><span class="p">)</span><span class="w">
+
+</span><span class="n">number_perm</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">combinat</span><span class="o">::</span><span class="n">permn</span><span class="p">(</span><span class="n">base_numbers</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w">
+  </span><span class="n">map</span><span class="p">(</span><span class="n">setNames</span><span class="p">,</span><span class="w"> </span><span class="n">nm</span><span class="o">=</span><span class="nb">letters</span><span class="p">[</span><span class="nf">seq_len</span><span class="p">(</span><span class="n">k</span><span class="p">)])</span><span class="w">
+
+</span><span class="c1">##Slim in case permutations of the base numbers contain duplicates.</span><span class="w">
+</span><span class="n">perm</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">number_perm</span><span class="p">[</span><span class="o">!</span><span class="n">duplicated</span><span class="p">(</span><span class="n">map</span><span class="p">(</span><span class="n">number_perm</span><span class="p">,</span><span class="w"> </span><span class="n">paste0</span><span class="p">,</span><span class="w"> </span><span class="n">collapse</span><span class="o">=</span><span class="s2">""</span><span class="p">))]</span></code></pre>
+</figure>
+<p>For <span class="math inline">\(k=4\)</span> the first step yields a
+total 21504 combinations. However, since the numbers 8 and 3 both appear
+more than once in the base numbers, we can slim the number of
+permutations from 24 to 6. Hence, there are altogether only 5376
+combinations to investigate.</p>
+<h3 id="combinations-of-the-operators">Combinations of the
+operators</h3>
+<p>The next step is to make all combinations of the <span
+class="math inline">\(k-1\)</span> binary operators needed to combine
+the <span class="math inline">\(k\)</span> numbers. We use the string
+format to represent the operators <a href="#fn3" class="footnote-ref"
+id="fnref3" role="doc-noteref"><sup>3</sup></a> and thus just need the
+<span class="math inline">\(k-1\)</span>’th Cartesian product of the set
+<span class="math inline">\(\{+, -, *, /\}\)</span> represented as
+strings. <!-- i.e. $\times_{i=1}^{k-1} \{+,-,*,/\}$. --></p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="n">opList</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="s2">"+"</span><span class="p">,</span><span class="w"> </span><span class="s2">"-"</span><span class="p">,</span><span class="w"> </span><span class="s2">"*"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/"</span><span class="p">)</span><span class="w">
+</span><span class="c1">##Repeat the opList k-1 times</span><span class="w">
+</span><span class="n">opsList</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">map</span><span class="p">(</span><span class="w"> </span><span class="nf">seq_len</span><span class="p">(</span><span class="n">k</span><span class="m">-1</span><span class="p">),</span><span class="w"> </span><span class="o">~</span><span class="w"> </span><span class="n">opList</span><span class="p">)</span><span class="w">
+</span><span class="c1">##Form the Cartesian product</span><span class="w">
+</span><span class="n">operators</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">cross</span><span class="p">(</span><span class="n">opsList</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w">
+  </span><span class="n">map</span><span class="p">(</span><span class="w"> </span><span class="n">setNames</span><span class="p">,</span><span class="w"> </span><span class="n">nm</span><span class="o">=</span><span class="n">paste0</span><span class="p">(</span><span class="s2">"op"</span><span class="p">,</span><span class="nf">seq_len</span><span class="p">(</span><span class="n">k</span><span class="m">-1</span><span class="p">)))</span></code></pre>
+</figure>
+<h3 id="arrangements-of-the-parentheses">Arrangements of the
+parentheses</h3>
+<p>As all the involved operators are binary it becomes clear that
+finding all possible ways to parenthesize the expression corresponds to
+finding all <a href="https://en.wikipedia.org/wiki/Binary_tree">binary
+trees</a> with <span class="math inline">\(k-1\)</span> leaves.
+Beautiful recursive code inspiration for how to solve this can be found
+on <a
+href="https://leetcode.com/problems/all-possible-full-binary-trees/solution/">leetcode.com</a>.
+Some adaptation to R and our problem at hand was necessary - the idea is
+to use recursion in <span class="math inline">\(k\)</span> and use a
+hash-map to cache results of previous computations.</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="c1">##Initialize hashmap to save the results of all binary trees up to n=1 leaves</span><span class="w">
+</span><span class="n">trees</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">list</span><span class="p">()</span><span class="w">
+</span><span class="n">trees</span><span class="p">[[</span><span class="s2">"0"</span><span class="p">]]</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="kc">NULL</span><span class="w">
+</span><span class="n">trees</span><span class="p">[[</span><span class="s2">"1"</span><span class="p">]]</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="nf">list</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="s2">"node"</span><span class="p">,</span><span class="w"> </span><span class="n">left</span><span class="o">=</span><span class="kc">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="o">=</span><span class="kc">NULL</span><span class="p">))</span></code></pre>
+</figure>
+<p>The rather elegant <strong>recursive solution</strong> for generating
+all binary trees with <span class="math inline">\(n\)</span> leaves
+works by combining all possible ways to generate subbranches containing
+<span class="math inline">\(x\)</span> and <span
+class="math inline">\(n-x\)</span> leaves, respectively:</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="n">allBinTrees</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="k">function</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+  </span><span class="c1">##Character version of n, which is used as hash key</span><span class="w">
+  </span><span class="n">n_char</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">as.character</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w">
+
+  </span><span class="c1">##Only compute something if n is not already in the hashlist.</span><span class="w">
+  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nf">is.null</span><span class="p">(</span><span class="n">pluck</span><span class="p">(</span><span class="n">trees</span><span class="p">,</span><span class="w"> </span><span class="n">n_char</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="n">trees</span><span class="p">[[</span><span class="n">n_char</span><span class="p">]]</span><span class="w"> </span><span class="o">&lt;&lt;-</span><span class="w"> </span><span class="nf">list</span><span class="p">()</span><span class="w">
+
+    </span><span class="c1">##Combine all possible ways  to generate bintrees with $i$ and $n-i$ leaves</span><span class="w">
+    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">1</span><span class="o">:</span><span class="p">(</span><span class="n">n</span><span class="m">-1</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">i</span><span class="w">
+      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">left_tree</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">allBinTrees</span><span class="p">(</span><span class="n">i</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">right_tree</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">allBinTrees</span><span class="p">(</span><span class="n">j</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+          </span><span class="n">trees</span><span class="p">[[</span><span class="n">n_char</span><span class="p">]][[</span><span class="nf">length</span><span class="p">(</span><span class="n">trees</span><span class="p">[[</span><span class="n">n_char</span><span class="p">]])</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="m">1</span><span class="p">]]</span><span class="w"> </span><span class="o">&lt;&lt;-</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="kc">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">left</span><span class="o">=</span><span class="n">left_tree</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="o">=</span><span class="n">right_tree</span><span class="p">)</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+      </span><span class="p">}</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">}</span><span class="w"> </span><span class="c1">#end if not already in tree list</span><span class="w">
+  </span><span class="c1">##Return result from our hashmap</span><span class="w">
+  </span><span class="nf">return</span><span class="p">(</span><span class="n">pluck</span><span class="p">(</span><span class="n">trees</span><span class="p">,</span><span class="w"> </span><span class="n">n_char</span><span class="p">))</span><span class="w">
+</span><span class="p">}</span></code></pre>
+</figure>
+<p>We can test the function for <span
+class="math inline">\(n=2\)</span>, which yields exactly one tree:</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="c1">##Manual construction</span><span class="w">
+</span><span class="n">trees2</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="nf">list</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="kc">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">left</span><span class="o">=</span><span class="n">trees</span><span class="p">[[</span><span class="s2">"1"</span><span class="p">]][[</span><span class="m">1</span><span class="p">]],</span><span class="w"> </span><span class="n">right</span><span class="o">=</span><span class="n">trees</span><span class="p">[[</span><span class="s2">"1"</span><span class="p">]][[</span><span class="m">1</span><span class="p">]]))</span><span class="w">
+</span><span class="n">all.equal</span><span class="p">(</span><span class="n">allBinTrees</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="m">2</span><span class="p">),</span><span class="w"> </span><span class="n">trees2</span><span class="p">)</span></code></pre>
+</figure>
+<figure class="highlight">
+<pre><code class="language-text" data-lang="text">## [1] TRUE</code></pre>
+</figure>
+<p>The result is:</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="n">tree2String</span><span class="p">(</span><span class="n">allBinTrees</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="m">2</span><span class="p">)[[</span><span class="m">1</span><span class="p">]])</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> </span><span class="n">replaceNodes</span><span class="p">()</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> </span><span class="n">addOpNumbers</span></code></pre>
+</figure>
+<figure class="highlight">
+<pre><code class="language-text" data-lang="text">## [1] "(a op1 b)"</code></pre>
+</figure>
+<p>In the above code segments the function <code>tree2String</code> is a
+small helper function to convert the nested list structure to a string -
+in this case: <code>(node op node)</code>. Furthermore, the function
+<code>replaceNodes</code> renames the terms <code>node</code> into the
+variables <code>(a op b)</code>. The <code>op</code>-strings are
+converted into numbered <code>op</code>-strings using
+<code>addOpNumbers</code>, i.e. the result becomes
+<code>(a op1 b)</code>. Details about the helper functions can be found
+in the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2019-01-04-mathgenius.Rmd">code</a>
+on github.</p>
+<p>With all preparations in place we can now generate all 5 possible
+ways to parenthesize the 3 binary operations using the following
+code:</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="c1">##Make all possible brackets</span><span class="w">
+</span><span class="n">bracketing</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">map_chr</span><span class="p">(</span><span class="w"> </span><span class="n">allBinTrees</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">),</span><span class="w">
+                      </span><span class="o">~</span><span class="w"> </span><span class="n">tree2String</span><span class="p">(</span><span class="n">.x</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> </span><span class="n">addOpNumbers</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> </span><span class="n">replaceNodes</span><span class="p">)</span></code></pre>
+</figure>
+<figure class="highlight">
+<pre><code class="language-text" data-lang="text">## [1] "(a op1 (b op2 (c op3 d)))" "(a op1 ((b op2 c) op3 d))" "((a op1 b) op2 (c op3 d))" "((a op1 (b op2 c)) op3 d)" "(((a op1 b) op2 c) op3 d)"</code></pre>
+</figure>
+<h3 id="putting-it-all-together">Putting it all together</h3>
+<p>We can now generate all combinations of numbers, operators and
+bracketing by the Cartesian of the three lists:</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="n">combos</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">cross3</span><span class="p">(</span><span class="w"> </span><span class="n">perm</span><span class="p">,</span><span class="w"> </span><span class="n">map</span><span class="p">(</span><span class="w"> </span><span class="n">operators</span><span class="p">,</span><span class="w"> </span><span class="n">unlist</span><span class="p">),</span><span class="w"> </span><span class="n">bracketing</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w">
+  </span><span class="n">map</span><span class="p">(</span><span class="n">setNames</span><span class="p">,</span><span class="w"> </span><span class="nf">c</span><span class="p">(</span><span class="s2">"numbers"</span><span class="p">,</span><span class="w"> </span><span class="s2">"operators"</span><span class="p">,</span><span class="w"> </span><span class="s2">"bracket"</span><span class="p">))</span></code></pre>
+</figure>
+<p>We can now finally evaluate each of the 1920 combinations. Note:
+Because this might take a while it’s a good idea to add a <a
+href="https://github.com/tidyverse/purrr/issues/149#issuecomment-359236625">progress
+bar</a> for this <code>purrr</code> computation.</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="c1">##Set up a progress bar for use with the map function</span><span class="w">
+</span><span class="n">pb</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">progress_estimated</span><span class="p">(</span><span class="nf">length</span><span class="p">(</span><span class="n">combos</span><span class="p">))</span><span class="w">
+
+</span><span class="c1">##Compute</span><span class="w">
+</span><span class="n">res</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">map</span><span class="p">(</span><span class="n">combos</span><span class="p">,</span><span class="w"> </span><span class="n">.f</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+  </span><span class="n">pb</span><span class="o">$</span><span class="n">tick</span><span class="p">()</span><span class="o">$</span><span class="n">print</span><span class="p">()</span><span class="w">
+  </span><span class="n">l</span><span class="p">[[</span><span class="s2">"expr"</span><span class="p">]]</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">l</span><span class="p">[[</span><span class="s2">"bracket"</span><span class="p">]]</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> </span><span class="n">replace</span><span class="p">(</span><span class="n">l</span><span class="p">[[</span><span class="s2">"numbers"</span><span class="p">]])</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> </span><span class="n">replace</span><span class="p">(</span><span class="n">l</span><span class="p">[[</span><span class="s2">"operators"</span><span class="p">]])</span><span class="w">
+  </span><span class="n">l</span><span class="p">[[</span><span class="s2">"value"</span><span class="p">]]</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">eval</span><span class="p">(</span><span class="n">parse</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">l</span><span class="p">[[</span><span class="s2">"expr"</span><span class="p">]]))</span><span class="w">
+  </span><span class="nf">return</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="w">
+</span><span class="p">})</span></code></pre>
+</figure>
+<p>Again, <code>replace(v)</code> is a small helper function to replace
+the strings in <code>names(v)</code> with <code>v</code>’s content. The
+actual evaluation of each possible solution string is done by parsing
+the string with <code>parse</code> and then evaluate the resulting
+expression. We extract the relevant results into a
+<code>data.frame</code></p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="n">df</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">map_df</span><span class="p">(</span><span class="n">res</span><span class="p">,</span><span class="w"> </span><span class="o">~</span><span class="w"> </span><span class="n">data.frame</span><span class="p">(</span><span class="n">expr</span><span class="o">=</span><span class="n">.x</span><span class="o">$</span><span class="n">expr</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="o">=</span><span class="n">.x</span><span class="o">$</span><span class="n">value</span><span class="p">))</span></code></pre>
+</figure>
+<p><img src="/blog/figure/source/2019-01-04-mathgenius/DATATABLE-1.png" style="display: block; margin: auto;" /></p>
+<p>We can now easily extract the solution:</p>
+<figure class="highlight">
+<pre><code class="language-r" data-lang="r"><span class="c1">##First element to give the value 24</span><span class="w">
+</span><span class="n">detect</span><span class="p">(</span><span class="n">res</span><span class="p">,</span><span class="w"> </span><span class="o">~</span><span class="w"> </span><span class="n">isTRUE</span><span class="p">(</span><span class="n">all.equal</span><span class="p">(</span><span class="n">.x</span><span class="o">$</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="m">24</span><span class="p">)))</span></code></pre>
+</figure>
+<figure class="highlight">
+<pre><code class="language-text" data-lang="text">## $numbers
+## a b c d 
+## 8 3 8 3 
+## 
+## $operators
+## op1 op2 op3 
+## "/" "-" "/" 
+## 
+## $bracket
+## [1] "(a op1 (b op2 (c op3 d)))"
+## 
+## $expr
+## [1] "(8 / (3 - (8 / 3)))"
+## 
+## $value
+## [1] 24</code></pre>
+</figure>
+<p>Voila! QED!</p>
+<h4 id="extended-new-years-fun">Extended New Years Fun</h4>
+<p>For user experimentation we wrapped all the above steps into one
+function <code>solveMathPuzzle</code> (see <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2019-01-04-mathgenius.Rmd">github
+code</a> for details). To underline the generalizability of the approach
+we solve a classical 2019 new-year’s puzzle:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">solveMathPuzzle</span>( <span class="at">base_numbers=</span><span class="fu">c</span>(<span class="dv">7</span>,<span class="dv">7</span>,<span class="dv">11</span>,<span class="dv">11</span>,<span class="dv">43</span>,<span class="dv">43</span>), <span class="at">expr_result=</span><span class="dv">2019</span>, <span class="at">operatorList=</span><span class="fu">c</span>(<span class="st">&quot;+&quot;</span>,<span class="st">&quot;*&quot;</span>)))</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>expr[[<span class="dv">1</span>]]</span></code></pre></div>
+<pre><code>## [1] &quot;((7 * 7) + ((11 * 11) + (43 * 43)))&quot;</code></pre>
+<h2 id="shiny-app">Shiny App</h2>
+<p>To make the above solution accessible to a wider audience we wrote a
+small Shiny app to play with the code for <span
+class="math inline">\(k=4\)</span>:</p>
+<center>
+<!-- [https://hoehle.shinyapps.io/mathgenius/](https://hoehle.shinyapps.io/mathgenius/) -->
+<a href="http://michaelhoehle.eu/shiny/mathgenius/">http://michaelhoehle.eu/shiny/mathgenius/</a>
+</center>
+<p>
+<p>
+<p>Here one can alter the input numbers in case variants of the puzzle
+are in need of a solution or, if you occasionally need to generate math
+puzzles for your nephew…</p>
+<center>
+<img src="/blog/figure/source/2019-01-04-mathgenius/shinyapp.png" width="600">
+</center>
+<p>Besides possible solutions one can view the result of all possible
+combinations yielding integer results in the “Details” tab. We invite
+you to experiment with the app or download the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/figure/source/2019-01-04-mathgenius/mathgenius/app.R">source
+code of the Shiny app</a> from github for the full math experience.
+😃</p>
+<p>As always: it’s amazing how easy you can wrap a interactive web based
+UI around your running R code with Shiny!</p>
+<h2 id="discussion">Discussion</h2>
+<p>We used a brute force solution approach by trying out all possible
+combinations to solve the math puzzle. The code of our solution approach
+is flexible enough to handle more or less base numbers, however, the
+number of combinations to try quickly exceeds reasonable memory and
+timing constraints. We stress that <strong>a mathematical purr does not
+need speed, it lives from the beauty of recursion and mappings</strong>!
+Clever mathematicians might be able to achieve considerable speed gains
+by exploiting for example commutative properties of the operators
+whereas skilled computer scientists would parallelise the
+computations.</p>
+<h2 id="literature">Literature</h2>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Note: The term <span class="math inline">\(\frac{1}{k}
+\binom{2k-2}{k-1}\)</span> is the so called <a
+href="https://en.wikipedia.org/wiki/Catalan_number#Applications_in_combinatorics">Catalan
+number</a>, which - among other applications - also denotes the number
+of ways to parenthesize <span class="math inline">\(k-1\)</span> binary
+operations.<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Actually, the package more or less adds a lot of
+convenience wrapping for functional programming in R, the functional
+programming approach is rather deeply rooted in R due to the <a
+href="https://web.archive.org/web/20140414081950/https://daspringate.github.io/posts/2013/05/Functional_programming_in_R.html">S
+language being inspired by Scheme</a>.<a href="#fnref2"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>A purer functional approach would have been to use the
+function definition of the operators directly, i.e. to define
+<code>operatorList</code> with elements such as <code>`+`(e1, e2)</code>
+and then use these functions to build the parse tree as an expression.
+The disadvantage of such an approach is that the expressions become more
+cumbersome to write. For example <code>(5 + 3 + 2) * 4</code> as
+<code>`*`( `+`( `+`(5, 3), 2), 4)</code>.<a href="#fnref3"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2019/01/04/mathgenius.html";
+      this.page.identifier = "/2019/01/04/mathgenius";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

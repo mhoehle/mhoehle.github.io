@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Effective reproduction number estimation</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2020/04/15/effectiveR0.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Effective reproduction number estimation</h1>
+    <p class="post-meta"><time datetime="2020-04-15T00:00:00+02:00" itemprop="datePublished">Apr 15, 2020</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>We discuss the estimation with R of the time-varying effective
+reproduction number during an infectious disease outbreak such as the
+COVID-19 outbreak. Using a single simulated outbreak we compare the
+performance of three different estimation methods.</p>
+<center>
+<img src="/blog/figure/source/2020-04-15-effectiveR0/EFFECTIVERPLOT-1.png" width="550">
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="motivation">Motivation</h2>
+<p>A key parameter to know for an infectious disease pathogen like
+SARS-nCoV-2 is the <a
+href="https://en.wikipedia.org/wiki/Basic_reproduction_number"><strong>basic
+reproduction number</strong></a>, i.e. the expected number of secondary
+cases per primary case in a completely susceptible population. This
+quantity and its relation to the susceptible-infectious-recovered (SIR)
+model was explained in the previous <a
+href="https://staff.math.su.se/hoehle/blog/2020/03/16/flatteningthecurve.html">Flatten
+the COVID-19 curve</a> post. However, as intervention measures are put
+in place and as a certain proportion of the population gains immunity,
+interest switches to knowing the time-varying <strong>effective
+reproduction number</strong>. This quantity is defined as follows:
+Consider an individual, who turns infectious on day <span
+class="math inline">\(t\)</span>. We denote by <span
+class="math inline">\(R_e(t)\)</span> the expected number of secondary
+cases this infectious individual causes. For simplicity we will assume
+that the timing of being able to infect others and the time of being
+able to detect this infectivity (e.g. by symptoms or by a test)
+coincides, i.e. on day <span class="math inline">\(t\)</span> the above
+individual will also appear in the incidence time series. The time
+between symptom onset in the primary case and symptom onset in the
+secondary case is called the <a
+href="https://en.wikipedia.org/wiki/Serial_interval"><strong>serial
+interval</strong></a>. The distribution from which the observed serial
+intervals origin is called the serial interval distribution. Note that
+this is different from the <strong>generation time</strong>, which is
+the time period between exposure of the primary case and exposure of the
+secondary case. However, since time of exposure is rarely observable,
+one instead has to use the time series of incident symptom onsets as
+basis for inference - see also <span class="citation"
+data-cites="svensson2007">Svensson (2007)</span> for a thorough
+discussion of the distinction between the generation time and the serial
+interval. For the sake of simplicity, but slightly against the reality
+of SARS-nCoV-2, the remainder of this post will not distinguish between
+the generation time and the serial interval and will also assume that
+the serial interval is always positive.</p>
+<p>The motivation of this blog post is now to show how to estimate the
+time-varying effective reproduction number <span
+class="math inline">\(R_e(t)\)</span> using R - in particular the R
+package <a
+href="https://cran.r-project.org/web/packages/R0/index.html"><code>R0</code></a>
+<span class="citation" data-cites="obadia_etal2012">(Obadia, Haneef, and
+Boëlle 2012)</span>. The R code of this post is available from <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2020-04-15-effectiveR0.Rmd">github</a>.
+We shall consider three estimators from the literature. One of the
+estimators is used by the German Robert-Koch Institute (RKI). Since <a
+href="https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Situationsberichte/2020-04-07-en.pdf?__blob=publicationFile">8th
+of April 2020</a> the estimate is reported as part of their <a
+href="https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Situationsberichte/Gesamt.html">daily
+COVID-19 situational reports</a> and is thus discussed by major German
+news media (e.g. <a
+href="https://www.tagesschau.de/inland/corona-rki-positivtrend-101.html">ARD</a>).</p>
+<h2 id="outbreak-simulation">Outbreak simulation</h2>
+<p>We consider a simple growth model and denote by <span
+class="math inline">\(y_t\)</span> the expected number of new symptom
+onsets we observe on day <span class="math inline">\(t\)</span>. Let
+<span class="math inline">\((g_1, \ldots, g_M)&#39;\)</span>, denote the
+probability mass function of the serial interval distribution,
+i.e. <span class="math inline">\(P(GT=i) = g_i\)</span> for <span
+class="math inline">\(i=1,2,\ldots, M\)</span> . The development in the
+expected number of cases can be described by the homogeneous linear
+difference equation <span class="math display">\[
+\begin{align*}
+y_t =  R_e(t-1) g_1 y_{t-1} + \ldots + R_e(t-M) g_M y_{t-M} =
+\sum_{i=1}^M R_e(t-i) g_i y_{t-i},
+\end{align*}
+\]</span> where <span class="math inline">\(t=2, 3, \ldots\)</span> and
+where we on the RHS ignore terms when <span class="math inline">\(t-M
+\leq 0\)</span>. Furthermore, we fix <span
+class="math inline">\(y_1=1\)</span> and conceptually denote by <span
+class="math inline">\(t=1\)</span> the 15th of February 2020 in calendar
+time. To simulate a COVID-19 like outbreak with lockdown type
+intervention we use <span class="math display">\[
+\begin{align*}
+R_e(t) = \left\{
+\begin{array}{}
+2.5 &amp; \text{if } t \leq \text{2020-03-15} \\
+0.95 &amp; \text{otherwise}
+\end{array}
+\right.
+\end{align*}
+\]</span></p>
+<h3 id="serial-interval-distribution">Serial Interval Distribution</h3>
+<p>In what follows we shall use a simple discrete serial interval
+distribution with support on the values 1-7 days. Such a distribution
+can easily be stated as</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>GT_pmf <span class="ot">&lt;-</span> <span class="fu">structure</span>( <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.2</span>, <span class="fl">0.2</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>), <span class="at">names=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">7</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>GT_obj <span class="ot">&lt;-</span> R0<span class="sc">::</span><span class="fu">generation.time</span>(<span class="st">&quot;empirical&quot;</span>, <span class="at">val=</span>GT_pmf)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>GT_obj</span></code></pre></div>
+<pre><code>## Discretized Generation Time distribution
+## mean: 4 , sd: 1.732051 
+##   0   1   2   3   4   5   6   7 
+## 0.0 0.1 0.1 0.2 0.2 0.2 0.1 0.1</code></pre>
+<p>Note that the selected PMF of the serial interval has mean 4.00 and
+is symmetric around its mean.</p>
+<h3 id="outbreak-simulation-1">Outbreak simulation</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define time varying effective reproduction number</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Ret <span class="ot">&lt;-</span> <span class="cf">function</span>(date) <span class="fu">ifelse</span>(date <span class="sc">&lt;=</span> <span class="fu">as.Date</span>(<span class="st">&quot;2020-03-15&quot;</span>), <span class="fl">2.5</span>, <span class="fl">0.95</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate an outbreak (no stochasticity, just the difference equation)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">routbreak</span>(<span class="at">n=</span><span class="dv">60</span>, <span class="at">Ret=</span>Ret, <span class="at">GT_obj=</span>GT_obj)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>out <span class="ot">&lt;-</span> out <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">ratio =</span> y<span class="sc">/</span><span class="fu">lag</span>(y))</span></code></pre></div>
+<p>We simulate an outbreak using the above difference equation for the
+selected serial interval distribution starting with one initial case on
+2020-02-15. The daily incidence curve of the simulated outbreak looks as
+follows:</p>
+<p><img src="/blog/figure/source/2020-04-15-effectiveR0/THEOUTBREAK-1.png" style="display: block; margin: auto;" /></p>
+<p>For better visualisation the right hand panel shows a plot of <span
+class="math inline">\(q_t = y_{t}/y_{t-1}\)</span>. One interesting
+question is how <span class="math inline">\(q_t\)</span> is related to
+<span class="math inline">\(R_e(t)\)</span>.</p>
+<h2 id="wallinga-and-teunis-2004">Wallinga and Teunis (2004)</h2>
+<p>The method of <span class="citation"
+data-cites="wallinga_teunis2004">Wallinga and Teunis (2004)</span>
+developed as part of the 2003 SARS outbreak is available as function
+<code>R0::est.R0.TD</code>. It uses a statistical procedure based on the
+relative likelihood for two cases <span class="math inline">\(i\)</span>
+and <span class="math inline">\(j\)</span> with symptom onset at times
+<span class="math inline">\(t_i &gt; t_j\)</span> to be a possible
+infector-infectee pair. Further methodological details of the method can
+be found in the paper.</p>
+<p>In code:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>est_rt_wt <span class="ot">&lt;-</span> <span class="cf">function</span>(ts, GT_obj) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  end <span class="ot">&lt;-</span> <span class="fu">length</span>(ts) <span class="sc">-</span> (<span class="fu">length</span>(GT_obj<span class="sc">$</span>GT)<span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  R0<span class="sc">::</span><span class="fu">est.R0.TD</span>(ts, <span class="at">GT=</span>GT_obj, <span class="at">begin=</span><span class="dv">1</span>, <span class="at">end=</span>end, <span class="at">nsim=</span><span class="dv">1000</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="wallinga-and-lipsitch-2006">Wallinga and Lipsitch (2006)</h3>
+<p><span class="citation" data-cites="wallinga_lipsitch2006">Wallinga
+and Lipsitch (2006)</span> discuss the connection between the generation
+time distribution and the reproduction number. They derive the important
+relationship that <span class="math inline">\(R = 1/M(-r)\)</span>,
+where <span class="math inline">\(r\)</span> is the per-capita
+growth-rate of the epidemic and <span
+class="math inline">\(M(\cdot)\)</span> is the <a
+href="https://en.wikipedia.org/wiki/Moment-generating_function">moment
+generating function</a> of the generation time distribution. As an
+example, if the generation time distribution is a point-mass
+distribution with all mass at the value <span
+class="math inline">\(G\)</span> then <span class="math inline">\(M(u) =
+\exp(u G)\)</span>. Two possible estimators for <span
+class="math inline">\(R\)</span> in dependence of the generation time
+would be: <span class="math display">\[
+\begin{align*}
+R &amp;= \exp(r \cdot G) &amp; \text{(generation time is a point mass at
+G)}\\
+R &amp;= \left[\sum_{k=1}^\infty \exp(-r \cdot k) \cdot g_k\right]^{-1}
+&amp; \text{(discrete generation time with PMF } g_1,g_2,\ldots)
+\end{align*}
+\]</span></p>
+<p>A simple way to make the above an effective reproduction number
+estimate is to use a sliding window of half-size <span
+class="math inline">\(w\)</span> centered around time <span
+class="math inline">\(t\)</span> in order to estimate the growth rate
+parameter <span class="math inline">\(r\)</span>. For example using a
+Poisson GLM model of the kind <span class="math display">\[
+\begin{align*}
+y_s  &amp;\sim \operatorname{Po}(\lambda_s), \text{ with }\\
+\log(\lambda_s) &amp;= a + r s,
+\end{align*}
+\]</span> where <span class="math inline">\(s=t-w,\ldots, t+w\)</span>.
+An estimator for <span class="math inline">\(r\)</span> is then easily
+extracted together with a confidence interval using a <code>glm</code>
+approach. In code:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; Window limited exponential growth rate estimator as in </span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; Wallinga &amp; Lipsitch (2007). </span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param ts Time series of incident counts per time interval</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param GT_obj PMF of the generation time R0.GT object </span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param half_window_width Integer denoting the half-window width</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>est_rt_exp <span class="ot">&lt;-</span> <span class="cf">function</span>(ts, GT_obj, <span class="at">half_window_width=</span>3L) {</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Loop over all time points where the sliding window fits in</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">&lt;-</span> <span class="fu">sapply</span>((half_window_width<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(<span class="fu">length</span>(ts)<span class="sc">-</span>half_window_width), <span class="cf">function</span>(t) {</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Define the sliding window</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    idx <span class="ot">&lt;-</span> (t<span class="sc">-</span>half_window_width)<span class="sc">:</span>(t<span class="sc">+</span>half_window_width)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Date=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(ts), <span class="at">y=</span><span class="fu">as.numeric</span>(ts))</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fit a Poisson GLM</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    m <span class="ot">&lt;-</span> <span class="fu">glm</span>( y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> Date, <span class="at">family=</span>poisson, <span class="at">data=</span> data  <span class="sc">%&gt;%</span> <span class="fu">slice</span>(idx))</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Extract the growth rate </span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    r <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">coef</span>(m)[<span class="st">&quot;Date&quot;</span>])</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Equation 2.9 from Wallinga &amp; Lipsitch</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    R <span class="ot">&lt;-</span> <span class="fu">R.from.r</span>(r, GT_obj)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(R)</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(res) <span class="ot">&lt;-</span> <span class="fu">names</span>(ts)[(half_window_width<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(<span class="fu">length</span>(ts)<span class="sc">-</span>half_window_width)]</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(res)</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="rki-method">RKI Method</h3>
+<p>In a recent <a
+href="https://www.rki.de/DE/Content/Infekt/EpidBull/Archiv/2020/Ausgaben/17_20_SARS-CoV2_vorab.pdf?__blob=publicationFile">report</a>
+[<span class="citation" data-cites="anderheiden_hamouda2020">an der
+Heiden and Hamouda (2020)</span>]<a href="#fn1" class="footnote-ref"
+id="fnref1" role="doc-noteref"><sup>1</sup></a> the RKI described their
+method for computing <span class="math inline">\(R_e(t)\)</span> as part
+of the COVID-19 outbreak as follows (p. 13): <em>For a constant
+generation time of 4 days, one obtains <span
+class="math inline">\(R\)</span> as the ratio of new infections in two
+consecutive time periods each consisting of 4 days</em>. Mathematically,
+this estimation could be formulated as part of a statistical model:
+<span class="math display">\[
+\begin{align*}
+y_{s+4} \&gt;| \&gt; y_s &amp;\sim \operatorname{Po}(R \cdot y_s), \quad
+s=1,2,3,4.
+\end{align*}
+\]</span> where <span class="math inline">\(y_1,\ldots, y_4\)</span> are
+considered as fixed. From this we obtain <span
+class="math inline">\(\hat{R}_{RKI}=\sum_{s=1}^4 y_{s+4} / \sum_{s=1}^4
+y_{s}\)</span>. If we use a GLM to fit the model, we not only get <span
+class="math inline">\(\hat{R}\)</span> but also a confidence interval
+for <span class="math inline">\(R\)</span> out-of-the box. Somewhat
+arbitrary, we denote by <span class="math inline">\(R_e(t)\)</span> the
+above estimate for <span class="math inline">\(R\)</span> when <span
+class="math inline">\(s=1\)</span> corresponds to time <span
+class="math inline">\(t-8\)</span>, i.e. we assign the obtained value to
+the last of the 8 values used in the computation.</p>
+<p>In code:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; RKI R_e(t) estimator with generation time GT (default GT=4). Note: The time t</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; is assigned to the last day in the blocks of cases on [t,t+1,t+2, t+3] vs.</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; [t+4,t+5,t+6, t+7], i.e. s=t-8 (c.f. p. 14 of 2020-04-24 version of the RKI paper)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param ts - Vector of integer values containing the time series of incident cases</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param GT - PMF of the generation time is a fixed point mass at the value GT.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>est_rt_rki_last <span class="ot">&lt;-</span> <span class="cf">function</span>(ts, <span class="at">GT=</span>4L) {</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sanity check</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.integer</span>(GT) <span class="sc">|</span> <span class="sc">!</span>(GT<span class="sc">&gt;</span><span class="dv">0</span>)) <span class="fu">stop</span>(<span class="st">&quot;GT has to be postive integer.&quot;</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Estimate, if s=1 is t-7</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">&lt;-</span> <span class="fu">sapply</span>( (<span class="dv">2</span><span class="sc">*</span>GT)<span class="sc">:</span><span class="fu">length</span>(ts), <span class="cf">function</span>(t) {</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(ts[t<span class="sc">-</span>(<span class="dv">0</span><span class="sc">:</span>(GT<span class="dv">-1</span>))]) <span class="sc">/</span> <span class="fu">sum</span>(ts[t<span class="dv">-2</span><span class="sc">*</span>GT<span class="sc">+</span><span class="dv">1</span><span class="sc">:</span>GT])</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(res) <span class="ot">&lt;-</span> <span class="fu">names</span>(ts)[(<span class="dv">2</span><span class="sc">*</span>GT)<span class="sc">:</span><span class="fu">length</span>(ts)]</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(res)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Basically, the method appears to be the <span class="citation"
+data-cites="wallinga_lipsitch2006">Wallinga and Lipsitch (2006)</span>
+approach using a point mass generation time distribution, but with a
+slightly different timing of the sliding windows. However, since no
+references were given in the RKI publication, I got curious: what
+happens for this approach when the generation time distribution is not a
+point mass at <span class="math inline">\(G\)</span>? What happens if
+the mean generation time is not an integer? That these are not purely
+hypothetical question is underlined by the fact that <span
+class="citation"
+data-cites="nishiura_serial_2020">(<strong>nishiura_serial_2020?</strong>)</span>
+find a serial interval distribution with mean 4.7 days and standard
+deviation 2.9 as the most suitable fit to data from 28 COVID-19
+infector-infectee pairs. Such a serial interval distribution has the
+following shape:
+<img src="/blog/figure/source/2020-04-15-effectiveR0/SIDISTPLOT-1.png" style="display: block; margin: auto;" /></p>
+<h3 id="the-comparison">The Comparison</h3>
+<p>The aim of this post is thus to compare the performance of the RKI
+estimator with both the <span class="citation"
+data-cites="wallinga_teunis2004">Wallinga and Teunis (2004)</span> and
+the <span class="citation" data-cites="wallinga_lipsitch2006">Wallinga
+and Lipsitch (2006)</span> estimators for the single outbreak simulated
+in this post. Results do, however, generalize to other
+configurations.</p>
+<p>We compute and plot of the <span
+class="math inline">\(R_e(t)\)</span> estimates:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># RKI method as specified in 2020-04-24 version of the article</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>rt_rki_last <span class="ot">&lt;-</span> <span class="fu">est_rt_rki_last</span>(out<span class="sc">$</span>y  <span class="sc">%&gt;%</span> <span class="fu">setNames</span>(out<span class="sc">$</span>Date), <span class="at">GT=</span>4L)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Exponential growth with discrete Laplace transform of a GT \equiv = 4 distribution</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>rt_exp2 <span class="ot">&lt;-</span> <span class="fu">est_rt_exp</span>( out<span class="sc">$</span>y <span class="sc">%&gt;%</span> <span class="fu">setNames</span>(out<span class="sc">$</span>Date), <span class="at">GT_obj=</span>R0<span class="sc">::</span><span class="fu">generation.time</span>(<span class="st">&quot;empirical&quot;</span>, <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>)), <span class="at">half_window_width=</span><span class="dv">3</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Exponential growth with discrete Laplace transform of the correct GT distribution</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>rt_exp <span class="ot">&lt;-</span> <span class="fu">est_rt_exp</span>( out<span class="sc">$</span>y <span class="sc">%&gt;%</span> <span class="fu">setNames</span>(out<span class="sc">$</span>Date), <span class="at">GT_obj=</span>GT_obj, <span class="at">half_window_width=</span><span class="dv">3</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Wallinga Teunis approach with correct GT distribution</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>rt_wt <span class="ot">&lt;-</span> <span class="fu">est_rt_wt</span>( out<span class="sc">$</span>y, <span class="at">GT=</span>GT_obj)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Data frame with the true values</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>Ret_true <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Date=</span>out<span class="sc">$</span>Date) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">R_hat=</span><span class="fu">Ret</span>(Date), <span class="at">Method=</span><span class="st">&quot;Truth&quot;</span>)</span></code></pre></div>
+<p><img src="/blog/figure/source/2020-04-15-effectiveR0/EFFECTIVERPLOT-1.png" style="display: block; margin: auto;" />
+The shaded area indicates the pointwise confidence intervals of the
+<span class="citation" data-cites="wallinga_teunis2004">Wallinga and
+Teunis (2004)</span> method. To make the results of the graph more
+explicit, we take a look at 3 time points in the beginning of the
+outbreak:</p>
+<pre><code>##         Date W &amp; T, correct GT RKI, GT=4 Truth Exp-G, correct GT
+## 1 2020-03-11          2.418862  2.748119   2.5          2.499998
+## 2 2020-03-12          2.303251  2.748070   2.5          2.500003
+## 3 2020-03-13          2.140055  2.748073   2.5          2.500000</code></pre>
+<p>and 3 time points at the end of the outbreak:</p>
+<pre><code>##         Date W &amp; T, correct GT RKI, GT=4 Truth Exp-G, correct GT
+## 1 2020-04-05              0.95 0.9499707  0.95         0.9502002
+## 2 2020-04-06              0.95 0.9500350  0.95         0.9501288
+## 3 2020-04-07              0.95 0.9499612  0.95         0.9500405</code></pre>
+<p>One observes that the RKI method has a bias in this situation. To
+some extent this is not surprising, because both the W &amp; T method as
+well as the exponential growth model use the correct generation time
+distribution, whereas the RKI method and the exponential growth with
+point mass distribution use an incorrect serial interval distribution.
+In practice “the correct” serial interval distribution would not be
+available – only an estimate. However, one could reflect estimation
+uncertainty through additional bootstrapping of the two more advanced
+methods. A more thorough investigation of the methods would of course
+also have to investigate the effect of misspecification for the W &amp;
+T (2004) method or the exponential growth approach. The point is,
+however, that the RKI method as stated in the report is not able to
+handle a non-point-mass generation time distribution, which does seem
+necessary. There might be other reasons for choosing such a simplified
+distribution, but from a statistical point of view it seems like the
+estimator could be improved.</p>
+<h3 id="instantaneous-reproduction-number">Instantaneous reproduction
+number</h3>
+<p><strong>Update 2020-04-22</strong>: Based on recent discussions, I’m
+adding an additional reproduction number estimator, i.e. the
+<strong>instantaneous reproduction number</strong> as defined in <span
+class="citation" data-cites="cori_etal2013">Cori et al. (2013)</span>.
+This quantitity is different from the effective reproduction number,
+because it compares the number of new infections on day <span
+class="math inline">\(t\)</span> with the infection pressure from the
+days prior to <span class="math inline">\(t\)</span>, i.e.</p>
+<p><span class="math display">\[
+\hat{R}(t) = \frac{y_t}{\sum_{s=1}^{t} g_{s} \cdot y_{t-s}}
+\]</span></p>
+<p>It can be interpreted as the average number of secondary cases that
+each symptomatic individual at time <span
+class="math inline">\(t\)</span> would infect, if the conditions
+remained as they were at time <span
+class="math inline">\(t\)</span>.</p>
+<p>Opposite to the forward looking approach of <span class="citation"
+data-cites="wallinga_teunis2004">Wallinga and Teunis (2004)</span>, this
+estimator is defined backwards in time. As illustrated by this comment
+to a JAMA paper by <a
+href="https://github.com/keyajoshi/Pan_response">Lipsitch et al.</a>,
+the definition of timing of <span class="math inline">\(R(t)\)</span>
+can make a big difference when comparing it with intervention measures.
+The instantaneous reproduction number estimator is implemented in the <a
+href="https://cran.r-project.org/web/packages/EpiEstim/index.html"><code>EpiEstim</code></a>
+package <span class="citation" data-cites="cori_etal2013">(Cori et al.
+2013)</span>. For our small simulation and without any smoothing window
+for the instantaneous estimator we obtain</p>
+<p><img src="/blog/figure/source/2020-04-15-effectiveR0/PLOTINSTANTANEOUSR0-1.png" style="display: block; margin: auto;" /></p>
+<p>One observes that the change of the estimate in timing corresponds to
+the intervention, but it takes time to adjust to the new situation and,
+hence, provides too high values reproduction number values for some days
+after the intervention, which is the point of <a
+href="https://github.com/keyajoshi/Pan_response">Lipsitch et al.</a>.
+The plot shows how difficult it is to use reproduction number estimates
+to assess interventions, where the change is abrupt and at a time scale
+shorter than the serial interval. Furthermore, since the RKI method is
+assigned to the last time point of the two 4-blocks compared, it appears
+in interpretation to be closer to the instantenous reproduction
+number.</p>
+<p>At this point it is good to remember why one started to consider the
+effective reproduction number in the first place. That is, as a
+real-time (i.e. with interventions and immunity) extension of the basic
+reproduction number <span class="math inline">\(R_0\)</span>. To me this
+definition is inherently forward in time.</p>
+<h2 id="discussion">Discussion</h2>
+<p>In this post we showed how to compute the effective reproduction
+number in R using both own implementations and the <a
+href="https://cran.r-project.org/web/packages/R0/index.html"><code>R0</code></a>
+package. We illustrated this with data from a hypothetical outbreak. An
+important message is that there is a mathematical relationship between
+the daily growth factor and the reproduction number - this relationship
+is governed by the generation time distribution.</p>
+<p>In the present analysis the RKI method, which basically is identical
+to the approach of inserting the point mass distribution into the
+formula of <span class="citation"
+data-cites="wallinga_lipsitch2006">Wallinga and Lipsitch (2006)</span>,
+showed a bias when the generation time had the anticipated mean, but had
+a standard deviation larger than zero. The bias is more pronounced when
+<span class="math inline">\(R_e(t)\)</span> is further away from 1.
+However, once the lockdown is gradually lifted, <span
+class="math inline">\(R_e(t)\)</span> is likely to raise again making
+this potentially a relevant bias. The exponential growth approach using
+the moment generating function of the (discretized) best estimate of the
+serial interval distribution, can be realized with any statistics
+package and is computationally fast. Further algorithmic improvements
+such as <span class="citation" data-cites="wallinga_teunis2004">Wallinga
+and Teunis (2004)</span> are readily available in R.</p>
+<p>A nice site, which computes time varying reproduction rates for many
+countries in the world is <a
+href="https://epiforecasts.io/covid/">Temporal variation in transmission
+during the COVID-19 outbreak</a> by the LSHTM.</p>
+<h2 class="unnumbered" id="literature">Literature</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-anderheiden_hamouda2020" class="csl-entry" role="listitem">
+an der Heiden, M., and O. Hamouda. 2020. <span>“Schätzung Der Aktuellen
+Entwicklung Der SARS-CoV-2-Epidemie in Deutsch-Land –
+Nowcasting.”</span> <em>Epid Bull</em> 17: 10–15. <a
+href="https://doi.org/10.25646/6692.4">https://doi.org/10.25646/6692.4</a>.
+</div>
+<div id="ref-cori_etal2013" class="csl-entry" role="listitem">
+Cori, Anne, Neil M. Ferguson, Christophe Fraser, and Simon Cauchemez.
+2013. <span>“A New Framework and Software to Estimate Time-Varying
+Reproduction Numbers During Epidemics.”</span> <em>American Journal of
+Epidemiology</em> 178 (9): 1505–12. <a
+href="https://doi.org/10.1093/aje/kwt133">https://doi.org/10.1093/aje/kwt133</a>.
+</div>
+<div id="ref-obadia_etal2012" class="csl-entry" role="listitem">
+Obadia, Thomas, Romana Haneef, and Pierre-Yves Boëlle. 2012. <span>“The
+R0 Package: A Toolbox to Estimate Reproduction Numbers for Epidemic
+Outbreaks.”</span> <em>BMC Medical Informatics and Decision Making</em>
+12 (1): 147.
+</div>
+<div id="ref-svensson2007" class="csl-entry" role="listitem">
+Svensson, Å. 2007. <span>“<span class="nocase"><span>A</span> note on
+generation times in epidemic models</span>.”</span> <em>Math Biosci</em>
+208 (1): 300–311. <a
+href="https://doi.org/10.1016/j.mbs.2006.10.010">https://doi.org/10.1016/j.mbs.2006.10.010</a>.
+</div>
+<div id="ref-wallinga_lipsitch2006" class="csl-entry" role="listitem">
+Wallinga, J., and M. Lipsitch. 2006. <span>“How Generation Intervals
+Shape the Relationship Between Growth Rates and Reproductive
+Numbers.”</span> <em>Proc. R. Soc. B.</em> 274: 599–604. <a
+href="https://doi.org/10.1098/rspb.2006.3754">https://doi.org/10.1098/rspb.2006.3754</a>.
+</div>
+<div id="ref-wallinga_teunis2004" class="csl-entry" role="listitem">
+Wallinga, J., and P. Teunis. 2004. <span>“<span
+class="nocase"><span>D</span>ifferent epidemic curves for severe acute
+respiratory syndrome reveal similar impacts of control
+measures</span>.”</span> <em>American Journal of Epidemiology</em> 160
+(6): 509–16.
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>My remarks are based on the 1st published version
+(2020-04-09) of the article<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2020/04/15/effectiveR0.html";
+      this.page.identifier = "/2020/04/15/effectiveR0";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

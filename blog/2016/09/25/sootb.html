@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Surveillance Out of the Box - The #Zombie Experiment</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2016/09/25/sootb.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Surveillance Out of the Box - The #Zombie Experiment</h1>
+    <p class="post-meta"><time datetime="2016-09-25T00:00:00+02:00" itemprop="datePublished">Sep 25, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>We perform a social experiment to investigate, if zombie related
+twitter posts can be used as a reliable indicator for an early warning
+system. We show how such a system can be set up almost out-of-the-box
+using R - a free software environment for statistical computing and
+graphics. <strong>Warning</strong>: This blog entry contains toxic doses
+of Danish irony and sarcasm as well as disturbing graphs.
+<strong>Update</strong>: The blog post was extended with additional
+data, graphs and text at 2016-11-03 00:08:27. Scroll to the end of the
+post for details.</p>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>Proposing statistical methods is only mediocre fun if nobody applies
+them. As an act of desperation the prudent statistician has been forced
+to provide R packages supplemented with a CRAN, github, useR! or
+word-of-mouth advertising strategy. To underpin efforts, a
+reproducibility-crisis has been announced in order to scare decent
+comma-separated scientists <a
+href="https://www.washingtonpost.com/news/wonk/wp/2016/08/26/an-alarming-number-of-scientific-papers-contain-excel-errors/">from
+using Excel</a>. Social media marketing strategies of your R package
+include hashtag <code>#rstats</code> twitter announcements, possibly
+enhanced by a picture or animation showing your package at its best:</p>
+<center>
+<blockquote class="twitter-tweet" data-lang="en">
+<p lang="en" dir="ltr">
+Introducing gganimate:
+<a href="https://twitter.com/hashtag/rstats?src=hash">#rstats</a>
+package for adding animation to any ggplot2 figure
+<a href="https://t.co/UBWKHmIc0e">https://t.co/UBWKHmIc0e</a>
+<a href="https://t.co/oQhQaYBqOj">pic.twitter.com/oQhQaYBqOj</a>
+</p>
+— David Robinson (@drob)
+<a href="https://twitter.com/drob/status/694274942813102080">February 1,
+2016</a>
+</blockquote>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+</center>
+<p>
+<p>Unfortunately, little experience with the interactive aspect of this
+statistical software marketing strategy appears to be available. In
+order to fill this scientific advertising gap, this blog post
+constitutes an advertisement for the
+<strong>out-of-the-box-functionality</strong> of the
+<code>surveillance</code> package hidden as social experiment. It shows
+shows what you can do with R when combining a couple of packages,
+wrangle the data, cleverly visualize the results and then team up with
+the fantastic R community.</p>
+<h2 id="the-setup-detecting-a-zombie-attack">The Setup: Detecting a
+Zombie Attack</h2>
+<p>As previously explained in an <a
+href="http://user2015.math.aau.dk/lightning_talks">useR! 2015 lightning
+talk</a>, Max Brooks’ <a
+href="https://en.wikipedia.org/wiki/The_Zombie_Survival_Guide">Zombie
+Survival Guide</a> is very concerned about the <strong>early
+warning</strong> of Zombie outbreaks.</p>
+<center>
+<a
+href="http://staff.math.su.se/hoehle/software/surveillance/hoehle-userR2015-web.pdf"><img src="/blog/figure/source/2016-09-25-sootb/zombiepreparedness.png"></a>
+</center>
+<p><br></p>
+<p>However, despite of extensive research and recommendations, no
+reliable service appears available for the early detection of such
+upcoming events. Twitter, on the other hand, has become the media
+darling to stay informed about news as they unfold. Hence, continuous
+monitoring of hashtags like <code>#zombie</code> or
+<code>#zombieattack</code> appears an essential component of your zombie
+survival strategy.</p>
+<h1 id="tight-clothes-short-hair-and-r">Tight Clothes, Short Hair and
+R</h1>
+<p>Extending the recommendations of the Zombie Survival guide we provide
+an out-of-the-box (OOTB) monitoring system by using the
+<code>rtweet</code> R package to obtain all individual tweets containing
+the hashtags <code>#zombie</code> or <code>#zombieattack</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>the_query <span class="ot">&lt;-</span> <span class="st">&quot;#zombieattack OR #zombie&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>geocode <span class="ot">&lt;-</span> <span class="st">&quot;&quot;</span>  <span class="co">#To limit the seach to berlin &amp; surroundings: geocode &lt;- &quot;52.520583,13.402765,25km&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#Converted query string which works for storing as file</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>safe_query <span class="ot">&lt;-</span> stringr<span class="sc">::</span><span class="fu">str_replace_all</span>(the_query, <span class="st">&quot;[^[:alnum:]]&quot;</span>, <span class="st">&quot;X&quot;</span>)</span></code></pre></div>
+<p>In particular, the <a
+href="https://github.com/mkearney/rtweet">README</a> of the
+<code>rtweet</code> package provides helpful information on how to
+create a twitter app to automatically search tweets using the twitter
+API. One annoyance of the twitter REST API is that only the tweets of
+the past 7 days are kept in the index. Hence, your time series are going
+to be short unless you accumulate data over several queries spread over
+a time period. Instead of using a fancy database setup for this data
+collection, we provide a simple R solution based on <code>dplyr</code>
+and <code>saveRDS</code> - see the underlying R code of this post by
+clicking on the github logo in the license statement of this post.
+Basically,</p>
+<ul>
+<li>all tweets fulfilling the above hashtag search queries are
+extracted</li>
+<li>each tweet is extended with a time stamp of the query-time</li>
+<li>the entire result of each query us stored into a separate RDS-files
+using <code>saveRDS</code></li>
+</ul>
+<p>In a next step, all stored queries are loaded from the RDS files and
+put together. Subsequently, only the newest time stamped entry about
+each tweet is kept - this ensures that the re-tweeted counts are
+up-to-date and no post is counted twice. All these data wrangling
+operations are easily conducted using <code>dplyr</code>. Of course a
+full database solution would have been more elegant, but R does the job
+just as well as long it’s not millions of queries. Actually, in the
+example we are going to use the results of a single query. No matter the
+data backend, at the end of this pipeline we have a database of
+tweets.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Read the tweet database</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>tw <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="at">file=</span><span class="fu">paste0</span>(filePath,<span class="st">&quot;Tweets-Database-&quot;</span>,safe_query,<span class="st">&quot;-&quot;</span>,<span class="st">&quot;2016-09-25&quot;</span>,<span class="st">&quot;.RDS&quot;</span>))</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">width=</span><span class="dv">300</span>,<span class="at">tibble.width =</span> <span class="cn">Inf</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>tw <span class="sc">%&gt;%</span> <span class="fu">select</span>(created_at, retweet_count,screen_name,text,hashtags,query_at)</span></code></pre></div>
+<pre><code>## # A tibble: 10,974 × 6
+##             created_at retweet_count    screen_name                                                                                                                                          text  hashtags            query_at
+##                 &lt;dttm&gt;         &lt;int&gt;          &lt;chr&gt;                                                                                                                                         &lt;chr&gt;    &lt;list&gt;              &lt;dttm&gt;
+## 1  2016-09-25 10:26:28             0       Lovebian                                               The latest #Zombie Nation! https://t.co/8ZkOFSZH2v Thanks to @NJTVNews @MaxfireXSA @Xtopgun901X &lt;chr [1]&gt; 2016-09-25 10:30:44
+## 2  2016-09-25 10:25:49             2  MilesssAwaaay RT @Shaaooun: I&#39;m gonna turn to a zombie soon! xdxdxdxd #AlmostSurvived #204Days #ITried #Zombie #StuckInMyRoom #Haha\n\n#MediaDoomsDay #Kame &lt;chr [7]&gt; 2016-09-25 10:30:44
+## 3  2016-09-25 10:21:10             6 catZzinthecity          RT @ZombieEventsUK: 7 reasons #TheGirlWithAllTheGifts is the best #zombie movie in years https://t.co/MB82ssxss2 via @MetroUK #Metro &lt;chr [3]&gt; 2016-09-25 10:30:44
+## 4  2016-09-25 10:19:41             0  CoolStuff2Get                             Think Geek Zombie Plush Slippers https://t.co/0em920WCMh #Zombie #Slippers #MyFeetAreCold https://t.co/iCEkPBykCa &lt;chr [3]&gt; 2016-09-25 10:30:44
+## 5  2016-09-25 10:19:41             4  TwitchersNews    RT @zOOkerx: Nur der frhe Vogel fngt den #zombie also schaut gemtlich rein bei @booty_pax! Now live #dayz on #twitch \n\nhttps://t.co/OIk6 &lt;chr [3]&gt; 2016-09-25 10:30:44
+## 6  2016-09-25 10:17:45             0 ZombieExaminer     Washington mall shooting suspect Arcan Cetin was &#39;#Zombie-like&#39; during arrest - USA TODAY https://t.co/itoDXG3L8T https://t.co/q2mURi24DB &lt;chr [1]&gt; 2016-09-25 10:30:44
+## 7  2016-09-25 10:17:44             4       SpawnRTs    RT @zOOkerx: Nur der frhe Vogel fngt den #zombie also schaut gemtlich rein bei @booty_pax! Now live #dayz on #twitch \n\nhttps://t.co/OIk6 &lt;chr [3]&gt; 2016-09-25 10:30:44
+## 8  2016-09-25 10:17:23             0   BennyPrabowo                   bad miku - bad oni-chan... no mercy\n.\n.\n.\n.\n#left4dead #games #hatsunemiku #fps #zombie #witch https://t.co/YP0nRDFFj7 &lt;chr [6]&gt; 2016-09-25 10:30:44
+## 9  2016-09-25 10:12:53            62   Nblackthorne  RT @PennilessScribe: He would end her pain, but he could no longer live in a world that demanded such sacrifice. #zombie #apocalypse\nhttps: &lt;chr [2]&gt; 2016-09-25 10:30:44
+## 10 2016-09-25 10:06:46             0   mthvillaalva                                                             Pak ganern!!! Kakatapos ko lang kumain ng dugo! \n#Zombie https://t.co/Zyd0btVJH4 &lt;chr [1]&gt; 2016-09-25 10:30:44
+## # ... with 10,964 more rows</code></pre>
+<h3 id="ootb-zombie-surveillance">OOTB Zombie Surveillance</h3>
+<p>We are now ready to prospectively detect changes using the
+<code>surveillance</code> R package <span class="citation"
+data-cites="salmon_etal2016a">(Salmon, Schumacher, and Höhle
+2016)</span>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;surveillance&quot;</span>)</span></code></pre></div>
+<p>We shall initially focus on the <code>#zombie</code> series as it
+contains more counts. The first step is to convert the
+<code>data.frame</code> of individual tweets into a time series of daily
+counts.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; Function to convert data.frame to queries. For convenience we store the time series</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; and the data.frame jointly as a list. This allows for easy manipulations later on</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; as we see data.frame and time series to be a joint package.</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param tw data.frame containing the linelist of tweets.</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param the_query_subset String containing a regexp to restrict the hashtags</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param delete_first_day (boolean) Delete first day of the series due to it being incomplete</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @return List containing sts object as well as the original data frame.</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>df_2_timeseries <span class="ot">&lt;-</span> <span class="cf">function</span>(tw, the_query_subset, <span class="at">delete_first_day=</span><span class="cn">TRUE</span>) {</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  tw_subset <span class="ot">&lt;-</span> tw <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="fu">gsub</span>(<span class="st">&quot;#&quot;</span>,<span class="st">&quot;&quot;</span>,the_query_subset),hashtags))</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Aggregate data per day and convert times series to sts object</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  ts <span class="ot">&lt;-</span> surveillance<span class="sc">::</span><span class="fu">linelist2sts</span>(<span class="fu">as.data.frame</span>(tw_subset), <span class="at">dateCol=</span><span class="st">&quot;created_at_Date&quot;</span>, <span class="at">aggregate.by=</span><span class="st">&quot;1 day&quot;</span>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Drop first day with observations, due to the moving window of the twitter index, this count is incomplete</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (delete_first_day) ts <span class="ot">&lt;-</span> ts[<span class="sc">-</span><span class="dv">1</span>,]</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">list</span>(<span class="at">tw=</span>tw_subset,<span class="at">ts=</span>ts, <span class="at">the_query_subset=</span>the_query_subset))</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>zombie <span class="ot">&lt;-</span> <span class="fu">df_2_timeseries</span>(tw, <span class="at">the_query_subset =</span> <span class="st">&quot;#zombie&quot;</span>)</span></code></pre></div>
+<p>It’s easy to visualize the resulting time series using the plotting
+functionality of the surveillance package.</p>
+<p><img
+src="http://staff.math.su.se/hoehle/blog/figure/source/2016-09-25-sootb/unnamed-chunk-9-1.png" /></p>
+<p>We see that the counts on the last day are incomplete. This is
+because the query was performed at 10:30 CEST and not at midnight. We
+therefore adjust counts on the last day based on simple inverse
+probability weighting. This just means that we scale up the counts by
+the inverse of the fraction the query-hour (10:30 CEST) makes up of 24h
+(see github code for details). The usefulness of this adjustment relies
+on the assumption that queries are evenly distributed over the day.</p>
+<p>We are now ready to apply a surveillance algorithm to the
+pre-processed time series. We shall pick the so called C1 version of the
+EARS algorithm documented in <span class="citation"
+data-cites="hutwagner_etal2003">Hutwagner et al. (2003)</span> or <span
+class="citation" data-cites="fricker_etal2008">Fricker, Hegler, and
+Dunfee (2008)</span>. For a monitored time point <span
+class="math inline">\(s\)</span> (here: a particular day, say,
+2016-09-23), this simple algorithm takes the previous seven observations
+before <span class="math inline">\(s\)</span> in order to compute the
+mean and standard deviation, i.e. <span class="math display">\[
+\begin{align*}
+\bar{y}_s             &amp;= \frac{1}{7} \sum_{t=s-8}^{s-1} y_t, \\
+\operatorname{sd}_s^2   &amp;= \frac{1}{7-1} \sum_{t=s-8}^{s-1} (y_t -
+\bar{y}_s)^2.
+\end{align*}
+\]</span> The algorithm then computes the z-statistic <span
+class="math inline">\(\operatorname{C1}_s = (y_s -
+\bar{y}_s)/\operatorname{sd}_s\)</span> for each time point to monitor.
+Once the value of this statistic is above 3 an alarm is flagged. This
+means that we assume that the previous 7 observations are what is to be
+expected when no unusual activity is going on. One can interpret the
+statistic as a transformation to (standard) normality: once the current
+observation is too extreme under this model an alarm is sounded. Such
+normal-approximations are justified given the large number of daily
+counts in the zombie series we consider, but does not take secular
+trends or day of the week effects into account. Note also that the
+calculations can also be reversed in order to determine how large the
+number of observations needs to be in order to generate an alarm (shown
+as a red line in the graph).</p>
+<p>We now apply the EARS C1 monitoring procedure to the zombie time
+series starting at the 8th day of the time series. It is important to
+realize that the result of monitoring a time point in the graphic is
+obtained by only <strong>looking into the past</strong>. Hence, the
+relevant time point to consider today is if an alarm would have occurred
+2016-09-25. We also show the other time points to see, if we could have
+detected potential alarms earlier.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>zombie[[<span class="st">&quot;sts&quot;</span>]] <span class="ot">&lt;-</span> <span class="fu">earsC</span>(zombie<span class="sc">$</span>ts, <span class="at">control=</span><span class="fu">list</span>(<span class="at">range =</span> <span class="dv">8</span><span class="sc">:</span><span class="fu">nrow</span>(zombie<span class="sc">$</span>ts),</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                         <span class="at">method =</span> <span class="st">&quot;C1&quot;</span>, <span class="at">alpha =</span> <span class="dv">1</span><span class="sc">-</span><span class="fu">pnorm</span>(<span class="dv">3</span>)))</span></code></pre></div>
+<p><img
+src="http://staff.math.su.se/hoehle/blog/figure/source/2016-09-25-sootb/ZOMBIE-TS-1.png" /></p>
+<p>What a relief! No suspicious zombie activity appears to be ongoing.
+Actually, it would have taken 511 additional tweets before we would have
+raised an alarm on 2016-09-25. This is quite a number.</p>
+<p>As an additional sensitivity analysis we redo the analyses for the
+<code>#zombieattack</code> hashtag. Here the use of the normal
+approximation in the computation of the alerts is more questionable.
+Still, we can get a time series of counts together with the alarm
+limits.</p>
+<p><img
+src="http://staff.math.su.se/hoehle/blog/figure/source/2016-09-25-sootb/ZOMBIEATTACK-TS-1.png" /></p>
+<p>Also no indication of zombie activity. The number of additional
+tweets needed before alarm in this case is: 21. Altogether, it looks
+safe out there…</p>
+<h2 id="summary">Summary</h2>
+<p>R provides ideal functionality to quickly extract and monitor twitter
+time series. Combining with statistical process control methods allows
+you to prospectively monitor the use of hashtags. Twitter has released a
+dedicated package for this purpose, however, in case of low count time
+series it is better to use count-time series monitoring devices as
+implemented in the <code>surveillance</code> package. <span
+class="citation" data-cites="salmon_etal2016a">Salmon, Schumacher, and
+Höhle (2016)</span> contains further details on how to proceed in this
+case.</p>
+<p>The important question although remains: Does this really work in
+practice? Can you sleep tight, while your R zombie monitor scans
+twitter? Here is where the <strong>social experiment</strong> starts:
+Please help by retweeting the post below to create a drill alarm
+situation. More than 511 (!) and 21 additional tweets, respectively, are
+needed before an alarm will sound.</p>
+<center>
+<blockquote class="twitter-tweet" data-lang="de">
+<p lang="en" dir="ltr">
+New blog entry: Please RT to help me evaluate my
+<a href="https://twitter.com/hashtag/zombie?src=hash">#zombie</a>
+monitoring system -
+<a href="https://t.co/b0gNfpJ0RM">https://t.co/b0gNfpJ0RM</a>
+<a href="https://twitter.com/hashtag/zombieattack?src=hash">#zombieattack</a>
+<a href="https://twitter.com/hashtag/biosurveillance?src=hash">#biosurveillance</a>
+<a href="https://twitter.com/hashtag/rstats?src=hash">#rstats</a>
+<a href="https://t.co/N3PTZBnaw4">pic.twitter.com/N3PTZBnaw4</a>
+</p>
+— Michael Höhle (@m_hoehle)
+<a href="https://twitter.com/m_hoehle/status/780037067183157248">25.
+September 2016</a>
+</blockquote>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+</center>
+<p>I will continuously update the graphs in this post to see how our
+efforts are reflected in the time series of tweets containing the
+<code>#zombieattack</code> and <code>#zombie</code> hashtags. Thanks for
+your help!</p>
+<p>
+<center>
+<img src="/blog/figure/source/2016-09-25-sootb/zombie.png"
+title="Source: https://openclipart.org/detail/201838/zombie-head" />
+<img src="/blog/figure/source/2016-09-25-sootb/zombie.png"
+title="Source: https://openclipart.org/detail/201838/zombie-head" />
+<img src="/blog/figure/source/2016-09-25-sootb/zombie.png"
+title="Source: https://openclipart.org/detail/201838/zombie-head" />
+</center>
+<p>
+<p>
+<h3 id="update-at-2016-11-03-000831">Update at 2016-11-03 00:08:31</h3>
+<p>Below we show how the <code>#zombieattack</code> series developed
+after the post was made public:</p>
+<p><img
+src="http://staff.math.su.se/hoehle/blog/figure/source/2016-09-25-sootb/ZOMBIEATTACK_UPDATED-1.png" /></p>
+<p>The orange part of the bars indicates the fake outbreak tweet (1) as
+well as its retweets (10). It is obvious that despite the increased
+activity due to the fake outbreak tweets, no alarm was generated because
+of them. In parts this is explained by the high activity during 20-21
+Sep. A previous outbreak? No, advertisements of <a
+href="https://www.etsy.com/listing/480088383/zombie-pin-up-badges-zombie-themed-gifts?ref=shop_home_feat_4">zombie
+pinup badges on etsy</a>. Since the EARS algorithm sequentially
+estimates the variance of the baseline counts, the peak on 20-21 Sep
+inflates the mean and variance and thus results in a high upperbound as
+long as it enters the baseline. Despite some extra activity 25-27 Sep
+due to the fake outbreak tweets, none of the days are above this bound.
+However, once the 20-21 Sep peak is out of the previous 7 days baseline,
+the alarm threshold decreases noticeably. We thus get an alarm for the
+peak on 30 September, even though it’s not higher than the previous peak
+on 20-21 Sep and it appears to be caused by other phenomena not related
+to our fake outbreak. A more careful analysis of the tweets reveals that
+they are caused by a <a
+href="http://charityfunrun2016.tumblr.com/post/149930159797/charity-fun-run-2016">charity
+fun run</a> near Kuala Lumpur with a <a
+href="https://www.instagram.com/p/BK-_l8oDD38/">zombie attack
+theme</a>!</p>
+<p>
+<blockquote class="twitter-tweet" data-lang="en">
+<p lang="en" dir="ltr">
+SPAM FAM 😋
+<a href="https://twitter.com/hashtag/zombieattack?src=hash">#zombieattack</a>
+<a href="https://twitter.com/hashtag/charityfunrun2016?src=hash">#charityfunrun2016</a>
+<a href="https://t.co/YJW8Mjpd0L">pic.twitter.com/YJW8Mjpd0L</a>
+</p>
+— PAAN (@noorfarhan_)
+<a href="https://twitter.com/noorfarhan_/status/781887252519460864">September
+30, 2016</a>
+</blockquote>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+<p>
+<p>For further comparison, we also use a negative binomial CUSUM, which
+keeps the baseline steady, but allows the detection of sustained
+increases.</p>
+<p><img
+src="http://staff.math.su.se/hoehle/blog/figure/source/2016-09-25-sootb/ZOMBIEUPDATE-NBINOM-CUSUM-PLOT-1.png" /></p>
+<p>The gray line shows the estimated mean from the eight base-line
+counts, the orange line shows the corresponding upper 99% quantile of
+this estimated distribution. The red line shows the alarm limit of a
+CUSUM method where the potential shift in the mean is estimated by
+maximum likelihood at each monitoring instance. The threshold is tuned
+such that it initially roughly coincides with the 99% quantile of the
+estimated distribution. Here, no signal is detected. Of course this
+depends on the quantile used for the detection and the 20-21 September
+peak being included fully in the baseline. Still, according to this
+metric occasional fake zombie runs are part of the routine.</p>
+<p>Altogether, the “failed”” test proves several points:</p>
+<ul>
+<li>its hard to distinguish between previous outbreaks and irregular
+tweeting behaviour</li>
+<li>robust estimation of the baseline parameters might be needed</li>
+<li>the results are sensitive to the choice of which values to include
+in the baseline and the underlying probability model</li>
+<li>is twitter monitoring really sensitive enough to detect weak signals
+early enough?</li>
+</ul>
+<h4 id="the-take-home-message-of-this-update">The take home message of
+this update</h4>
+<p>To enhance statistical competence and preserve sleep: stick with the
+negative binomial CUSUM!</p>
+<h1 class="unnumbered" id="references">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-fricker_etal2008" class="csl-entry" role="listitem">
+Fricker, R. D., B. L. Hegler, and D. A. Dunfee. 2008. <span>“<span
+class="nocase"><span>C</span>omparing syndromic surveillance detection
+methods: <span>E</span><span>A</span><span>R</span><span>S</span>’
+versus a
+<span>C</span><span>U</span><span>S</span><span>U</span><span>M</span>-based
+methodology</span>.”</span> <em>Stat Med</em> 27 (17): 3407–29.
+</div>
+<div id="ref-hutwagner_etal2003" class="csl-entry" role="listitem">
+Hutwagner, L., W. Thompson, G. M. Seeman, and T. Treadwell. 2003.
+<span>“<span class="nocase"><span>T</span>he bioterrorism preparedness
+and response <span>E</span>arly <span>A</span>berration
+<span>R</span>eporting <span>S</span>ystem
+(<span>E</span><span>A</span><span>R</span><span>S</span>)</span>.”</span>
+<em>J Urban Health</em> 80 (2 Suppl 1): 89–96.
+</div>
+<div id="ref-salmon_etal2016a" class="csl-entry" role="listitem">
+Salmon, M., D. Schumacher, and M. Höhle. 2016. <span>“Monitoring Count
+Time Series in <span>R</span>: Aberration Detection in Public Health
+Surveillance.”</span> <em>Journal of Statistical Software</em> 70 (10).
+<a
+href="https://doi.org/10.18637/jss.v070.i10">https://doi.org/10.18637/jss.v070.i10</a>.
+</div>
+</div>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2016/09/25/sootb.html";
+      this.page.identifier = "/2016/09/25/sootb";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

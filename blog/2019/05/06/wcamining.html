@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Speedmining the Cubing Community with dbplyr</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2019/05/06/wcamining.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Speedmining the Cubing Community with dbplyr</h1>
+    <p class="post-meta"><time datetime="2019-05-06T00:00:00+02:00" itemprop="datePublished">May 6, 2019</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>We use the <code>RMariaDB</code> and <code>dbplyr</code> packages to
+analyze the results database of the World Cubing Association. In
+particular we are interested in finding unofficial world records of
+fastest 3x3x3 solves, countries with large proportion of female cubers
+as well as acceptable solving times before entering a WCA
+competition.</p>
+<center>
+<img src="/blog/figure/source/2019-05-06-wcamining/QUANTILEAVG-1.png" width="550">
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="motivation">Motivation</h2>
+<p>An item on my bucket list of
+irrelevant-things-to-excel-in-during-parental-leave™ is to solve the
+Rubik’s cube again. In 2013 I learned the <a
+href="http://starlingsroost.asuscomm.com/cubestation/index.php?page=3x3x3/beginner/step1"><strong>beginner’s
+method</strong></a> for solving the cube by reading <a
+href="https://www.speedsolving.com/wiki/index.php/Dan_Harris">Dan
+Harris’</a> <em>Speedsolving the Cube</em> book. However, any attempts
+to improve times by learning <a
+href="https://en.wikipedia.org/wiki/CFOP_Method">CFOP</a> failed
+miserably in 2013 due to lack of time. So in this 2019 attempt I just
+try to revoke my beginner’s method and improve it slightly by <a
+href="https://www.cubeskills.com/tutorials/4-look-last-layer">4LL</a>.
+Nevertheless, my solves fluctuate at 120-180s. This has made me worry
+about the shame-factor of pulling through the next item on the bucket
+list: competing in a <a
+href="https://www.worldcubeassociation.org">World Cubing Association
+(WCA)</a> 3x3x3 competition. The motivating question of this post is
+therefore: how large a <strong>skill outlier</strong> would one be at
+such a competition with, say, an 180s average?</p>
+<h2 id="mining-the-world-cubing-association-database">Mining the World
+Cubing Association Database</h2>
+<p>Luckily, the WCA provides the results of all cubers and competitions
+in a <a
+href="https://www.worldcubeassociation.org/results/misc/export.html">downloadable
+SQL database</a> (400 MB mySQL/MariaDB SQL text file). The downloadable
+version of 19 Apr 2019 contains tables with information on all 124,997
+players, 6,014 competitions as well as the 2,130,374 results obtained by
+players in competitions starting with the <a
+href="https://www.youtube.com/watch?v=m4qoeJMPv0Y">Rubik’s Cube World
+Championship in 1982</a>. Not <strong>big data</strong>, but big enough
+and structured in a way that justifies using a SQL database backend for
+the analysis instead of just a flat <code>data.frame</code> in R.</p>
+<p>With a little bit of effort, one installs a <a
+href="https://mariadb.org">MariaDB</a> together with the <a
+href="https://downloads.mariadb.org/connector-c/">MariaDB
+Connector/C</a> and imports the WCA data into the database.
+Subsequently, the <code>RMariaDB</code> <span class="citation"
+data-cites="rmariadb">(Müller et al. 2018)</span> and <code>DBI</code>
+<span class="citation" data-cites="DBI">(R Special Interest Group on
+Databases (R-SIG-DB), Wickham, and Müller 2018)</span> R packages allow
+one to connect directly to the DB. Furthermore, the <code>dbplyr</code>
+<span class="citation" data-cites="dbplyr">(Wickham and Ruiz
+2019)</span> package allows one to write <code>dplyr</code> code, which
+is then translated into and evaluated as SQL queries behind the
+scenes.</p>
+<p>We connect to the database as follows:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DBI)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RMariaDB)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>con <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(RMariaDB<span class="sc">::</span><span class="fu">MariaDB</span>(), <span class="at">group=</span><span class="st">&quot;my-db&quot;</span>)</span></code></pre></div>
+<p>where, as suggested in the <a
+href="https://mariadb.com/kb/en/library/configuring-mariadb-with-option-files/"><code>RMariaDB</code>
+package documentation</a>, <code>my-db</code> is a custom group defined
+in the option file <code>~/my.cnf</code> containing the user, password,
+protocol type and the database to use (<code>wca</code>). This is
+preferred instead of calling <code>dbConnect</code> with options such as
+<code>socket</code>, <code>user</code>, <code>password</code> and
+<code>dbname</code>.</p>
+<p>To import the data one can either open a <code>mysql</code> shell and
+type SQL commands or send the SQL query from R to the database:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SOURCE</span> WCA_export.sql;</span></code></pre></div>
+<p>After such an import we can view the contents of the database:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dbListTables</span>(con)</span></code></pre></div>
+<pre><code>##  [1] &quot;eligible_country_iso2s_for_championship&quot; &quot;Formats&quot;                                 &quot;Countries&quot;                              
+##  [4] &quot;RoundTypes&quot;                              &quot;Rounds&quot;                                  &quot;Competitions&quot;                           
+##  [7] &quot;Continents&quot;                              &quot;Persons&quot;                                 &quot;championships&quot;                          
+## [10] &quot;Events&quot;                                  &quot;Scrambles&quot;                               &quot;RanksAverage&quot;                           
+## [13] &quot;Results&quot;                                 &quot;RanksSingle&quot;</code></pre>
+<p>Of particular interest is the <code>Results</code> table, where each
+row contains the results of a player (<code>personId</code>) in a round
+of a WCA competition of events such as the 2x2x2, 3x3x3, 4x4x4, etc. For
+the <a
+href="https://www.worldcubeassociation.org/files/WCA_Competition_Tutorial.pdf">3x3x3
+event</a> each round consist of five solves solves
+(<code>values1</code>-<code>values5</code>) of which the best is
+reported in the column <code>best</code> and the trimmed mean (removing
+the best and worst solve and computing the mean of the three other
+solves) is reported in the column <code>average</code>.</p>
+<pre><code>##  [1] &quot;competitionId&quot;         &quot;eventId&quot;               &quot;roundTypeId&quot;           &quot;pos&quot;                   &quot;best&quot;                  &quot;average&quot;              
+##  [7] &quot;personName&quot;            &quot;personId&quot;              &quot;personCountryId&quot;       &quot;formatId&quot;              &quot;value1&quot;                &quot;value2&quot;               
+## [13] &quot;value3&quot;                &quot;value4&quot;                &quot;value5&quot;                &quot;regionalSingleRecord&quot;  &quot;regionalAverageRecord&quot;</code></pre>
+<p>Furthermore, the table <code>Persons</code>contains additional basic
+information about each player:</p>
+<pre><code>## [1] &quot;id&quot;        &quot;subid&quot;     &quot;name&quot;      &quot;countryId&quot; &quot;gender&quot;</code></pre>
+<p>Note: At WCA competitions there is no separate ranking according to
+gender.</p>
+<p>After getting initially acquainted with the database, we do two small
+SQL-side modifications. The first modification is to create an index for
+the tables, which will help to substantially reduce the join times later
+on. The second is to merge the separate year, month, day columns of the
+event day in the <code>Competitions</code> table into a single ISO 8601
+date. See the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2019-05-06-wcamining.Rmd">github
+code</a> for details.</p>
+<p>As the next step we create tables to use with <code>dbplyr</code>.
+These will then just dispatch to the database tables. For now, we work
+only with the results of the 3x3x3 cubes, but will join the Results,
+Persons and Competitions table in order to get relevant information
+about gender of the person as well as date of the solve together with
+the time of each solve.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(dbplyr))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(dplyr))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">tbl</span>(con, <span class="st">&quot;Results&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(eventId <span class="sc">==</span> <span class="st">&quot;333&quot;</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>persons <span class="ot">&lt;-</span> <span class="fu">tbl</span>(con, <span class="st">&quot;Persons&quot;</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>competitions <span class="ot">&lt;-</span> <span class="fu">tbl</span>(con, <span class="st">&quot;Competitions2&quot;</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="do">##JOIN the three tables together</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>allResults <span class="ot">&lt;-</span> results <span class="sc">%&gt;%</span> <span class="fu">inner_join</span>(persons, <span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;personId&quot;</span><span class="ot">=</span><span class="st">&quot;id&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(competitions, <span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;competitionId&quot;</span><span class="ot">=</span><span class="st">&quot;id&quot;</span>))</span></code></pre></div>
+<p>Note that <code>dbplyr</code> uses lazy evaluation, i.e. calls are
+not executed before needed. However, one can with
+<code>show_query</code> check the SQL call, which is used in case of
+evaluation. In this example the SQL query to get the results of female
+cubers, i.e.:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fwr_single <span class="ot">&lt;-</span> allResults <span class="sc">%&gt;%</span> <span class="fu">filter</span>(gender <span class="sc">==</span> <span class="st">&quot;f&quot;</span>, best<span class="sc">&gt;</span><span class="dv">0</span>)</span></code></pre></div>
+<p>in SQL looks like</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fwr_single <span class="sc">%&gt;%</span> <span class="fu">show_query</span>()</span></code></pre></div>
+<pre><code>## &lt;SQL&gt;
+## SELECT *
+## FROM (SELECT `LHS`.`competitionId` AS `competitionId`, `LHS`.`eventId` AS `eventId`, `LHS`.`roundTypeId` AS `roundTypeId`, `LHS`.`pos` AS `pos`, `LHS`.`best` AS `best`, `LHS`.`average` AS `average`, `LHS`.`personName` AS `personName`, `LHS`.`personId` AS `personId`, `LHS`.`personCountryId` AS `personCountryId`, `LHS`.`formatId` AS `formatId`, `LHS`.`value1` AS `value1`, `LHS`.`value2` AS `value2`, `LHS`.`value3` AS `value3`, `LHS`.`value4` AS `value4`, `LHS`.`value5` AS `value5`, `LHS`.`regionalSingleRecord` AS `regionalSingleRecord`, `LHS`.`regionalAverageRecord` AS `regionalAverageRecord`, `LHS`.`subid` AS `subid`, `LHS`.`name` AS `name.x`, `LHS`.`countryId` AS `countryId.x`, `LHS`.`gender` AS `gender`, `RHS`.`name` AS `name.y`, `RHS`.`cityName` AS `cityName`, `RHS`.`countryId` AS `countryId.y`, `RHS`.`information` AS `information`, `RHS`.`year` AS `year`, `RHS`.`month` AS `month`, `RHS`.`day` AS `day`, `RHS`.`endMonth` AS `endMonth`, `RHS`.`endDay` AS `endDay`, `RHS`.`eventSpecs` AS `eventSpecs`, `RHS`.`wcaDelegate` AS `wcaDelegate`, `RHS`.`organiser` AS `organiser`, `RHS`.`venue` AS `venue`, `RHS`.`venueAddress` AS `venueAddress`, `RHS`.`venueDetails` AS `venueDetails`, `RHS`.`external_website` AS `external_website`, `RHS`.`cellName` AS `cellName`, `RHS`.`latitude` AS `latitude`, `RHS`.`longitude` AS `longitude`, `RHS`.`date` AS `date`
+## FROM (SELECT `LHS`.`competitionId` AS `competitionId`, `LHS`.`eventId` AS `eventId`, `LHS`.`roundTypeId` AS `roundTypeId`, `LHS`.`pos` AS `pos`, `LHS`.`best` AS `best`, `LHS`.`average` AS `average`, `LHS`.`personName` AS `personName`, `LHS`.`personId` AS `personId`, `LHS`.`personCountryId` AS `personCountryId`, `LHS`.`formatId` AS `formatId`, `LHS`.`value1` AS `value1`, `LHS`.`value2` AS `value2`, `LHS`.`value3` AS `value3`, `LHS`.`value4` AS `value4`, `LHS`.`value5` AS `value5`, `LHS`.`regionalSingleRecord` AS `regionalSingleRecord`, `LHS`.`regionalAverageRecord` AS `regionalAverageRecord`, `RHS`.`subid` AS `subid`, `RHS`.`name` AS `name`, `RHS`.`countryId` AS `countryId`, `RHS`.`gender` AS `gender`
+## FROM (SELECT *
+## FROM `Results`
+## WHERE (`eventId` = &#39;333&#39;)) `LHS`
+## INNER JOIN `Persons` AS `RHS`
+## ON (`LHS`.`personId` = `RHS`.`id`)
+## ) `LHS`
+## INNER JOIN `Competitions2` AS `RHS`
+## ON (`LHS`.`competitionId` = `RHS`.`id`)
+## ) `dbplyr_001`
+## WHERE ((`gender` = &#39;f&#39;) AND (`best` &gt; 0.0))</code></pre>
+<h2 id="analysing-the-data">Analysing the data</h2>
+<p>We are now all ready to perform some descriptive analyses of the
+data. The top-5 females according to their time for 3x3x3 single solve
+is obtained by:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fwr_single <span class="sc">%&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(personId) <span class="sc">%&gt;%</span> <span class="fu">top_n</span>(<span class="sc">-</span><span class="dv">1</span>, best) <span class="sc">%&gt;%</span> ungroup <span class="sc">%&gt;%</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(best) <span class="sc">%&gt;%</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(competitionId, personName, personCountryId, best, date) <span class="sc">%&gt;%</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">top_n</span>(<span class="sc">-</span><span class="dv">5</span>, best)</span></code></pre></div>
+<pre><code>## # Source:     lazy query [?? x 5]
+## # Database:   mysql 10.3.14-MariaDB-log [hoehle@localhost:/wca]
+## # Ordered by: best
+##   competitionId         personName          personCountryId  best date      
+##   &lt;chr&gt;                 &lt;chr&gt;               &lt;chr&gt;           &lt;int&gt; &lt;date&gt;    
+## 1 SlowNSteadySummer2017 Dana Yi             USA               537 2017-07-01
+## 2 BarbyCubeOpen2018     Juliette Sébastien  France            581 2018-11-03
+## 3 FruitSalad2018        Katie Hull          USA               606 2018-03-03
+## 4 CubeduKorea2018       Yu Da-Hyun (유다현) Korea             629 2018-01-26
+## 5 NewYorkCitySpring2018 Kymberlyn Calderon  USA               641 2018-04-21</code></pre>
+<p>Note that the solve times are given in centiseconds (i.e. 1/100’th of
+a second). The above result can be compare with the corresponding
+information at <a
+href="https://wcadb.net/rankings.php?region=World&amp;events=333&amp;gender=female&amp;show=100&amp;type=single">https://wcadb.net</a>.</p>
+As professional data scientist one knows how important it is to
+understand the data generating process and to know your data. So this is
+how the 5.37s solve by Dana Yi in 2017 looks like:
+<p>
+<center>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/WMd6JgC4DoQ" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope;
+picture-in-picture" allowfullscreen>
+</iframe>
+</center>
+<p>
+<h3 id="the-evolution-of-the-3x3x3-single-solve-wr">The evolution of the
+3x3x3 single solve WR</h3>
+<p>So at this point we force an execution of the <code>allResults</code>
+query and cache the result as an object in R. This feels slightly
+disappointing, because the hope was to leave the data in the database
+management system (DBMS) as long as possible, but it felt like the most
+efficient way to compute sequential ranks - however, it might have been
+possible to perform the sequential rank directly using SQL statements,
+although I did not succeed to find the correct approach within the
+available time <a href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a>.</p>
+<p>Instead, the results are sorted according to their date in R and
+subsequently each result is checked to see if it’s sequential rank is 1,
+i.e. whether the time is lower than all previous results. For this
+purpose a fast Rcpp function <code>sequential_is_rank1</code> function
+is provided, which computes the sequential rank of a vector of values
+(see <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2019-05-06-wcamining.Rmd">github
+code</a> for details). Note: If we had not pulled the data into R at
+this point, such a computation within R would not have been
+possible.</p>
+<p>The evolution of the world record for males and females over time is
+then easily plotted. Note: As mentioned WCA doesn’t officially
+distinguish between male and female results.</p>
+<p><img src="/blog/figure/source/2019-05-06-wcamining/WREVO-1.png" style="display: block; margin: auto;" />
+Is such a plot useful? Not really IMHO, but I had seen a similar plot at
+the <a
+href="https://www.worldcubeassociation.org/results/misc/evolution/">WCA
+webpage</a>, so it’s nice to be able to create it in R.</p>
+<h3 id="countries-with-highest-proportion-of-female-cubers">Countries
+with highest proportion of female cubers</h3>
+<p>Since the overall fraction of female cubers is around 10%, we
+determine the top-5 countries (with at least 50 cubers), having the
+highest proportion of female cubers in the <code>Persons</code>
+database:</p>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+countryId
+</th>
+<th style="text-align:right;">
+n_total
+</th>
+<th style="text-align:right;">
+n_male
+</th>
+<th style="text-align:right;">
+n_female
+</th>
+<th style="text-align:right;">
+frac_female (in %)
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Algeria
+</td>
+<td style="text-align:right;">
+157
+</td>
+<td style="text-align:right;">
+103
+</td>
+<td style="text-align:right;">
+54
+</td>
+<td style="text-align:right;">
+34.4
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Mongolia
+</td>
+<td style="text-align:right;">
+373
+</td>
+<td style="text-align:right;">
+278
+</td>
+<td style="text-align:right;">
+95
+</td>
+<td style="text-align:right;">
+25.5
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Morocco
+</td>
+<td style="text-align:right;">
+67
+</td>
+<td style="text-align:right;">
+53
+</td>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:right;">
+20.9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pakistan
+</td>
+<td style="text-align:right;">
+54
+</td>
+<td style="text-align:right;">
+42
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:right;">
+22.2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tunisia
+</td>
+<td style="text-align:right;">
+211
+</td>
+<td style="text-align:right;">
+171
+</td>
+<td style="text-align:right;">
+40
+</td>
+<td style="text-align:right;">
+19.0
+</td>
+</tr>
+</tbody>
+</table>
+<p>
+<p>I find this list quite surprising and also encouraging!</p>
+<h3 id="skill-level-before-entering-a-wca-competition">Skill level
+before entering a WCA competition</h3>
+<p>Getting back to the motivating question of this post, we derive for
+each result how experienced the cuber was at the time of obtaining the
+result. We shall measure experience terms of years since the cuber’s
+first WCA competition. Special interest will then be in results of
+cubers in their very first WCA competition - see the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2019-05-06-wcamining.Rmd">github
+code</a> for details.</p>
+<p>We then use this information to create a scatter plot with result
+average (in seconds) and corresponding experience of the cuber (in
+years). For better visualization we plot the marginal 5%, 10%, 50%, 90%,
+95% quantiles as smooth function of experience - this is done with with
+<code>ggplot2</code>’s <code>geom_quantile</code> function together with
+the argument <code>method="rqss"</code>, which then uses the
+<code>rqss</code> function of the <code>quantreg</code> package <span
+class="citation" data-cites="quantreg">(Koenker 2018)</span> to compute
+smooth quantile curves:</p>
+<p><img src="/blog/figure/source/2019-05-06-wcamining/QUANTILEAVG-1.png" style="display: block; margin: auto;" />
+We notice that the quantile curves stay more or less parallel, which is
+indicative of a stable variance and skewness of the results over the
+range of experiences. Focusing only on the round-1 results of those
+participating for the first time in the period from 2018-04-19 to
+2019-04-19 we see that the quantiles for the average is (in seconds)
+are:</p>
+<pre><code>##    5%   10%   50%   90%   95%   99% 99.9% 
+##    16    19    36    77    93   136   208</code></pre>
+<p>This shows that with a 180s average one is located at the 99.7%
+quantile of all cubers entering a WCA competition. In other words: if
+the comfort zone is defined as <strong>being within the 95%
+envelope</strong>, then a ~90s average is needed before entering a WCA
+competition.</p>
+<p>To further investigate, how cubers of that skill level evolve in
+time, we study the solving skills of cubers entering their first WCA
+competition with a solve time between 180s and 240s. In order to reduce
+the potential effect of secular trends due to, e.g., better cubes, we
+consider the skill evolution of the cohort of <strong>first time
+cubers</strong> from 2015 and onwards.</p>
+<p>The cohort inclusion criterion provide a total of 168 first time
+competitors in this skill bracket. Only 28.0% of these cubers decide to
+participate in further WCA competitions! The further development of the
+averages of these cubers is best shown in a trajectory plot. Note that
+the end of the lines does not necessarily mean that they stopped cubing,
+instead it could be due to right truncation, because only competitions
+until 2019-04-19 are available.</p>
+<p><img src="/blog/figure/source/2019-05-06-wcamining/TRAJPLOT-1.png" style="display: block; margin: auto;" />
+Instead of the trajectories we can also overlay an expectation smoother
+on top of the data to see how the expected average progresses with time
+in the cohort. Note, that this portrays the marginal expectation and
+thus is only based on cubers, who are still cubing at that time. No
+adjustment for any, potentially informative, drop-out is made.</p>
+<p><img src="/blog/figure/source/2019-05-06-wcamining/TRAJSMOOTHED-1.png" style="display: block; margin: auto;" /></p>
+<p>From the figure we notice a rapid improvement the first 6 months
+after entering the first WCA competition. Hereafter results only improve
+slowly.</p>
+<h2 id="discussion">Discussion</h2>
+<p>Through analysis of the WCA results database it became clear that
+participating in a 3x3x3 event with a 180s average <del>is uncool</del>
+<a href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a> does not take you to winners’
+rostrum <a href="#fn3" class="footnote-ref" id="fnref3"
+role="doc-noteref"><sup>3</sup></a>. The data also show that cubers
+entering the world of WCA competitions with such an average are likely
+to never participate in another WCA event. In case they do, their times
+drop to 90-120s averages within 6 months after which they are stuck - it
+is very unlikely that they will crack the 20s barrier. To conclude: In
+my situation it seems wise to practice more, before going to the first
+WCA competition. 😃</p>
+<p>From a data science perspective this post provided insights on using
+<code>dbplyr</code> as a tidyverse frontend for SQL queries. Being an
+SQL novice, I learned that generating indexes is a <em>must</em>, if you
+do not want to wait forever for your <em>INNER JOIN</em>s. Furthermore,
+I ran into some trouble with mutates and filters with the package,
+because the produced SQL code provide empty results. It remains unclear
+to me if this was due to differences in SQL DBMSs (e.g. MariaDB being
+differnet from PostGres), my lack of SQL knowledge or if it’s a
+shortcoming of the <code>dbplyr</code> package. My conclusion is that
+performing the data wrangling within the DBMS was overkill for the
+medium sized wca data. For larger or more structured datasets such an
+approach can, however, be fruitful, because a DBMS’s main purpose is to
+provide efficient solutions for working with your data. Furthermore, I
+like the idea of having a familiar dplyr frontend and just auto-generate
+an efficient backend code (here: SQL) to do the actual wrangling. This
+also provides an opportunity to get an outside-R-implementation, which
+can be an important aspect in <a
+href="http://staff.math.su.se/hoehle/blog/2017/09/02/pairprogramming.html">quality
+assurance of statistical analyses</a>.</p>
+<h2 id="acknowledgments">Acknowledgments</h2>
+<p>The terms of use of the WCA database requests any use of it to be
+equipped with the following text:</p>
+<blockquote>
+<p>This information is based on competition results owned and maintained
+by the World Cube Association, published at
+https://worldcubeassociation.org/results as of April 19, 2019.</p>
+</blockquote>
+<p>Besides this formal note, I thank the WCA Results Team for providing
+the WCA data for download in this comprehensive form!</p>
+<h2 class="unnumbered" id="literature">Literature</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-quantreg" class="csl-entry" role="listitem">
+Koenker, Roger. 2018. <em>Quantreg: Quantile Regression</em>. <a
+href="https://CRAN.R-project.org/package=quantreg">https://CRAN.R-project.org/package=quantreg</a>.
+</div>
+<div id="ref-rmariadb" class="csl-entry" role="listitem">
+Müller, Kirill, Jeroen Ooms, David James, Saikat DebRoy, Hadley Wickham,
+and Jeffrey Horner. 2018. <em>RMariaDB: Database Interface and ’MariaDB’
+Driver</em>. <a
+href="https://CRAN.R-project.org/package=RMariaDB">https://CRAN.R-project.org/package=RMariaDB</a>.
+</div>
+<div id="ref-DBI" class="csl-entry" role="listitem">
+R Special Interest Group on Databases (R-SIG-DB), Hadley Wickham, and
+Kirill Müller. 2018. <em>DBI: R Database Interface</em>. <a
+href="https://CRAN.R-project.org/package=DBI">https://CRAN.R-project.org/package=DBI</a>.
+</div>
+<div id="ref-dbplyr" class="csl-entry" role="listitem">
+Wickham, Hadley, and Edgar Ruiz. 2019. <em>Dbplyr: A ’Dplyr’ Back End
+for Databases</em>. <a
+href="https://CRAN.R-project.org/package=dbplyr">https://CRAN.R-project.org/package=dbplyr</a>.
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>If you know how to do this efficiently in SQL, let me
+know!<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn2">A reddit user correctly pointed out that just because your
+results are at the low end does not necessarily imply that it is
+<em>uncool</em> to participate in a WCA competition:
+<a class="embedly-card" href="https://www.reddit.com/r/Cubers/comments/bl8r18/analysing_the_wca_database/emmwmu6">Card</a>
+<script async src="//embed.redditmedia.com/widgets/platform.js"
+charset="UTF-8"></script>
+<p>This is very true and I’ve updated the post accordingly. However, if
+you like me already are an age outlier while your kid is too young to
+act as your alibi companion, I miss the courage to also be a total skill
+outlier… But that’s my problem and just motivates me to train more (if
+time permits) before signing up. 😏<a href="#fnref2"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>From readings on <a
+href="http://www.speedsolving.com">speedsolving.com</a> I now learned
+that there exist (partial) <a
+href="https://logiqx.github.io/wca-ipy/">40+ rankings</a>, which can
+help to assess the skill level in that age bracket in more detail. My
+interest was in the skill level of the overall cubing population
+though.<a href="#fnref3" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2019/05/06/wcamining.html";
+      this.page.identifier = "/2019/05/06/wcamining";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

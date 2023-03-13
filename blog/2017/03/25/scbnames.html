@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>On a First Name Basis with Statistics Sweden</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2017/03/25/scbnames.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">On a First Name Basis with Statistics Sweden</h1>
+    <p class="post-meta"><time datetime="2017-03-25T00:00:00+01:00" itemprop="datePublished">Mar 25, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>Judging from recent R-Bloggers posts, it appears that many data
+scientists are concerned with scraping data from various media sources
+(Wikipedia, twitter, etc.). However, one should be aware that well
+structured and high quality datasets are available through state’s and
+country’s bureau of statistics. Increasingly these are offered to the
+public through direct database access, e.g., using a REST like API. We
+illustrate the usefulness of such an approach by accessing data from
+Statistics Sweden.</p>
+<center>
+<img src="/blog/figure/source/2017-03-25-scbnames/COLLISION26-1.png" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>Scandinavian countries are world-class when it comes to public
+registries. So when in need for reliable population data, this is the
+place to look. As an example, we access Statistics Sweden data by their
+API using the <code>pxweb</code> package developed by <a
+href="https://twitter.com/MansMeg">@MansMeg</a>, <a
+href="https://twitter.com/antagomir">@antagomir</a> and <a
+href="https://twitter.com/LCHansson">@LCHansson</a>. Love was the first
+speaker at a Stockholm R-Meetup some <a
+href="https://www.meetup.com/StockholmR/events/105738342/">years
+ago</a>, where I also gave a talk. Funny how such R-Meetups become
+useful many years after!</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pxweb)</span></code></pre></div>
+<p>By browsing the Statistics Sweden (in Swedish: Statistiska
+Centralbyrån (SCB)) data using their <a
+href="http://www.scb.se/en/finding-statistics/">web interface</a> one
+sees that they have two relevant first name datasets: one containing the
+<em>tilltalsnamn</em> of newborns for each year during 1998-2016 and one
+for the years 2004-2016. <strong>Note</strong>: A <a
+href="https://translate.google.com/translate?sl=auto&amp;tl=en&amp;js=y&amp;prev=_t&amp;hl=en&amp;ie=UTF-8&amp;u=https%3A%2F%2Fsv.wikipedia.org%2Fwiki%2FTilltalsnamn&amp;edit-text=&amp;act=url"><em>tilltalsnamn</em></a>
+in Sweden is <em>the</em> first name (of several possible first names)
+by which a person is usually addressed. About 2/3 of the persons in the
+Swedish name registry indicate which of their first names is their
+tilltalsnamn. For the remaining persons it is automatically implied that
+their tilltalsnamn is the <a
+href="http://www.scb.se/hitta-statistik/statistik-efter-amne/befolkning/amnesovergripande-statistik/namnstatistik/produktrelaterat/Fordjupad-information/fragor-och-svar-om-namnstatistiken/#fem">first
+of the first names</a>. <strong>Also note:</strong> For reasons of data
+protection the 1998-2016 dataset contains only first names used 10 or
+more times in a given year, the 2004-2016 dataset contains only first
+names used 2 or more times in a given year.</p>
+<p>Downloading such data through the SCB web-interface is cumbersome,
+because the downloads are limited to 50,000 data cells per query. Hence,
+one has to do several manual queries to get hold of the relevant data.
+This is where their <a
+href="http://www.scb.se/en_/About-us/Open-data-API/API-for-the-Statistical-Database-/">API</a>
+becomes a real time-saver. Instead of trying to fiddle with the API
+directly using <code>rjson</code> or <code>RJSONIO</code> we use the
+specially designed <code>pxweb</code> package to fetch the data. One can
+either use the web-interface to determine the name of the desired data
+matrix to query or navigate directly through the api using
+<code>pxweb</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="fu">interactive_pxweb</span>(<span class="at">api =</span> <span class="st">&quot;api.scb.se&quot;</span>, <span class="at">version =</span> <span class="st">&quot;v1&quot;</span>, <span class="at">lang =</span> <span class="st">&quot;en&quot;</span>)</span></code></pre></div>
+<p>and select <em>Population</em> followed by <em>Name statistics</em>
+and then <code>BE0001T04Ar</code> or <code>BE0001T04BAr</code>,
+respectively, in order to obtain the relevant data and api download
+url.</p>
+<h4 id="downloading-the-first-name-data-with-pxweb">Downloading the
+first name data with <code>pxweb</code></h4>
+<p>This leads to the following R code for download:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>names10 <span class="ot">&lt;-</span> <span class="fu">get_pxweb_data</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">url =</span> <span class="st">&quot;http://api.scb.se/OV0104/v1/doris/en/ssd/BE/BE0001/BE0001T04Ar&quot;</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">dims =</span> <span class="fu">list</span>(<span class="at">Tilltalsnamn =</span> <span class="fu">c</span>(<span class="st">&#39;*&#39;</span>),</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">ContentsCode =</span> <span class="fu">c</span>(<span class="st">&#39;BE0001AH&#39;</span>),</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>              <span class="at">Tid =</span> <span class="fu">c</span>(<span class="st">&#39;*&#39;</span>)),</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">clean =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> as.tbl</span></code></pre></div>
+<p>For better usability we rename the columns a little and replace
+<code>NA</code> counts to be zero. For visualization we pick 5 random
+lines of the dataset.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>names10 <span class="ot">&lt;-</span> names10 <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>observations) <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">firstname=</span><span class="st">`</span><span class="at">first name normally used</span><span class="st">`</span>,<span class="at">counts=</span>values) <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">counts =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(counts),<span class="dv">0</span>,counts))</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Look at 5 random lines</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>names10 <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="fu">sample</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(names10)),<span class="at">size=</span><span class="dv">5</span>))</span></code></pre></div>
+<pre><code>## # A tibble: 5 × 3
+##   firstname   year counts
+##      &lt;fctr&gt; &lt;fctr&gt;  &lt;dbl&gt;
+## 1     Livia   1998      0
+## 2   Elicia    2010     21
+## 3     Amie    2000      0
+## 4    Albert   2011    108
+## 5       Kim   2008     14</code></pre>
+<p>Note: Each spelling variant of a name in the data is treated as a
+unique name. In similar fashion we download the <code>BE0001AL</code>
+dataset as <code>names2</code>.</p>
+<h4 id="imputing-first-names-with-only-one-use">Imputing first names
+with only one use</h4>
+<p>Since the <code>names2</code> dataset contains all first names with 2
+or more uses in a given year it is possible to deduce how many first
+names are used only once by subtracting the total number of names in
+<code>names2</code> from the total number of live births per year.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Total number of newborns in the data per year</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>names2_year <span class="ot">&lt;-</span> names2 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(year) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">names=</span><span class="fu">sum</span>(counts))</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Fetch number of live births per year from the corresponding data set</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>births <span class="ot">&lt;-</span> <span class="fu">get_pxweb_data</span>(</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">url =</span> <span class="st">&quot;http://api.scb.se/OV0104/v1/doris/en/ssd/BE/BE0101/BE0101H/FoddaK&quot;</span>,</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">dims =</span> <span class="fu">list</span>(<span class="at">Region =</span> <span class="fu">c</span>(<span class="st">&#39;00&#39;</span>),</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">AlderModer =</span> <span class="fu">c</span>(<span class="st">&#39;tot&#39;</span>),</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>              <span class="at">Kon =</span> <span class="fu">c</span>(<span class="st">&#39;*&#39;</span>),</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">ContentsCode =</span> <span class="fu">c</span>(<span class="st">&#39;BE0101E2&#39;</span>),</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>              <span class="at">Tid =</span> <span class="fu">c</span>(<span class="st">&#39;*&#39;</span>)), <span class="at">clean =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="do">##Aggregate per year</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>births_year <span class="ot">&lt;-</span> births <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(year) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">births=</span><span class="fu">sum</span>(values))</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="do">##Join and compute difference, which is the number of names used exactly once.</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>(names_join <span class="ot">&lt;-</span> <span class="fu">inner_join</span>(names2_year, births_year, <span class="at">by=</span><span class="st">&quot;year&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nNames1=</span>births<span class="sc">-</span>names, <span class="at">propNames1=</span>nNames1<span class="sc">/</span>births))</span></code></pre></div>
+<pre><code>## # A tibble: 13 × 5
+##     year  names births nNames1  propNames1
+##    &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;       &lt;dbl&gt;
+## 1   2004  99958 100928     970 0.009610812
+## 2   2005  98718 101346    2628 0.025930969
+## 3   2006 101944 105913    3969 0.037474153
+## 4   2007 101262 107421    6159 0.057335158
+## 5   2008 101356 109301    7945 0.072689179
+## 6   2009 102989 111801    8812 0.078818615
+## 7   2010 108405 115641    7236 0.062572963
+## 8   2011 103480 111770    8290 0.074170171
+## 9   2012 104448 113177    8729 0.077126978
+## 10  2013 104465 113593    9128 0.080357064
+## 11  2014 106021 114907    8886 0.077332103
+## 12  2015 105012 114870    9858 0.085818752
+## 13  2016 107536 117425    9889 0.084215457</code></pre>
+<p>We notice that the proportion of names occurring exactly once
+increases substantially over the years - going from 1.0% in 2004 to 8.4%
+in 2016. It’s not clear if the imputation by subtraction is 100% exact,
+but it does sound plausible that names have become more unique.</p>
+<h4 id="merging-it-all">Merging it all</h4>
+<p>Based on the above we can create a <code>data.frame</code> containing
+the correct number of names used once.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>missing1names <span class="ot">&lt;-</span> names_join <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(year) <span class="sc">%&gt;%</span> <span class="fu">do</span>({</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">firstname=</span><span class="fu">paste0</span>(<span class="st">&quot;Uniquename&quot;</span>,.<span class="sc">$</span>year,<span class="st">&quot;-&quot;</span>,<span class="fu">sprintf</span>(<span class="st">&quot;%.5d&quot;</span>,<span class="fu">seq_len</span>(.<span class="sc">$</span>nNames1))),<span class="at">year=</span>.<span class="sc">$</span>year,<span class="at">counts=</span>1L)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">%&gt;%</span> ungroup</span></code></pre></div>
+<p>We now join the three datasets into one large <code>data.frame</code>
+by</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>names <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="fu">data.frame</span>(names10,<span class="at">type=</span><span class="st">&quot;min10&quot;</span>),</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>               <span class="fu">data.frame</span>(names2,<span class="at">type=</span><span class="st">&quot;min02&quot;</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>               <span class="fu">data.frame</span>(<span class="fu">rbind</span>(names2,missing1names),<span class="at">type=</span><span class="st">&quot;min01&quot;</span>)) <span class="sc">%&gt;%</span> as.tbl</span></code></pre></div>
+<h4 id="collision-probabilities">Collision probabilities</h4>
+<p>We thus got everything in place to compute the name collision
+probability over time using the <code>birthdayproblem</code> package (as
+shown in <a
+href="http://staff.math.su.se/hoehle/blog/2017/02/13/bday.html">previous
+posts</a>).</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(birthdayproblem)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>collision <span class="ot">&lt;-</span> names <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(year,type) <span class="sc">%&gt;%</span> <span class="fu">do</span>({</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">p=</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>26L, <span class="at">prob=</span> .<span class="sc">$</span>counts <span class="sc">/</span> <span class="fu">sum</span>(.<span class="sc">$</span>counts),<span class="at">method=</span><span class="st">&quot;mase1992&quot;</span>)<span class="sc">$</span>prob, <span class="at">gini=</span> ineq<span class="sc">::</span><span class="fu">Gini</span>(.<span class="sc">$</span>counts))</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">%&gt;%</span> ungroup <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">year=</span><span class="fu">as.numeric</span>(<span class="fu">as.character</span>(year)))</span></code></pre></div>
+<p>And the resulting probabilities based on the three datasets
+<code>min02</code> (at least two instances of the name in a given year),
+<code>min10</code> (at least ten instances of the name in a given year)
+and the complete dataset <code>min01</code> can easily be visualized
+over time.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>( collision, <span class="fu">aes</span>(<span class="at">x=</span>year, <span class="at">y=</span>p, <span class="at">color=</span>type)) <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">size=</span><span class="fl">1.5</span>) <span class="sc">+</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">label=</span>scales<span class="sc">::</span>percent,<span class="at">limits=</span><span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">&quot;Year&quot;</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">&quot;Probability&quot;</span>) <span class="sc">+</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">&quot;Probability of a name collision in a class of 26 kids born in year YYYY&quot;</span>) <span class="sc">+</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_discrete</span>(<span class="at">name =</span> <span class="st">&quot;Dataset&quot;</span>)</span></code></pre></div>
+<p><img src="http://staff.math.su.se/hoehle/blog/figure/source/2017-03-25-scbnames/COLLISION26-1.png" style="display: block; margin: auto;" /></p>
+<p>As seen in similar plots for other countries, there is a decline in
+the collision probability over time. Note also that the two curves are
+upper limits to the true collision probabilities. The true
+probabilities, i.e. taking all tilltalsnamn into account, have been
+computed based on the <code>min01</code> data set, which has been
+created by finding the difference between the total number of live
+births in a year and the total number of names in
+<code>names2</code>.</p>
+<h2 id="summary">Summary</h2>
+<p>With all due respect for the need to anonymise the name statistics,
+it’s hard to understand why the summary figures of how many names with
+less than X uses, which have been removed due to privacy concerns, are
+not automatically reported. This would allow one to immediately compute
+correct totals and collision probabilities. The same problem occurs,
+e.g., in the corresponding <a
+href="https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/livebirths/datasets/babynamesenglandandwalesbabynamesstatisticsboys">UK
+and Wales data</a>. Here, Table 6 is listing all first names with 3 or
+more uses, but not stating how many newborns have a name occurring once
+and twice, respectively.</p>
+<p>Luckily, the missing number could be obtained for the Swedish data
+with a bit of data dancing and a simple subtraction. Based on these data
+the collision probabilities are - opposite to some of my <a
+href="http://staff.math.su.se/hoehle/blog/2017/02/13/bday.html">previous
+blog analyses</a> - exact. Have a look at the <a
+href="http://www.scb.se/en/finding-statistics/">SCB data website</a>,
+maybe the data you are looking for can be found here!</p>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2017/03/25/scbnames.html";
+      this.page.identifier = "/2017/03/25/scbnames";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

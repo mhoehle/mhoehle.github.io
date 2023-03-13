@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Confidence Intervals without Your Collaborator&#39;s Tears</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2017/06/22/interpretcis.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Confidence Intervals without Your Collaborator's Tears</h1>
+    <p class="post-meta"><time datetime="2017-06-22T00:00:00+02:00" itemprop="datePublished">Jun 22, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>We provide an interpretation for the confidence interval for a
+binomial proportion hidden as the transcript of an hypothetical
+statistical consulting session.</p>
+<center>
+<img
+src="/blog/figure/source/2017-06-22-interpretcis/BETABINOMIALCI-1.png" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<p>
+<h2 id="the-statistical-consulting-session">The Statistical Consulting
+Session</h2>
+<p><strong>[Client]:</strong> So I did this important experiment where I
+investigated 420 turtles whether they had a specific phenotype trait. 52
+out of my 420 turtles had the trait, i.e. the proportion in the sample
+was 12.4%. Now I’d like to state a 95% confidence interval for what the
+proportion of the trait is in the population of turtles (which is pretty
+large).</p>
+<p><strong>[Statistician]:</strong> Interesting, but no so fast. Before
+going into the statistical specifics I would like to talk about the
+representativeness of your sample. Can you explain in more detail what
+is the population of turtles you would like to make a statement about
+and how the sample was selected.</p>
+<p><strong>[Client]:</strong> I’m surprised you care about turtles
+(<em>eyes start to glow</em>). My research area is the indo-pacific
+subpopulation of the <a
+href="https://en.wikipedia.org/wiki/Green_sea_turtle">green sea
+turtle</a>, in particular the one outside the Great Barrier Reef. The
+population is believed to be a few thousands large and we sample by
+catching turtles using the <a
+href="https://www.youtube.com/watch?v=FnKcBZBaAW8">rodeo method</a> at
+specific feeding grounds. Each turtle was then tagged and a skin biopsy
+was taken. From the biopsy it was determined if the turtle is clinically
+unhealthy by measuring marker values and then check if its specific
+value was outside the presented reference interval.</p>
+<p><strong>[Statistician]:</strong> Hmm, that’s a lot of information.
+And what population do you want to make a statement about? All green
+turtles?</p>
+<p><strong>[Client]:</strong> That would be nice, but no. There are
+genetic differences between the varies subspecies so I would be happy
+just to make a statement about the Great Barrier Reef population.</p>
+<p><strong>[Statistician]:</strong> That sounds fair. You might get some
+bias by only sampling from feeding grounds and I’m unsure about the
+spatial design of your capture strategy.</p>
+<p><strong>[Client:]</strong> We gave this a lot of thought and varied
+both the time and site of sampling, but there is no hypothesis that
+there is great spatial variation within the reef area.</p>
+<p><strong>[Statistician]:</strong> Well, it’s my job to check the
+representativeness of the sample, but it sounds like you already gave
+this great thought. From what you describe sampling appears to be
+without replacement. However, since your population is large (and also
+not really known), it appears acceptable to skip the finite population
+correction. Since your sample is also pretty large, let’s therefore go
+with the textbook large-sample confidence interval for a binomial
+proportion, that is <span class="math inline">\(\hat{p} \pm 1.96
+\sqrt{\hat{p}(1-\hat{p})/n}\)</span>, where <span
+class="math inline">\(\hat{p}=x/n\)</span>. Don’t worry about the
+equation, let’s use R and the <code>binom</code> package to compute the
+interval:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(ci <span class="ot">&lt;-</span> binom<span class="sc">::</span><span class="fu">binom.asymp</span>(<span class="at">x=</span>x, <span class="at">n=</span>n, <span class="at">conf.level=</span><span class="fl">0.95</span>))</span></code></pre></div>
+<pre><code>##       method  x   n      mean      lower     upper
+## 1 asymptotic 52 420 0.1238095 0.09231031 0.1553087</code></pre>
+<p>So the requested 95% CI is 9.2%- 15.5%. Happy?</p>
+<p><strong>[Client]:</strong> Well, yes, that looks nice, but I wonder
+how I can interpret the confidence interval. Is it correct to say that
+the interval denotes a region, which contains the true value with 95%
+probability?</p>
+<p><strong>[Statistician]:</strong> A confidence interval constructing
+procedure yields a random interval, because it depends on quantities (in
+particular <span class="math inline">\(x\)</span>), which are random.
+However, once you plug-in the realization of the random variable
+(i.e. your observation), you get a realization of the confidence
+interval consisting of two numbers. Would we know the true value then we
+could tell, whether the value is covered by this particular interval or
+not. The specific interval we calculated above thus contains the true
+value with probability 0% or 100% - which of the two is the cases we
+unfortunately do not know.</p>
+<p>The correct interpretation is thus that the confidence interval is
+constructed by a procedure, which, when you repeat the experiment many
+many times, is such that in 95% of the experiments the corresponding
+confidence interval would cover the true value. I can illustrate this
+using a small simulation study in R. Let’s assume your true proportion
+is 10%.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Assumed true value of the proportion of turtles with the trait</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>theta_true <span class="ot">&lt;-</span> <span class="fl">0.1</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Prepare data.frame with 10000 realizations of the experiment</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x=</span><span class="fu">rbinom</span>(<span class="at">n=</span><span class="fl">1e4</span>, <span class="at">size=</span>n, <span class="at">prob=</span>theta_true))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="do">##Compute 95% CI for each experiment</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&lt;&gt;%</span> <span class="fu">do</span>( {</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>(<span class="fu">cbind</span>(.,<span class="at">rate=</span>.<span class="sc">$</span>x<span class="sc">/</span>n,binom<span class="sc">::</span><span class="fu">binom.asymp</span>(<span class="at">x=</span>.<span class="sc">$</span>x, <span class="at">n=</span>n)[<span class="fu">c</span>(<span class="st">&quot;lower&quot;</span>,<span class="st">&quot;upper&quot;</span>)]))</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="do">##Check if the interval covers the true value</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&lt;&gt;%</span> <span class="fu">mutate</span>(<span class="at">covers_true_value =</span> lower <span class="sc">&lt;</span> theta_true <span class="sc">&amp;</span> upper <span class="sc">&gt;</span> theta_true)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="do">##Proportion of intervals covering the true value. This would be 95%</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">coverage =</span> <span class="fu">mean</span>(covers_true_value))</span></code></pre></div>
+<pre><code>##   coverage
+## 1   0.9446</code></pre>
+<p>A graphic for the first 50 experiments shows their point estimates,
+corresponding intervals and how they overlap the true value or not:
+<img src="/blog/figure/source/2017-06-22-interpretcis/unnamed-chunk-6-1.png" style="display: block; margin: auto;" /></p>
+<p>The specific confidence interval <code>ci</code> we computed above is
+thus just one of many possible confidence intervals originating from the
+above procedure.</p>
+<p><strong>[Client]:</strong> Ok, I get that is what happens when you do
+it many times. But I only have this one experiment with x = 52 out of n
+= 420 subjects having the trait of interest. Your above output does
+contain a very specific CI, with some very specific numbers, i.e. 9.2%-
+15.5%. Is the true value in this interval with 95% probability?</p>
+<p><strong>[Statistician]:</strong> No, the realized interval either
+covers the true value or not. But since we do not know the true value
+it’s a bit like Schrödinger’s cat… To keep things very sketchy: The
+width of the interval gives you an indication of your estimation
+certainty, but the particular values are hard to interpret - except
+maybe as the critical limits in a corresponding hypothesis test. The
+later can loosely be interpreted as the range of parameters consistent
+with the data, where <em>consistency</em> is defined by a pre-defined
+type-I error probability.</p>
+<p><strong>[Client]:</strong> I’m sorry, but this is
+<strong>useless</strong>! You suggest to follow a common statistical
+protocol, you compute some numbers, but these numbers don’t really mean
+anything?</p>
+<p><strong>[Statistician]:</strong> Sorry, that’s the way it is.
+However, allow me to offer a different explanation: We both appear to
+agree that there is a true value of the proportion, right? Let’s denote
+this <span class="math inline">\(\theta\)</span> with <span
+class="math inline">\(0 \leq \theta \leq 1\)</span>. We don’t know the
+true value, but we might have some prior idea about the range of
+plausible values for it. Would you be willing to characterize your
+belief about this by a distribution for <span
+class="math inline">\(\theta\)</span>? This could be something as simple
+as assuming <span class="math inline">\(\theta \sim U(0,1)\)</span>,
+i.e. you would assume that every value of <span
+class="math inline">\(\theta\)</span> between zero and one is equally
+probable initially. Then the interval we computed above denotes a 95%
+equal tail probability <strong>credibility region</strong> in a Bayesian
+framework when we assume this flat prior and use an asymptotic argument
+resulting in the posterior being Gaussian with the same mean and
+variance as the one would get from the asymptotic frequentist
+procedure.</p>
+<p><strong>[Client]:</strong> Umm, ok, but how’s that helpful?</p>
+<p><strong>[Statistician]:</strong> In the Bayesian context a 95%
+credibility region is a summary of your posterior belief about the
+parameter. Hence, it is ok to interpret this interval as that your
+belief after seeing the data is such that <em>the true value is in that
+interval with 95% probability</em>.</p>
+<p><strong>[Client]:</strong> I love this Bayes thing! This is what I
+wanted initially. But hang on, I don’t really believe in all values of
+the parameter being initially equally probable. I’ve seen some previous
+studies in the literature who under pretty similar conditions find that
+proportion is around 5-15%. How would I incorporate that?</p>
+<p><strong>[Statistician]:</strong> You could modify the large-sample
+Gaussian posterior such that it includes this prior information. Instead
+of using Gaussians you could alternatively also use a <a
+href="https://en.wikipedia.org/wiki/Beta_distribution">Beta
+distribution</a> to perform so called <strong>conjugate prior-posterior
+updating</strong> of your belief about the true proportion. Let’s say
+the 5-15% denotes your prior 95% credibility region for the parameter.
+We would use this to find the parameters of a beta distribution. Then we
+would update your prior belief with the observed data to get the
+posterior distribution. A feature of such a conjugate approach is that
+this updated distribution, i.e. the posterior, is again beta. Doing this
+in R is easy:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Function to determine beta parameters s.t. the 2.5% and 97.5% quantile match the specified values</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>target <span class="ot">&lt;-</span> <span class="cf">function</span>(theta, prior_interval, <span class="at">alpha=</span><span class="fl">0.05</span>) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>( (<span class="fu">qbeta</span>(<span class="fu">c</span>(alpha<span class="sc">/</span><span class="dv">2</span>, <span class="dv">1</span><span class="sc">-</span>alpha<span class="sc">/</span><span class="dv">2</span>), theta[<span class="dv">1</span>], theta[<span class="dv">2</span>]) <span class="sc">-</span> prior_interval)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="do">##Find the prior parameters</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>prior_params <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">10</span>,<span class="dv">10</span>),target, <span class="at">prior_interval=</span><span class="fu">c</span>(<span class="fl">0.05</span>, <span class="fl">0.15</span>))<span class="sc">$</span>par</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>prior_params</span></code></pre></div>
+<pre><code>## [1]  12.04737 116.06022</code></pre>
+<p>Actually, you can interpret the above prior parameters as the number
+of turtles you have seen with the trait (12) and without the trait
+(116), respectively, before conducting your above investigation. The
+posterior parameters are then 12 + 52 = 64 turtles with the trait and
+116 + 368 = 484 turtles without the trait. You get the credible interval
+based on this posterior in R by:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Compute credibile interval from a beta-binomial conjugate prior-posterior approach</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>(ci_bayes <span class="ot">&lt;-</span> binom<span class="sc">::</span><span class="fu">binom.bayes</span>(<span class="at">x=</span>x, <span class="at">n=</span>n, <span class="at">type=</span><span class="st">&quot;central&quot;</span>, <span class="at">prior.shape1=</span>prior_params[<span class="dv">1</span>], <span class="at">prior.shape2=</span>prior_params[<span class="dv">2</span>]))</span></code></pre></div>
+<pre><code>##   method  x   n   shape1   shape2      mean      lower     upper  sig
+## 1  bayes 52 420 64.04737 484.0602 0.1168518 0.09134069 0.1450096 0.05</code></pre>
+<p>Graphically, your belief updating looks as follows:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Plot of the beta-posterior</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> binom<span class="sc">::</span><span class="fu">binom.bayes.densityplot</span>(ci_bayes)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="do">##Add plot of the beta-prior</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x=</span><span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">1</span>,<span class="at">length=</span><span class="dv">1000</span>)) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">pdf=</span><span class="fu">dbeta</span>(x, prior_params[<span class="dv">1</span>], prior_params[<span class="dv">2</span>]))</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data=</span>df, <span class="fu">aes</span>(<span class="at">x=</span>x, <span class="at">y=</span>pdf), <span class="at">col=</span><span class="st">&quot;darkgray&quot;</span>,<span class="at">lty=</span><span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">xlim=</span><span class="fu">c</span>(<span class="dv">0</span>,<span class="fl">0.25</span>)) <span class="sc">+</span> <span class="fu">scale_x_continuous</span>(<span class="at">labels=</span>scales<span class="sc">::</span>percent)</span></code></pre></div>
+<p><img src="/blog/figure/source/2017-06-22-interpretcis/BETABINOMIALCI-1.png" style="display: block; margin: auto;" /></p>
+<p>The dashed line in the graphic shows the density of your beta prior
+distribution. The shaded region shows the density of your beta posterior
+distribution, in particular, the gray shaded area denotes your 95%
+credibility region on the x-axis. One advantage of the beta-binomial
+approach is that this ensures that the prior as well as the posterior
+distribution have the same support as your parameter, i.e. the interval
+between zero and one.</p>
+<p><strong>[Client]:</strong> So I can really write that the interval
+9.1%- 14.5% contains the true parameter with a probability of 95%?</p>
+<p><strong>[Statistician]:</strong> Depending on the technical level of
+your readership you might want to state that it’s a 95% equi-tailed
+credible interval resulting from a beta-binomial conjugate Bayesian
+approach obtained when using a prior beta with parameters such that the
+similar 95% equi-tailed <strong>prior credible interval</strong> has
+limits 0.05 and 0.15. Given these assumptions the interval 9.1%- 14.5%
+contains 95% of your subjective posterior density for the parameter.</p>
+<p><strong>[Client]:</strong> ???</p>
+<p><strong>[Statistician]:</strong> You might want to skip all the
+details and write that the 95% <strong>Bayesian confidence
+interval</strong> is 9.1%- 14.5%.</p>
+<p><strong>[Client]:</strong> And what if the reviewers do not agree
+with my prior distribution?</p>
+<p><strong>[Statistician]:</strong> Then return to your flat prior,
+i.e. the uniform. Nobody usually questions that even though you told me
+that you don’t believe in it yourself:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>(ci_bayes_unif <span class="ot">&lt;-</span> binom<span class="sc">::</span><span class="fu">binom.bayes</span>(<span class="at">x=</span>x, <span class="at">n=</span>n, <span class="at">type=</span><span class="st">&quot;central&quot;</span>, <span class="at">prior.shape1=</span><span class="dv">1</span>, <span class="at">prior.shape2=</span><span class="dv">1</span>))</span></code></pre></div>
+<pre><code>##   method  x   n shape1 shape2      mean      lower    upper  sig
+## 1  bayes 52 420     53    369 0.1255924 0.09574062 0.158803 0.05</code></pre>
+<p><strong>[Client]:</strong> Alright, that’s settled then - I just use
+a Bayesian confidence interval with a flat prior and am done. That was
+not so hard after all. Now to something else, the reviewers of the
+paper, which by the way has to be revised by tomorrow, also asked us to
+substantiate our findings with a <strong>p-value</strong>. How would I
+get a p-value related to the above?</p>
+<p><strong>[Statistician]:</strong> Look how late it already is! I
+really need to go. I have this Bayesian Methods class to teach…</p>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2017/06/22/interpretcis.html";
+      this.page.identifier = "/2017/06/22/interpretcis";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>4x3 R-Hackathoning - The Finisher&#39;s Guide</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2016/12/12/hackinthedark.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">4x3 R-Hackathoning - The Finisher's Guide</h1>
+    <p class="post-meta"><time datetime="2016-12-12T00:00:00+01:00" itemprop="datePublished">Dec 12, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>We present experiences from organizing a small R hackathon aimed at
+advancing knowledge and documentation of the R package surveillance. The
+hackathon was piggybacked on the ESCAIDE2016 conference visited by
+current and potential package users in the area of infectious disease
+epidemiology. The output of the hackathon is available at <a
+href="https://surveillancer.github.io/tutorials/">https://surveillancer.github.io/tutorials/</a>.</p>
+<center>
+<img src="/blog/figure/source/2016-12-12-hackinthedark/ears-1.png" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>A <strong><a
+href="https://en.wikipedia.org/wiki/Hackathon">hackathon</a></strong> is
+a extreme-programming sprint-like event where people involved in
+software development (and beyond) meet for a short period of time with
+the purpose of collaborative programming, typically in the context of
+<strong><a
+href="https://en.wikipedia.org/wiki/Open-source_software">open-source
+software</a></strong>. The word hackathon is a merger of
+<strong>hack</strong> and <strong>marathon</strong>, where <a
+href="http://www.dictionary.com/browse/hack"><em>hacking</em></a> is to
+be understood as the skillful modification of computer programs (and not
+the malicious circumvention of security measures). Lots of good guides
+have been written on <a href="https://hackathon.guide/">how to run a
+successful Hackathon</a>. In the area of <strong>infectious disease
+epidemiology</strong>, which has been the main area of motivation for
+our statistical developments and implementations, very successful events
+(<a href="https://sites.google.com/site/hackoutwiki/home">hackout</a>,
+<a href="https://sites.google.com/site/hackout2/">hackout2</a>, <a
+href="http://hackout3.ropensci.org/">hackout3</a>) have previously been
+organized. At a much smaller scale we wanted to ignite the energy and
+enthusiasm such an event spawns.</p>
+<p>As a consequence, this blog post gathers our experiences from
+organising a small <strong>4x3 hackathon</strong> (4 people, 3 days) for
+the surveillance R-package in connection with the <a
+href="http://ecdc.europa.eu/en/escaide/Pages/ESCAIDE.aspx">ESCAIDE2016</a>
+conference in November 2016. Our hope is that these experiences might be
+useful for others - even if working in very different contexts.</p>
+<h2 id="organizing-and-running-the-hackathon">Organizing and Running the
+Hackathon</h2>
+<p>We report on a number of practical “?” and “!” below.</p>
+<h3 id="why">Why?</h3>
+<p>Over the last several years we worked on a package for the
+visualization, modelling and monitoring of surveillance time series. As
+most of us are busy with other tasks now, it felt like a good idea to
+all meet in person to work a little on the package and network with
+potential users in order to increase awareness of the package. The 10’th
+European Scientific Conference on Applied Infectious Disease
+Epidemiology (<a
+href="http://ecdc.europa.eu/en/escaide/Pages/ESCAIDE.aspx">ESCAIDE2016</a>)
+organized by the <a href="http://ecdc.europa.eu">European Centre for
+Disease Prevention and Control</a> (ECDC) in Stockholm, Sweden, 28-30
+Nov 2016, with its about 600 participants, felt like the right place to
+be.</p>
+<h3 id="a-cool-name">A Cool Name?</h3>
+<p>Stockholm is placed on the 59th parallel north, hence, during end of
+November daylight is limited to approximately <a
+href="http://www.timeanddate.com/sun/sweden/stockholm">6:30 hours</a>.
+In other words: Perfect hacking conditions. In order to honour this,
+<strong>Hack in the Dark</strong> became our internal handle for the
+hackathon.</p>
+<h3 id="who">Who?</h3>
+<p>Hackathons come in all sizes. We decided on a mini four person
+hackathon of experienced R users, who all knew the package well: two
+former Ph.D. students who had used the package as the implementational
+repository for their methodological developments (one of them now being
+the package maintainer), a former power-user of the package and the
+package creator. Alternatively, we could have involved new persons in
+order to expand awareness of the package and increase diversity of the
+hackathonians, but we decided to go for the small team in order to
+maximize efficiency.</p>
+<h3 id="venue">Venue?</h3>
+<p>Piggybacking on an existing conference held in a large conference
+centre meant we did not have to worry about WLAN, food and seating.
+Especially when only being 4 persons.</p>
+<h3 id="what-to-do">What to do?</h3>
+<p>We started about 8 weeks before the hackathon to brainstorm using <a
+href="https://slack.com/">slack</a> as a messaging system. We then
+created a priority matrix in <a href="http://docs.google.com">google
+docs</a> allowing each of the participants to prioritize the ideas. This
+gave us an initial idea of what we wanted to do. Unfortunately, most of
+us then got pretty busy with other activities so we never managed to
+revisit the matrix until a couple of days before the start of the
+hackathon. Instead, we recapitulated matters in an “indian buffet
+process” meeting in Stockholm at the night before the hackathon:</p>
+<ol type="1">
+<li>Write i/o tutorials explaining how to get data into the package and
+then use package functions for cool visualizations of the data</li>
+<li>Use open European data for the tutorials - the theme of ESCAIDE2016
+was after all: <strong>Data for action</strong></li>
+<li>Make a <a href="https://shiny.rstudio.com/">shiny app</a> to
+visualize the effect of various parameters choices for the surveillance
+algorithms implemented in the package. The best choice of configuration
+has been a recurrent user question throughout the years.</li>
+<li>Demo twitter surveillance by monitoring the conference hashtag
+<code>#ESCAIDE2016</code>.</li>
+</ol>
+<h3 id="source-code-management">Source Code Management?</h3>
+<p>We chose to create an organization <strong>surveillancer</strong> on
+<a href="http://www.github.com">github</a>, which we then all joined
+with our individual github accounts. All new projects were then
+conducted by initiating new repositories. The <code>surveillance</code>
+package itself is still developed on <a
+href="http://www.r-forge.r-project.org">R-Forge</a> using
+<code>svn</code>, but since we knew most of our work would be
+<em>using</em> the surveillance package rather than <em>developing</em>
+the package, we decided to keep the existing infrastructure for the
+package and instead develop the planned tutorials and visualizations in
+a new github project. This worked ok, but switching between
+<code>svn</code> and <code>git</code> for commits on different projects
+was not always helpful: <code>git commit -a</code> is a useful friend if
+you don’t know the <a href="https://githowto.com/staging_changes">git
+staging area</a>…</p>
+<h3 id="project-output-format">Project Output Format?</h3>
+<p>We decided to create an R package and then use Hadley Wickham’s new
+<a href="https://hadley.github.io/pkgdown/">pkgdown</a> package to
+create a website containing all hackathon output. The above specified
+tutorials were then created as vignettes. An immediate advantage of this
+approach was that all hackathon output was bundled and that vignette
+code was directly available for the interested user.</p>
+<h3 id="demo-demo-demo">Demo, demo, demo!</h3>
+<p>Inspired by the extreme programming paradigm, and because we wanted
+to interact with the conference, we decided to demo at least once a day
+by posting hackathon output on twitter. Besides the outgoing publicity
+we also frequently demo’ed internally in order to get input and
+suggestions. This worked pretty well - there is nothing as motivating
+and interactive as getting constructive input and suggestions from your
+table neighbour!</p>
+<p>Interaction with the other conference participants, on the other
+hand, was moderate. We showed parts and pieces to interested people, but
+in hindsight we should have aimed for a poster presentation or a related
+activity in order to generate more real-life awareness of the hackathon
+outside the virtual world of twitter.</p>
+<h2 id="summing-up">Summing Up</h2>
+<p>The three days of hackathon passed quickly, but we managed to get the
+four formulated outputs done.</p>
+<p>Intense software sprints are hard work, thus, it was natural that
+towards the end of the hackathon the concentration decreased slightly.
+However, phases of intense coding are perfectly supplemented by
+listening to scientific talks, talking to former colleagues visting the
+conference or sharing the passion of R with others working in the field.
+In particular it was nice to exchange ideas with <a
+href="http://www.imperial.ac.uk/people/t.jombart">Thibaut Jombart</a>,
+whose <a href="http://www.repidemicsconsortium.org/">R Epidemics
+Consortium (RECON)</a> project hopefully is able to bundle the R
+initiatives in infectious disease epidemiology a little. Besides the
+availability of software, the training aspect of new users (e.g. trainee
+epidemiologists) is also crucial. Finally, the
+<strong>aftermath</strong> of the hackathon is as important as the
+pre-event planning: dedicated coordinators have to ensure that loose
+ends are wrapped up. Here, the participants’ enthusiasm declines quickly
+as other activities become higher priorities. Again, it’s essential to
+have a clear goal of what needs to be done (e.g. a blog entry…).</p>
+<p>Altogether, code sessions such as a <a
+href="http://staff.math.su.se/hoehle/blog/2016/08/04/outbreakEnd.html">reproducibility
+session</a> or a <strong>toolbox session</strong> could be components
+for spicing up scientific conferences. For example the toolbox event
+could consist of a set of interested people, who on conference day 1
+decide to implement a particular method useful in practice, and then
+demo it on the last day. Obviously, all these suggestions take time away
+from other conference content and certainly are more stressful than
+dozing of in the plenary sessions…</p>
+<p>No matter what, focus of a hackathon should also be on social
+aspects. It also proves wise not to ignore fresh air &amp; sunlight
+completely. To our surprise, the 6:30 hours of daylight were at times
+actually quite sunny in Stockholm!</p>
+<h3 id="visit-the-hack-in-the-dark-output">Visit the Hack in the Dark
+Output</h3>
+<p>The output of the hackathon can be found here:</p>
+<center>
+<a
+href="https://surveillancer.github.io/tutorials/">https://surveillancer.github.io/tutorials/</a>
+</center>
+<p>
+<p>In order to run the accompanying code (available from github by
+clicking on the “fork me on github” icons), version 1.13.0 of the
+<code>surveillance</code> package is needed (available from CRAN). As an
+appetizer to check out the hackathon <a
+href="https://surveillancer.github.io/tutorials/">site</a> or the <a
+href="https://github.com/surveillancer/tutorials">code</a>, here are two
+of our tweets demoing output during the event:</p>
+<blockquote class="twitter-tweet" data-lang="en">
+<p lang="en" dir="ltr">
+First draft output of the
+<a href="https://twitter.com/hashtag/ESCAIDE2016?src=hash">#ESCAIDE2016</a>
+surveillance
+<a href="https://twitter.com/hashtag/rstats?src=hash">#rstats</a>
+hackathon: Visualizing
+<a href="https://twitter.com/hashtag/opendata?src=hash">#opendata</a> by
+<a href="https://twitter.com/ECDC_EU"><span class="citation"
+data-cites="ECDC_EU">(<strong>ECDC_EU?</strong>)</span></a> on
+Salmonella Agona.
+<a href="https://twitter.com/hashtag/data4action?src=hash">#data4action</a>
+<a href="https://t.co/8ApaDNF07L">pic.twitter.com/8ApaDNF07L</a>
+</p>
+— Michael Höhle (@m_hoehle)
+<a href="https://twitter.com/m_hoehle/status/803270577150631937">November
+28, 2016</a>
+</blockquote>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+<blockquote class="twitter-tweet" data-lang="en">
+<p lang="en" dir="ltr">
+Interactive illustration of monitoring algorithms for infectious disease
+surveillance
+<a href="https://twitter.com/hashtag/escaide2016?src=hash">#escaide2016</a>
+<a href="https://twitter.com/hashtag/rstats?src=hash">#rstats</a>
+<a href="https://t.co/qizcqqMbEJ">https://t.co/qizcqqMbEJ</a>
+<a href="https://t.co/LyZujDLsF2">pic.twitter.com/LyZujDLsF2</a>
+</p>
+— Dirk Schumacher (@dirk_sch)
+<a href="https://twitter.com/dirk_sch/status/803573405660286976">November
+29, 2016</a>
+</blockquote>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+<h3 id="the-future">The Future</h3>
+<p>We wish you all the best for your own hackathon event. Put software
+on the scientific agenda!</p>
+<h2 id="acknowledgments">Acknowledgments</h2>
+<p>Thanks to <a href="http://www.masalmon.eu/">Maëlle Salmon</a>, <a
+href="https://www.dirk-schumacher.net/">Dirk Schumacher</a> and <a
+href="http://www.imbe.med.uni-erlangen.de/cms/sebastian_meyer.html">Sebastian
+Meyer</a> for all their great work and the creative atmosphere during
+the hackathon! The event was implicitly supported by the Swedish
+Research Council as part of the project Statistical Modelling,
+Monitoring and Predictive Analytics against Infectious Disease Outbreaks
+(grant number 2015-05182_VR).</p>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2016/12/12/hackinthedark.html";
+      this.page.identifier = "/2016/12/12/hackinthedark";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

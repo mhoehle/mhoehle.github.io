@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Flatten the COVID-19 curve</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2020/03/16/flatteningthecurve.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Flatten the COVID-19 curve</h1>
+    <p class="post-meta"><time datetime="2020-03-16T00:00:00+01:00" itemprop="datePublished">Mar 16, 2020</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>We discuss why the message of flattening the COVID-19 curve is right,
+but why some of the visualizations used to show the effect are wrong:
+Reducing the basic reproduction number does not just stretch the
+outbreak, it also reduces the final size of the outbreak. A Shiny app
+exists to investigate different scenarios.</p>
+<center>
+<img src="/blog/figure/source/2020-03-16-flatteningthecurve/FLATTENTHECURVE-1.png" width="550">
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="motivation">Motivation</h2>
+<p>Current discussions about interventions for the ongoing COVID-19
+outbreak talk a lot about <strong>flattening the epidemic
+curve</strong>, i.e. to slow down the outbreak dynamics. Because of
+limited health capacities, stretching out the outbreak over a longer
+time period will ensure, that a larger proportion of those in need of
+hospital treatment will actually get it. Other advantages of this
+approach are to win time in order to find better treatment forms and,
+possibly, to eventually develop a vaccine. Visualization of the
+flatten-the-curve-effect often look like this one taken from
+Twitter:</p>
+<center>
+<blockquote class="twitter-tweet">
+<p lang="en" dir="ltr">
+Our
+<a href="https://twitter.com/hashtag/FlattenTheCurve?src=hash&amp;ref_src=twsrc%5Etfw">#FlattenTheCurve</a>
+graphic is now up on
+<a href="https://twitter.com/Wikipedia?ref_src=twsrc%5Etfw"><span
+class="citation"
+data-cites="Wikipedia">(<strong>Wikipedia?</strong>)</span></a> with
+proper attribution &amp; a CC-BY-SA licence. Please share far &amp; wide
+and translate it into any language you can! Details in the thread below.
+<a href="https://twitter.com/hashtag/Covid_19?src=hash&amp;ref_src=twsrc%5Etfw">#Covid_19</a>
+<a href="https://twitter.com/hashtag/COVID2019?src=hash&amp;ref_src=twsrc%5Etfw">#COVID2019</a>
+<a href="https://twitter.com/hashtag/COVID19?src=hash&amp;ref_src=twsrc%5Etfw">#COVID19</a>
+<a href="https://twitter.com/hashtag/coronavirus?src=hash&amp;ref_src=twsrc%5Etfw">#coronavirus</a>
+Thanks to <a href="https://twitter.com/XTOTL?ref_src=twsrc%5Etfw"><span
+class="citation" data-cites="XTOTL">(<strong>XTOTL?</strong>)</span></a>
+&amp;
+<a href="https://twitter.com/TheSpinoffTV?ref_src=twsrc%5Etfw"><span
+class="citation"
+data-cites="TheSpinoffTV">(<strong>TheSpinoffTV?</strong>)</span></a>
+<a href="https://t.co/BQop7yWu1Q">pic.twitter.com/BQop7yWu1Q</a>
+</p>
+— Dr Siouxsie Wiles (<span class="citation"
+data-cites="SiouxsieW">(<strong>SiouxsieW?</strong>)</span>)
+<a href="https://twitter.com/SiouxsieW/status/1237275231783284736?ref_src=twsrc%5Etfw">March
+10, 2020</a>
+</blockquote>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+</center>
+<p>The origin of these illustration is discussed <a
+href="https://www.fastcompany.com/90476143/the-story-behind-flatten-the-curve-the-defining-chart-of-the-coronavirus?partner=rss">here</a>.</p>
+<p>As much as I support the message and reasons for flattening the
+curve, some of the visualizations have shortcomings from an infectious
+disease modelling point of view: They transport the message that the
+number of individuals, which -as an result of the outbreak- will need
+hospitalization, is fixed. Hence, the figure suggests that it’s
+impossible to avoid a certain number of infected (say 40-70% of the
+population), but we save lives by stretching out hospital cases over
+time. Although the conclusion is correct, the premise is IMHO wrong:
+Reducing the basic reproduction number by drastically reducing contacts
+or quickly isolating infectious diseases also reduces the size of the
+outbreak. Also others, like <a
+href="http://ms.mcmaster.ca/~bolker/misc/peak_I_simple.html">Ben
+Bolker</a> have pointed out this flaw.</p>
+<p>We shall use a simple and common mathematical model from infectious
+disease modelling to illustrate this point. This model is easily
+implemented in R - showing how is a secondary objective of this post.
+The R code of this post is available from <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2020-03-16-flatteningthecurve.Rmd">github</a>
+and is nicely visualized interactively by a <a
+href="https://tinu.shinyapps.io/Flatten_the_Curve/"><strong>Shiny
+App</strong></a> made by Tinu Schneider.</p>
+<p>A word of caution at this point: <strong>The numbers and
+illustrations used in this post address the point of visualization and
+are not an attempt to generate actual policy advice</strong>.</p>
+<h2
+id="susceptible-infectious-recovered-modelling">Susceptible-Infectious-Recovered
+modelling</h2>
+<p>A well-known mathematical model to describe the dynamics of an
+infectious disease in a population is the so called
+susceptible-infectious-recovered (SIR) compartment model <span
+class="citation" data-cites="kermack_mckendrick1927">(Kermack and
+McKendrick 1927)</span>. This model assumes that each individual in the
+population population belongs to one of three states:</p>
+<ul>
+<li><em>S</em>usceptible: the individual has not yet had the disease,
+but is not immune to the disease and thus can become infectious when
+having an infectious contact with an infected individual</li>
+<li><em>I</em>nfectious: a person currently affected by the disease and
+able to transmit the disease to others</li>
+<li><em>R</em>ecovered: an infectious person who is not affected anymore
+by the disease and not able to transmit the disease anymore. No
+re-infection can occur, i.e. recovered individuals are immune to the
+disease once they had it.</li>
+</ul>
+<p>It is assumed that at time zero everyone is susceptible except for
+<span class="math inline">\(m\)</span> individuals, which are infectious
+at time zero. Once infected an individual becomes infectious and then
+recovers. Mathematically, we shall by <span
+class="math inline">\(S(t)\)</span>, <span
+class="math inline">\(I(t)\)</span> and <span
+class="math inline">\(R(t)\)</span> denote the number of susceptible,
+infectious and recovered in the population at time <span
+class="math inline">\(t\)</span>. Furthermore, it is assumed that the
+population consists of a constant number of <span
+class="math inline">\(N\)</span> individuals and at all times <span
+class="math inline">\(S(t)+I(t)+R(t)=N\)</span>. In other words the
+population is closed and does not vary over time.</p>
+<p>The dynamics in the number of susceptibles, infectious and recovered
+are now described using the following deterministic <a
+href="https://en.wikipedia.org/wiki/Ordinary_differential_equation">ordinary
+differential equation</a> (ODE) system:</p>
+<p><span class="math display">\[
+\begin{eqnarray*}
+\frac{dS(t)}{dt} &amp;=&amp; -\beta S(t) I(t), \\
+\frac{dI(t)}{dt} &amp;=&amp; \beta S(t) I(t) - \gamma I(t), \\
+\frac{dR(t)}{dt} &amp;=&amp; \gamma I(t).
+\end{eqnarray*}
+\]</span></p>
+<p>What does this mean? It denotes the movement of individuals between
+the three categories, in particular the movement from <span
+class="math inline">\(S\rightarrow I\)</span> and <span
+class="math inline">\(I \rightarrow R\)</span>. The most important term
+in the equation system is <span class="math inline">\(\beta S(t)
+I(t)\)</span> and can be motivated as follows: Consider one specific
+infectious individual at time <span class="math inline">\(t\)</span>,
+this individual meets a specific other person in the population at the
+rate of <span class="math inline">\(\beta\)</span> contacts per time
+unit (say day). It is assumed that this rate is the same no matter which
+other person we talk about (aka. homogeneous mixing in the population).
+Of course this is a very strong simplification, because it ignores,
+e.g., the distance between two individuals and that you tend to mix with
+more with peers. But in a large population, the average is a good
+description. Hence, the number of contacts with susceptible individuals
+per time unit is <span class="math inline">\(\beta S(t)\)</span>. Now
+summing these contacts over all infectious individuals at time <span
+class="math inline">\(t\)</span> leads to <span
+class="math inline">\(\sum_{j=1}^{I(t)}\beta S(t) = \beta I(t)
+S(t)\)</span>. Note that this is a non-linear term consisting of both
+<span class="math inline">\(I(t)\)</span> and <span
+class="math inline">\(S(t)\)</span>.</p>
+<p>In the above process description,for the ease of exposition, it is
+assumed that once an infectious individual meets a susceptible person,
+then the disease is always transmitted from the infected to the
+susceptible person. Hence, the transmission probability does not depend
+on, e.g., how long the infectious individual has already been
+infectious. An equivalent way of formulating this statement is to say
+that each individual has contacts at rate <span
+class="math inline">\(\alpha\)</span> for meeting a specific other
+person, and a proportion <span class="math inline">\(p\)</span> of these
+contacts results in an infection. Then <span class="math inline">\(\beta
+= \alpha p\)</span> is the rate at which infectious contacts occur.</p>
+<p>The second component of the model is the term <span
+class="math inline">\(\gamma I(t)\)</span>. Again considering one
+infectious individual it is assumed that the rate at which <span
+class="math inline">\(I\rightarrow R\)</span> transition occurs happens
+at the constant rate <span class="math inline">\(\gamma\)</span>. This
+means that individuals are on average <span
+class="math inline">\(1/\gamma\)</span> days infectious before they
+recover from the disease. In other words: The smaller <span
+class="math inline">\(\gamma\)</span> is the longer people are
+infectious and, hence, the longer they can transmit the disease to
+others. Note: Recovering from an epidemic modelling point of view does
+not distinguish between individuals which recover by becoming healthy or
+by dying - what is important is that they do not contribute to the
+spread of the disease anymore.</p>
+<p>One important quantity, which can be derived from the above ODE
+equation system is the so called <strong>basic reproduction
+number</strong>, aka. <span class="math inline">\(R_0\)</span> and is
+defined as <span class="citation"
+data-cites="diekman_etal2013">(Diekmann, Heesterbeek, and Britton
+2013)</span></p>
+<div class="blackbox">
+<strong>the expected number of secondary cases per primary case in
+</strong>a completely susceptible population. It is computed as** <span
+class="math inline">\(R_0 = N \frac{\beta}{\gamma}\)</span>.
+</div>
+<p>
+<p>This means that if we consider the dynamics of a disease in
+generation time, i.e. in a time scale where one time unit is the time
+period between infection in the primary case and infection in the
+secondary case, then <span class="math inline">\(R_0\)</span> denotes
+the growth factor in the size of the population at the beginning of the
+outbreak. What is special about the beginning of the outbreak? Well,
+more or less all contacts an infectious individual has, will be with
+susceptible individuals. However, once a large part of the population
+has already been infected, then <span class="math inline">\(R_0\)</span>
+does not necessarily describe the expected number of cases per primary
+case anymore. For the COVID-19 outbreak, since it is assumed that little
+immunity exists against the disease, all individuals will be susceptible
+and, hence, almost all contacts an infectious individual has, will be
+with susceptible persons. However, at a later stage in the epidemic, due
+to the depletion of susceptibles, the number of secondary cases will be
+lower. Furthermore, possible interventions as part of the epidemic
+response along the way might additionally lower the number of secondary
+cases.</p>
+<p>Assuming <span class="math inline">\(R(0)\)</span> and letting <span
+class="math inline">\(I(0)=m\)</span> we obtain <span
+class="math inline">\(S(0) = N-m\)</span>. We can use this initial
+configuration together with a numerical solver for ODEs as implemented,
+e.g., in the <code>lsoda</code> function of the R package <a
+href="https://cran.r-project.org/web/packages/deSolve/index.html"><code>deSolve</code></a>
+<span class="citation" data-cites="desolve2010">(Soetaert, Petzoldt, and
+Setzer 2010)</span>. For this, we need to implement a function, which
+describes the derivative of the ODE system:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">######################################################################</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to compute the derivative of the ODE system</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#  t - time</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#  y - current state vector of the ODE at time t</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#  parms - Parameter vector used by the ODE system</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Returns:</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#  list with one component being a vector of length two containing</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">#  dS(t)/dt and dI(t)/dt</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="do">######################################################################</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>sir <span class="ot">&lt;-</span> <span class="cf">function</span>(t, y, parms) {</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  beta <span class="ot">&lt;-</span> parms[<span class="dv">1</span>]</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  gamma <span class="ot">&lt;-</span> parms[<span class="dv">2</span>]</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  S <span class="ot">&lt;-</span> y[<span class="dv">1</span>]</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  I <span class="ot">&lt;-</span> y[<span class="dv">2</span>]</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">list</span>(<span class="fu">c</span>(<span class="at">S =</span> <span class="sc">-</span>beta <span class="sc">*</span> S <span class="sc">*</span> I, <span class="at">I =</span> beta <span class="sc">*</span> S <span class="sc">*</span> I <span class="sc">-</span> gamma <span class="sc">*</span> I)))</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Population size </span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="fl">1e6</span> </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Rate at which person stays in the infectious compartment (disease specific and tracing specific)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>gamma <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">5</span> </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Infectious contact rate - beta = R0/N*gamma and when R0 \approx 2.25 then  2.25/N*gamma</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fl">4.5e-07</span> </span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># R0 for the beta and gamma values</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>R0 <span class="ot">&lt;-</span> beta<span class="sc">*</span>N<span class="sc">/</span>gamma</span></code></pre></div>
+<p>Assuming a hypothetical population of <span class="math inline">\(N =
+1,000,000\)</span> and a contact rate of <span
+class="math inline">\(\beta = 0.0000004\)</span> means that the contact
+rate with a given individual is 0.0000004 contacts per day. The choice
+of <span class="math inline">\(\gamma = 0.2\)</span> corresponds to an
+average length of the infective period of 5 days. Altogether, this leads
+to an <span class="math inline">\(R_0\)</span> of 2.25, which roughly
+corresponds to the <span class="math inline">\(R_0\)</span> of
+SARS-CoV-2.</p>
+<p>We can now solve the ODE system using the above parameters and an
+initial number of infectious of, say, 10:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load package to numerically solve ODEs</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(deSolve))</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Grid where to evaluate</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>max_time <span class="ot">&lt;-</span> <span class="dv">150</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>times <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, max_time, <span class="at">by=</span><span class="fl">0.01</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Solve ODE system using Runge-Kutta numerical method.</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>ode_solution <span class="ot">&lt;-</span> <span class="fu">rk4</span>(<span class="at">y =</span> <span class="fu">c</span>(N <span class="sc">-</span> <span class="dv">10</span>, <span class="dv">10</span>), <span class="at">times =</span> times, <span class="at">func =</span> sir, <span class="at">parms =</span> <span class="fu">c</span>(beta, gamma)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setNames</span>(<span class="fu">c</span>(<span class="st">&quot;t&quot;</span>, <span class="st">&quot;S&quot;</span>, <span class="st">&quot;I&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">beta =</span> beta, <span class="at">gama =</span> gamma, <span class="at">R0 =</span> N <span class="sc">*</span> beta <span class="sc">/</span> gamma, <span class="at">s =</span> S <span class="sc">/</span> N, <span class="at">i =</span> I <span class="sc">/</span> N, <span class="at">type =</span> <span class="st">&quot;without_intervention&quot;</span>)</span></code></pre></div>
+<p>Here we have introduced <span class="math inline">\(s(t) =
+S(t)/N\)</span> and <span class="math inline">\(i(t) = I(t)/N\)</span>
+as, respectively, the proportion of susceptible and infectious
+individuals in the population. Note that <span
+class="math inline">\(I(t)\)</span> is the number of currently
+infectious persons. Since a person is usually infectious for more than
+one day this curve is not equivalent to the number of
+<strong>new</strong> infections per day. If interest is in this value,
+which would typically be what is reported by health authorities, this
+can be computed as <span class="math display">\[
+C(t) = \int_{t-1}^t \beta S(u) I(u) du.
+\]</span> or due to the SIR structure where re-infections are not
+possible simply as <span class="math inline">\(S(t-1) -
+S(t)\)</span>.</p>
+<p>The epidemic curve of new infections per day is shown below:
+<img src="/blog/figure/source/2020-03-16-flatteningthecurve/unnamed-chunk-7-1.png" style="display: block; margin: auto;" /></p>
+<p>Another important quantity of the model is an estimate for how many
+individuals are ultimately infected by the disease, i.e. <span
+class="math inline">\(1-s(\infty)\)</span> in a population where
+initially everyone is susceptible to the disease. This can be either
+calculated numerically from the above output as:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="sc">-</span> <span class="fu">tail</span>(ode_solution, <span class="at">n=</span><span class="dv">1</span>) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(s)) </span></code></pre></div>
+<pre><code>## [1] 0.8534244</code></pre>
+<p>or by numerically solving the following recursive equation <span
+class="citation" data-cites="diekman_etal2013">(Diekmann, Heesterbeek,
+and Britton 2013, 15)</span>: <span class="math display">\[
+s(\infty) = \exp(-R_0 (1-s(\infty)))
+\]</span> using R:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to compute the final size.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>s_inf <span class="ot">&lt;-</span> <span class="cf">function</span>(R0) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  f_target <span class="ot">&lt;-</span> <span class="cf">function</span>(x) { x <span class="sc">-</span> <span class="fu">exp</span>(<span class="sc">-</span>R0<span class="sc">*</span>(<span class="dv">1</span><span class="sc">-</span>x)) }</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">uniroot</span>(f_target, <span class="at">lower=</span><span class="fl">1e-12</span>, <span class="at">upper=</span><span class="dv">1</span><span class="fl">-1e-12</span>)<span class="sc">$</span>root</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(result)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Final proportion of infected.</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> <span class="sc">-</span> <span class="fu">s_inf</span>(R0)</span></code></pre></div>
+<pre><code>## [1] 0.8534382</code></pre>
+<p>We can use the above equation to verify that the larger <span
+class="math inline">\(R_0\)</span>, the larger is the final size of the
+outbreak:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>R0_grid <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">1.25</span>, <span class="fl">1.5</span>, <span class="fl">1.75</span>,<span class="dv">2</span>, <span class="fl">2.25</span>, <span class="fl">2.5</span>, <span class="dv">3</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">map_dbl</span>( R0_grid, <span class="sc">~</span> <span class="dv">1</span><span class="sc">-</span><span class="fu">s_inf</span>(.x)) <span class="sc">%&gt;%</span> <span class="fu">setNames</span>(R0_grid) <span class="sc">%&gt;%</span> scales<span class="sc">::</span><span class="fu">percent</span>(<span class="at">accuracy=</span><span class="dv">1</span>)</span></code></pre></div>
+<pre><code>##  1.25   1.5  1.75     2  2.25   2.5     3 
+## &quot;37%&quot; &quot;58%&quot; &quot;71%&quot; &quot;80%&quot; &quot;85%&quot; &quot;89%&quot; &quot;94%&quot;</code></pre>
+<p>However, despite a value of <span
+class="math inline">\(R_0&gt;1\)</span>, not the entire population will
+be infected, because of the depletion of susceptibles. Hence, the
+exponential growth rate interpretation of <span
+class="math inline">\(R_0\)</span> is only valid at the beginning of an
+outbreak.</p>
+<h2 id="reducing-r_0">Reducing <span
+class="math inline">\(R_0\)</span></h2>
+<p>As we could see from the equation defining <span
+class="math inline">\(R_0\)</span> in our simple SIR-model, there are
+two ways to reduce the <span class="math inline">\(R_0\)</span> of a
+disease:</p>
+<ol type="1">
+<li>Reduce the number of contacts persons have with each-other,
+i.e. make <span class="math inline">\(\beta\)</span> smaller</li>
+<li>Reduce the duration for how long people are effectively spreading
+the disease (e.g. by quarantine), i.e. reduce the average duration <span
+class="math inline">\(\gamma\)</span> of how long infectious individuals
+can infect others.</li>
+</ol>
+<p>For simplicity we shall only be interested in the first case and will
+pursue the following very simple strategy, where the different measures
+only depend on time:</p>
+<p><span class="math display">\[
+\beta(t) =
+\left\{
+\begin{array}{}
+\beta_0 &amp; \text{if } t\leq t_1, \\
+\beta_1 &amp; \text{if } t_1 &lt; t\leq t_2, \\
+\beta_2 &amp; \text{if } t_2 &lt; t
+\end{array}
+\right.
+\]</span> where <span class="math inline">\(\beta_0\)</span> is the
+ordinary <span class="math inline">\(\beta\)</span> value of the
+disease. We will use a large reduction of the contacts within the
+interval <span class="math inline">\([t_1, t_2]\)</span> and thus <span
+class="math inline">\(\beta_1 &lt; \beta_0\)</span>. After some time,
+the control measures are reduced slightly, i.e. <span
+class="math inline">\(\beta_1 &lt; \beta_2 &lt; \beta_0\)</span>. We
+shall use <span class="math inline">\(\beta_1 = r_1 \beta_0\)</span> and
+<span class="math inline">\(\beta_2 = r_2 \beta_0\)</span> with <span
+class="math inline">\(r_1 \leq r_2\)</span>. The two epidemic curves can
+now be plotted as follows:</p>
+<p><img src="/blog/figure/source/2020-03-16-flatteningthecurve/FLATTENTHECURVE-1.png" style="display: block; margin: auto;" /></p>
+<p>The final size in the two cases:</p>
+<pre><code>## # A tibble: 2 x 2
+## # Groups:   type [2]
+##   type                 final_fraction
+##   &lt;chr&gt;                &lt;chr&gt;         
+## 1 without_intervention 85%           
+## 2 with_intervention    68%</code></pre>
+<p>Here we used the very conservative estimates that <span
+class="math inline">\(R_0\)</span> can be reduced by 60% to 1.35 for a
+few weeks, hereafter the reduction is 80% of the original <span
+class="math inline">\(R_0\)</span>, i.e. 1.8. Things of course become
+more optimistic, the larger the reduction is. One danger is although to
+reduce <span class="math inline">\(R_0\)</span> drastically and then
+lift the measures too early and too much - in this case the outbreak is
+delayed, but then almost of the same peak size and final size, only
+later.</p>
+<p>The simple analysis in this post shows that the final size proportion
+with interventions is several percentage points smaller than without
+interventions. The larger the interventions, if done right and timed
+right, the smaller the final size. In other words: the spread of an
+infectious disease in a population is a dynamic phenomena. Time matters.
+The timing of interventions matters. If done correctly, they stretch the
+outbreak and reduce the final size!</p>
+<h2 id="discussion">Discussion</h2>
+<p>The epidemic model based approaches to flatten the curve shows that
+the effect of reducing the basic reproduction number is not just to
+stretch out the outbreak, but also to limit the size of the outbreak.
+This is an aspect which seems to be ignored in some visualizations of
+the effect.</p>
+<p>The simple SIR model used in this post suffers from a number of
+limitations: It is a deterministic construction averaging over many
+stochastic phenomena. However, at the large scale of the outbreak we are
+now talking about, this simplification appears acceptable. Furthermore,
+it assumes homogeneous mixing between individuals, which is way too
+simple. Dividing the population into age-groups as well as their
+geographic locations and modelling the interaction between these groups
+would be a more realistic reflection of how the population is shaped.
+Again, for the purpose of the visualization of the flatten-the-curve
+effect again I think a simple model is OK. More involved modelling
+covering the establishment of the disease as endemic in the population
+are beyond this post, so is the effectiveness of the case-tracing. For
+more background on the modelling see for example the YouTube video about
+the <a
+href="https://www.youtube.com/watch?time_continue=1&amp;v=gSqIwXl6IjQ&amp;feature=emb_logo">The
+Mathematics of the Coronavirus Outbreak</a> by my colleague Tom Britton
+or the work by <span class="citation"
+data-cites="fraser_etal2004">Fraser et al. (2004)</span>.</p>
+<p>It is worth pointing out that mathematical models are only tools to
+gain insight. They are based on assumptions which are likely to be
+wrong. The question is, if a violation is crucial or if the component is
+still adequately captured by the model. A famous quote says: All models
+are wrong, but some are useful… <strong>Useful</strong> in this case is
+the message: <strong>flatten the curve by reducing infectious contacts
+and by efficient contact tracing</strong>.</p>
+<p><strong>Update 2020-03-18</strong>: Tinu Schneider from Switzerland
+used the GitHub code of this post to program a small <a
+href="https://tinu.shinyapps.io/Flatten_the_Curve/">Shiny app</a>
+allowing one to study the impact of changing the parameters. Check it
+out!</p>
+<h2 class="unnumbered" id="literature">Literature</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-diekman_etal2013" class="csl-entry" role="listitem">
+Diekmann, Odo, Hans Heesterbeek, and Tom Britton. 2013. <em>Mathematical
+Tools for Understanding Infectious Disease Dynamics</em>. Princeton
+University Press.
+</div>
+<div id="ref-fraser_etal2004" class="csl-entry" role="listitem">
+Fraser, Christophe, Steven Riley, Roy M Anderson, and Neil M Ferguson.
+2004. <span>“Factors That Make an Infectious Disease Outbreak
+Controllable.”</span> <em>Proceedings of the National Academy of
+Sciences of the United States of America</em> 101 (16): 6146–51.
+</div>
+<div id="ref-kermack_mckendrick1927" class="csl-entry" role="listitem">
+Kermack, W. O., and A. G. McKendrick. 1927. <span>“A Contribution to the
+Mathematical Theory of Epidemics.”</span> <em>Proceedings of the Royal
+Society, Series A</em> 115: 700–721.
+</div>
+<div id="ref-desolve2010" class="csl-entry" role="listitem">
+Soetaert, Karline, Thomas Petzoldt, and R. Woodrow Setzer. 2010.
+<span>“Solving Differential Equations in <span>R</span>: Package
+de<span>S</span>olve.”</span> <em>Journal of Statistical Software</em>
+33 (9): 1–25. <a
+href="https://doi.org/10.18637/jss.v033.i09">https://doi.org/10.18637/jss.v033.i09</a>.
+</div>
+</div>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2020/03/16/flatteningthecurve.html";
+      this.page.identifier = "/2020/03/16/flatteningthecurve";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

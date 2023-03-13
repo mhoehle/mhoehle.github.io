@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Judging Freehand Circle Drawing Competitions</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2018/07/31/circle.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Judging Freehand Circle Drawing Competitions</h1>
+    <p class="post-meta"><time datetime="2018-07-31T00:00:00+02:00" itemprop="datePublished">Jul 31, 2018</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>In 2007 Alexander Overwijk went viral with his ‘Perfect Circle’
+video. The same year a World Freehand Circle Drawing Championship was
+organized which he won. In this post we show how a mobile camera, R and
+the imager package can be used to develop an image analysis based method
+to judge future instances of the championship.</p>
+<center>
+<img src="/blog/figure/source/2018-07-31-circle/HUD-1.png" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>A few years back I watched with awe the 2007 video of <a
+href="https://twitter.com/AlexOverwijk">Alexander Overwijk</a>’s
+freehand drawing a 1m diameter circle:</p>
+<center>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/eAhfZUZiwSE" frameborder="10" allow="autoplay; encrypted-media" allowfullscreen>
+</iframe>
+</center>
+<FONT COLOR="bbbbbb">Note: Depending on your browser you might need to
+click “<a href="https://www.youtube.com/watch?v=eAhfZUZiwSE">Watch on
+Youtube</a>” to see the video.</FONT>
+<p>
+<p>Ever since watching that video I have wondered how one would go about
+to judge the winner of such an alleged <a
+href="https://www.youtube.com/watch?v=u1J5ANnq0T8">World Freehand Circle
+Drawing Championship</a> (WFHCDC). While researching for this post I
+finally figured it out. On his web page Alexander in the story behind
+the video <a href="http://slamdunkmath.blogspot.com">“reveals”</a>:</p>
+<p><em>They have a laser machine called the
+<strong>circleometer</strong> that creates the perfect circle closest to
+the one you drew. The circleometer then calculates the difference in
+area between the laser circle and the circle that you drew. The machine
+then calibrates the area difference as if you had drawn a circle with
+radius one meter. The person with the smallest area difference is
+declared the world freehand circle drawing champion.</em></p>
+<p>Aha! Imaginary circleometers are expensive and my dean of study most
+likely isn’t open for investing in perfect circle measurement equipment…
+So here is a cheaper solution involving a mobile device camera, <a
+href="https://www.r-project.org">R</a> and the <a
+href="https://cran.r-project.org/web/packages/imager/index.html"><code>imager</code></a>
+package by <a href="https://sites.google.com/site/simonbarthelme/">Simon
+Barthelmé</a> et al. Altogether a combination of modern <strong>data
+science</strong> tools, which my dean of study is most likely to
+approve! We’ll use a screenshot from the perfect circle video as
+motivating example to guide through the 3 phases of the method:</p>
+<ol type="1">
+<li>Image rectification</li>
+<li>Freehand circle identification and perfect circle estimation</li>
+<li>Quantifying deviation from the perfect circle</li>
+</ol>
+<p>We start by loading the screenshot into R using
+<code>imager</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;imager&quot;</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>file <span class="ot">&lt;-</span> <span class="st">&quot;circle2.png&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>img <span class="ot">&lt;-</span> imager<span class="sc">::</span><span class="fu">load.image</span>(<span class="fu">file.path</span>(fullFigPath, file))</span></code></pre></div>
+<p><img src="/blog/figure/source/2018-07-31-circle/PLOTSCREENSHOT-1.png" style="display: block; margin: auto;" /></p>
+<h2 id="image-rectification">Image rectification</h2>
+<p>The image clearly suffers from perspective distortions caused by the
+camera being positioned to the right of the circle and, hence, not being
+orthogonal to the blackboard plane. Furthermore, small lense distortions
+are also visible - for example the right vertical line of the blackboard
+arcs slightly. Since the video contains no details about what sort of
+lense equipment was used, for the sake of simplicity, we will ignore
+lense distortions in this post. If such information is available one can
+use a program such as <a href="http://rawtherapee.com">RawTherapee</a>
+(available under a GNU GPL v3 license) to read the EXIF information in
+the meta data of the image and automatically correct for lens
+distortion.</p>
+<p>To rectify the image we estimate the parameters of the 2D projection
+based on 4 ground control points (GPC). We use R’s <code>locator</code>
+function to determine the pixel location of the four corner points of
+the blackboard in the image, but could just as well use any image
+analysis program such as <a href="https://www.gimp.org">Gimp</a>.
+Furthermore, we need the true object coordinates of these GPC.
+Unfortunately, these are only approximately available to due lack of
+knowledge of the size of the blackboard in the classroom. As a
+consequence a <em>guesstimate</em> of the horizontal length is used.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(img)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">locator</span>(<span class="dv">4</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">cbind</span>(p<span class="sc">$</span>x, p<span class="sc">$</span>y))</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">dump</span>(<span class="at">list=</span><span class="fu">c</span>(<span class="st">&quot;p&quot;</span>), <span class="st">&quot;&quot;</span>)</span></code></pre></div>
+<p>These points are now used to rectify the image by a Direct Linear
+Transformation (DLT) based on exactly 4 control points <span
+class="citation" data-cites="hartley_zisserman2004">(Hartley and
+Zisserman 2004, chap. 4)</span><a href="#fn1" class="footnote-ref"
+id="fnref1" role="doc-noteref"><sup>1</sup></a>. That is the parameters
+of the 3x3 transformation matrix <span class="math inline">\(H\)</span>
+in homogeneous coordinates are estimated such that <span
+class="math inline">\(p&#39; = H p\)</span>, see the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2018-07-31-circle.Rmd">code</a>
+on github for details.</p>
+<p>We can implement the rectifying transformation using the
+<code>imager::warp</code> function:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Transform image coordinates (x&#39;,y&#39;) to (x,y), i.e. note we specify</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="do">##the back transformation p = H * p&#39;, so H here is the inverse.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>map.persp.inv <span class="ot">&lt;-</span> <span class="cf">function</span>(x,y, H) {</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  out_image <span class="ot">&lt;-</span> H <span class="sc">%*%</span> <span class="fu">rbind</span>(x,y,<span class="dv">1</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">x=</span>out_image[<span class="dv">1</span>,]<span class="sc">/</span>out_image[<span class="dv">3</span>,], <span class="at">y=</span>out_image[<span class="dv">2</span>,]<span class="sc">/</span>out_image[<span class="dv">3</span>,])</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="do">##Pad dx_blackboard pixels to the right to make space for the blackboard coming closer</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>img_padded <span class="ot">&lt;-</span> <span class="fu">pad</span>(img, <span class="at">nPix=</span>dx_blackboard, <span class="at">axes=</span><span class="st">&quot;x&quot;</span>, <span class="at">pos=</span><span class="dv">1</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="do">##Warp image</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>warp <span class="ot">&lt;-</span> <span class="fu">imwarp</span>(img_padded, <span class="at">map=</span><span class="cf">function</span>(x,y) <span class="fu">map.persp.inv</span>(x,y,<span class="fu">solve</span>(H)),<span class="at">coordinates=</span><span class="st">&quot;absolute&quot;</span>, <span class="at">direction=</span><span class="st">&quot;backward&quot;</span>)</span></code></pre></div>
+<p>The result looks as follows:
+<img src="/blog/figure/source/2018-07-31-circle/PLOTRECTIFICATION-1.png" style="display: block; margin: auto;" />
+Please notice the different x-axes of the two images when comparing
+them. For faster computation and better visualization in the remainder
+of this post, we crop the x-axis of the image to the relevant parts of
+the circle.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>warp <span class="ot">&lt;-</span> <span class="fu">imsub</span>(warp, x <span class="sc">%inr%</span> <span class="fu">c</span>(dx_blackboard, <span class="fu">nrow</span>(warp)))</span></code></pre></div>
+<p><img src="/blog/figure/source/2018-07-31-circle/PLOTRECTIFIED-1.png" style="display: block; margin: auto;" /></p>
+<h2 id="freehand-circle-identification">Freehand circle
+identification</h2>
+<p>As described in the <code>imager</code> <a
+href="https://dahtah.github.io/imager/canny.html">edge detection
+tutorial</a> we use length of the gradient to determine the edges in the
+image. This can be done by applying filters to the image.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Edge detection function. Sigma is the size of the blur window.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>detect.edges <span class="ot">&lt;-</span> <span class="cf">function</span>(im, <span class="at">sigma=</span><span class="dv">1</span>) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">isoblur</span>(im,sigma) <span class="sc">%&gt;%</span> <span class="fu">imgradient</span>(<span class="st">&quot;xy&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">enorm</span>() <span class="sc">%&gt;%</span> <span class="fu">imsplit</span>(<span class="st">&quot;c&quot;</span>) <span class="sc">%&gt;%</span> add</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Edge detection filter sequence.</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">detect.edges</span>(warp,<span class="dv">1</span>) <span class="sc">%&gt;%</span> sqrt</span></code></pre></div>
+<p>To detect the circle from this we specify a few seed points for a <a
+href="https://en.wikipedia.org/wiki/Watershed_%28image_processing%29">watershed</a>
+algorithm with a priority map inverse proportional to gradient
+magnitude. This includes a few points inside and outside the circle and
+a few points <em>on</em> the circle. Note: a perfect circle would have
+no border, but when drawing a circle with a piece of chalk it’s destined
+to have a thin border line.</p>
+<p><img src="/blog/figure/source/2018-07-31-circle/SEGMENTATION-1.png" style="display: block; margin: auto;" />
+We can now extract the circle by:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Just the circle</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>freehandCircle <span class="ot">&lt;-</span> (warp <span class="sc">*</span> (mask<span class="sc">==</span><span class="dv">2</span>) <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span> grayscale</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="do">##Total area covered by the circle</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>freehandDisc <span class="ot">&lt;-</span> <span class="fu">label</span>(freehandCircle, <span class="at">high_connectivity=</span><span class="cn">TRUE</span>) <span class="sc">&gt;</span> <span class="dv">0</span></span></code></pre></div>
+<p>…and by morphological operations we get just the outer border as a
+hairline</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>dilatedDisc <span class="ot">&lt;-</span> freehandDisc <span class="sc">%&gt;%</span> <span class="fu">dilate_rect</span>(<span class="at">sx=</span><span class="dv">3</span>,<span class="at">sy=</span><span class="dv">3</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>freehandCircleThinBorder <span class="ot">&lt;-</span> (freehandDisc <span class="sc">-</span> dilatedDisc) <span class="sc">!=</span> <span class="dv">0</span></span></code></pre></div>
+<p><img src="/blog/figure/source/2018-07-31-circle/PLOTTHINBORDER-1.png" style="display: block; margin: auto;" /></p>
+<h2 id="perfect-circle-estimation">Perfect circle estimation</h2>
+<p>Once the freehand circle path in the image has been identified, we
+need to find the best fitting <em>perfect</em> circle matching this
+path. This problem is elegantly solved by <span class="citation"
+data-cites="coope1993">Coope (1993)</span>, who formulates the problem
+as finding center and radius of the circle minimizing the squared
+Euclidean distance to <span class="math inline">\(m\)</span> data points
+<span class="math inline">\(a_j\)</span>, <span
+class="math inline">\(j=1,\ldots,m\)</span>. Denoting by <span
+class="math inline">\(c\)</span> the center of the circle and by <span
+class="math inline">\(r&gt;0\)</span> the radius we want to find the
+solution of</p>
+<p><span class="math display">\[
+\min_{c\in \mathbb{R^2}, r&gt;0} \sum_{j=1}^m F_j(c,r)^2,
+\quad\text{where}\quad F_j(c,r) = \left|r - ||c-a_j||_2\right|,
+\]</span></p>
+<p>and <span class="math inline">\(||x||_2\)</span> denotes Euclidean
+distance. Because the curve fitting minimizes the distance between an
+observed point <span class="math inline">\(a_j\)</span> and its closest
+point on the circle and thus involves both the <span
+class="math inline">\(x\)</span> and the <span
+class="math inline">\(y\)</span> direction , this is a so called
+<strong><a
+href="https://en.wikipedia.org/wiki/Total_least_squares">total least
+squares</a></strong> problem. The problem is non-linear and can only be
+solved by iterative numerical methods. However, the dimension of the
+parameter space can be reduced by one, because given the center <span
+class="math inline">\(c\)</span> we can determine that <span
+class="math inline">\(r(c)=\frac{1}{m} \sum_{j=1}^m
+||c-a_j||_2\)</span>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Compute radius given center</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>radius_given_center <span class="ot">&lt;-</span> <span class="cf">function</span>(center, <span class="at">dist=</span><span class="cn">NULL</span>) {</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(dist)) {</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    a <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">where</span>(freehandCircleThinBorder <span class="sc">&gt;</span> <span class="dv">0</span>))</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    dist <span class="ot">&lt;-</span> <span class="fu">sqrt</span>((a[,<span class="dv">1</span>] <span class="sc">-</span> center[<span class="dv">1</span>])<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> (a[,<span class="dv">2</span>] <span class="sc">-</span> center[<span class="dv">2</span>])<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">mean</span>(dist))</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="do">##Target functin of the total least squares criterion of Coope (1993)</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>target_tls <span class="ot">&lt;-</span> <span class="cf">function</span>(theta) {</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Extract parameters</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  center <span class="ot">&lt;-</span> <span class="fu">exp</span>(theta[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>])</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Total least squares criterion from Coope (1993)</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">where</span>(freehandCircleThinBorder <span class="sc">&gt;</span> <span class="dv">0</span>))</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  dist <span class="ot">&lt;-</span> <span class="fu">sqrt</span>((a[,<span class="dv">1</span>] <span class="sc">-</span> center[<span class="dv">1</span>])<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> (a[,<span class="dv">2</span>] <span class="sc">-</span> center[<span class="dv">2</span>])<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Compute radius given center</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  radius <span class="ot">&lt;-</span> <span class="fu">radius_given_center</span>(center, dist)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  F <span class="ot">&lt;-</span> <span class="fu">abs</span>( radius <span class="sc">-</span> dist)</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>(F<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>res_tls <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="at">par=</span><span class="fu">log</span>(<span class="fu">c</span>(<span class="at">x=</span>background[<span class="dv">1</span>,<span class="dv">1</span>], <span class="at">y=</span>background[<span class="dv">1</span>,<span class="dv">2</span>])), <span class="at">fn=</span>target_tls)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>center <span class="ot">&lt;-</span> <span class="fu">exp</span>(res_tls<span class="sc">$</span>par)</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>fit_tls <span class="ot">&lt;-</span> <span class="fu">c</span>(center,<span class="at">radius=</span><span class="fu">radius_given_center</span>(center))</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>fit_tls</span></code></pre></div>
+<pre><code>##        x        y   radius 
+## 894.3885 707.3191 518.4119</code></pre>
+<p>We illustrate the freehand circle (in black) and the fitted circle
+(magenta) on top of each other using the alpha channel. You have to
+study the image carefully to detect differences between the two
+curves!</p>
+<p><img src="/blog/figure/source/2018-07-31-circle/DRAWCIRCLE-1.png" style="display: block; margin: auto;" /></p>
+<h2 id="quantifying-the-circularness-of-the-freehand-circle">Quantifying
+the circularness of the freehand circle</h2>
+<p>We quantify the <strong>circularness</strong> of the freehand circle
+by contrasting the area covered by it with the area of the fitted
+perfect circle. The closer this ratio is to 1 the more perfect is the
+freehand circle.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Area of the freehand drawn disc</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>areaFreehandDisc <span class="ot">&lt;-</span> <span class="fu">sum</span>(freehandDisc)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Area of the disc corresponding to the idealized circle fitted</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="do">##to the freehand circle</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>areaIdealDisc <span class="ot">&lt;-</span> pi <span class="sc">*</span> fit_tls[<span class="st">&quot;radius&quot;</span>]<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="do">##Ratio between the two areas</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>ratio_area <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(areaFreehandDisc  <span class="sc">/</span> areaIdealDisc)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>ratio_area</span></code></pre></div>
+<pre><code>## [1] 0.9971778</code></pre>
+<p>Yup, it’s a pretty perfect circle! Since the fitted circle already
+takes the desired shape into account, my intuition is that this ratio is
+a pretty good way to quantify circularness. However, to avoid
+<strong>measurehacks</strong>, we use as backup measure the circleometer
+approach: for each point on the freehand circle we measure its distance
+to the freehand circle and integrate/sum this up over the path of the
+freehand circle. We can approximate this integration using image pixels
+as follows.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Create a pixel based circle in an image of the same size as the</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="do">##freehandCircle img. For visibility we use a border of &#39;border&#39; pixels</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="do">##s.t. circle goes [radius - border/2, radius + border/2].</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>Circle <span class="ot">&lt;-</span> <span class="cf">function</span>(center, radius, border) {</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.cimg</span>(<span class="cf">function</span>(x,y) {</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    lhs <span class="ot">&lt;-</span> (x<span class="sc">-</span>center[<span class="dv">1</span>])<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> (y<span class="sc">-</span>center[<span class="dv">2</span>])<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>( (lhs <span class="sc">&gt;=</span> (radius<span class="sc">-</span>border<span class="sc">/</span><span class="dv">2</span>)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">&amp;</span> (lhs <span class="sc">&lt;=</span> (radius<span class="sc">+</span>border<span class="sc">/</span><span class="dv">2</span>)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">dim=</span><span class="fu">dim</span>(freehandCircle))</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="do">##Build pixel circle based on the fitted parameters</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>C_tls <span class="ot">&lt;-</span> <span class="fu">Circle</span>(fit_tls[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>], fit_tls[<span class="dv">3</span>], <span class="at">border=</span><span class="dv">1</span>)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="do">##Calculate Euclidean distance to circle for each pixel in the image</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> <span class="fu">distance_transform</span>(C_tls, <span class="at">value=</span><span class="dv">1</span>, <span class="at">metric=</span><span class="dv">2</span>)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="do">##Distance between outer border of freehand circle and perfect circle</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>area_difference <span class="ot">&lt;-</span> <span class="fu">sum</span>(dist[freehandCircleThinBorder<span class="sc">&gt;</span><span class="dv">0</span>])</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="do">##Compute area difference and scaled it by the area of the fitted disc</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>ratio_areadifference <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(area_difference <span class="sc">/</span> areaIdealDisc)</span></code></pre></div>
+<p>The image below illustrates this by overlaying the result on top of
+the distance map. For better visualization we zoom in on the 270-300
+degree part of the circle (i.e. the bottom right). In magenta is the
+fitted perfect circle, in gray the freehand circle and the area between
+the two paths is summed up over the entire path of the freehand
+circle:</p>
+<p><img src="/blog/figure/source/2018-07-31-circle/PLOTAREADIFF-1.png" style="display: block; margin: auto;" /></p>
+<p>We obtain <code>ratio_areadifference</code>= 0.01735. Thus also this
+measure tells us: it’s a pretty perfect circle! To summarise: The output
+on the display of the judge’s Circle-O-Meter App (available under a GPL
+v3 license) at the World Freehand Circle Drawing Championship would be
+as follows: 😉</p>
+<p><img src="/blog/figure/source/2018-07-31-circle/HUD-1.png" style="display: block; margin: auto;" /></p>
+<h2 id="discussion">Discussion</h2>
+<p>We took elements of computer vision, image analysis and total least
+squares to segment a chalk-drawn circle on a blackboard and provided
+measures of it’s circularness. Since we did not have direct access to
+the measurements of the blackboard in object space, a little
+guesstimation was necessary, nevertheless, the results show that it was
+a pretty circular freehand circle!</p>
+<p>With the machinery in place for judging freehand circles, its time to
+send out the call for contributions to the <strong>2nd World Freehand
+Circle Drawing Championship</strong> (online edition). Stay tuned for
+the call: participants would upload their photo plus minor modifications
+of a general analysis R-script computing the two area ratios measures
+and submit their contribution by a pull request to the github <a
+href="https://github.com/hoehleatsu/worldfreehandcirclechampionship">WFHCDC
+repository</a>. You can spend the anxious waiting time practicing your
+freehand 1m diameter circles - it’s a good way to loosen up long and
+unproductive meetings!</p>
+<h2 id="appendix">Appendix</h2>
+<p>If we instead of the total sum of squares criterion involving <span
+class="math inline">\(F_j(c,r)\)</span> mentioned in the text solve the
+related criterion <span class="math display">\[
+\sum_{j=1}^m f_j(c,r)^2, \quad\text{where}\quad f_j(c,r) =
+||c-a_j||_2^2 - r^2,
+\]</span> then a much simpler solution emerges. <span class="citation"
+data-cites="coope1993">Coope (1993)</span> explains that this
+alternative criterion geometrically corresponds to minimizing the
+product</p>
+<p><span class="math display">\[
+\text{(distance to the closest point on the circle)}\times
+\text{(distance to
+the furthest away point point on the circle)}
+\]</span></p>
+<p>over the measurement point. In order to obtain the solution write the
+residuals <span class="math inline">\(f_j\)</span> as <span
+class="math inline">\(f_j(c,r) = c^T c - 2 c^T a_j + a_j^T a_j -
+r^2\)</span> and perform a change of variables from <span
+class="math inline">\((c_1, c_2, r)&#39;\)</span> to <span
+class="math display">\[
+y  =
+\left[
+\begin{matrix}
+2 c_1 \\
+2 c_2 \\
+r^2 - c^T c \\
+\end{matrix}
+\right]
+\quad \text{and let} \quad
+b_j =
+\left[
+\begin{matrix}
+a_{j1} \\
+a_{j2} \\
+1
+\end{matrix}
+\right].
+\]</span> The minimization problem then becomes <span
+class="math display">\[
+\min_{y \in \mathbb{R}^3} \sum_{j=1}^m \left\{ a_j^T a_j - b_j^T y
+\right\},
+\]</span> which can be written as a linear least square (LLS) expression
+<span class="math display">\[
+\min_y ||By - d||_2^2,
+\]</span> where <span class="math inline">\(B\)</span> is a <span
+class="math inline">\(3\times m\)</span> matrix with the <span
+class="math inline">\(b_j\)</span>-vectors as columns and <span
+class="math inline">\(d=||a_j||_2^2\)</span>. This expression is then
+easily solved using the standard least squares machinery.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Fast linear least squares problem as described in Coope (1993)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>fitCircle_lls <span class="ot">&lt;-</span> <span class="cf">function</span>(freehandCircle) {</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">where</span>(freehandCircle <span class="sc">&gt;</span> <span class="dv">0</span>))</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  b <span class="ot">&lt;-</span> <span class="fu">cbind</span>(a,<span class="dv">1</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  B <span class="ot">&lt;-</span> b</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> a[,<span class="dv">1</span>]<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> a[,<span class="dv">2</span>]<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">solve</span>(<span class="fu">t</span>(B) <span class="sc">%*%</span> B) <span class="sc">%*%</span> <span class="fu">t</span>(B) <span class="sc">%*%</span> d</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">2</span><span class="sc">*</span>y[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>]</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  r <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">sqrt</span>(y[<span class="dv">3</span>] <span class="sc">+</span> <span class="fu">t</span>(x) <span class="sc">%*%</span> x))</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">c</span>(<span class="at">x=</span>x[<span class="dv">1</span>], <span class="at">y=</span>x[<span class="dv">2</span>], <span class="at">radius=</span>r))</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="do">##Fit using linear least squares procedure of Coole (1993)</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>fit_lls <span class="ot">&lt;-</span> <span class="fu">fitCircle_lls</span>(freehandCircleThinBorder)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="do">##Compare TLS and LLS fit</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="fu">rbind</span>(<span class="at">lls=</span>fit_lls,<span class="at">tls=</span>fit_tls)</span></code></pre></div>
+<pre><code>##            x        y   radius
+## lls 894.3666 707.3901 518.4295
+## tls 894.3885 707.3191 518.4119</code></pre>
+<p>In other words: the results are nearly identical.</p>
+<h2 class="unnumbered" id="literature">Literature</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-coope1993" class="csl-entry" role="listitem">
+Coope, I. D. 1993. <span>“Circle Fitting by Linear and Nonlinear Least
+Squares.”</span> <em>Journal of Optimization Theory and
+Applications</em> 76 (2): 381–88. <a
+href="https://doi.org/10.1007/BF00939613">https://doi.org/10.1007/BF00939613</a>.
+</div>
+<div id="ref-hartley_zisserman2004" class="csl-entry" role="listitem">
+Hartley, R., and A. Zisserman. 2004. <em>Multiple View Geometry in
+Computer Vision</em>. 2nd ed. Cambridge University Press. <a
+href="http://www.robots.ox.ac.uk/~vgg/hzbook/">http://www.robots.ox.ac.uk/~vgg/hzbook/</a>.
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Alternatively, see slide 18 and onward in
+https://ags.cs.uni-kl.de/fileadmin/inf_ags/3dcv-ws11-12/3DCV_WS11-12_lec04.pdf<a
+href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2018/07/31/circle.html";
+      this.page.identifier = "/2018/07/31/circle";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

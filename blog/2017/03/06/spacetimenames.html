@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Did Mary and John go West?</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2017/03/06/spacetimenames.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Did Mary and John go West?</h1>
+    <p class="post-meta"><time datetime="2017-03-06T00:00:00+01:00" itemprop="datePublished">Mar 6, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>As a final post in the <em>baby-names-the-data-scientist’s-way</em>
+series, we use the US Social Security Administration 1910-2015 data to
+space-time visualize for each state the most popular baby name for girls
+and boys, respectively. The code uses in parts the simple features
+package (<code>sf</code>) in order to to get some first experience with
+the new approach for handling spatial maps.</p>
+<center>
+<img
+src="/blog/figure/source/2017-03-06-spacetimenames/US-babynames-spacetime.gif" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>After a series of posts on <a
+href="http://staff.math.su.se/hoehle/blog/2017/02/06/onomastics.html">naming
+uncertainty</a>, <a
+href="http://staff.math.su.se/hoehle/blog/2017/02/13/bday.html">name
+collisions in classrooms</a> and illustrating these <a
+href="http://staff.math.su.se/hoehle/blog/2017/03/01/morebabynames.html">name
+collisions over time</a>, it is time to leave onomatology for now.
+However, the availability of the US social security baby name data at <a
+href="https://www.ssa.gov/oact/babynames/limits.html">state level</a>
+requires one last effort: visualizing the top names per state for the
+years 1910-2015. Creating a map-based visualization also provides a nice
+opportunity to experiment with the new <code>sf</code> (simple features)
+package for spatial visualization.</p>
+<h2 id="data-dancing">Data Dancing</h2>
+<p>We download the US social security data, which consists of a zip file
+containing a bunch of 51 text files - one for each state.</p>
+<p>We then read these individual text files and bind them together into
+one large <code>data.frame</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Get list of all file names containing state specific baby name data</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>fList <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="at">path=</span><span class="fu">file.path</span>(filePath,<span class="st">&quot;namesbystate&quot;</span>), <span class="at">pattern=</span><span class="st">&quot;.TXT&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Read complete name list of each state</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>names <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_df</span>(fList, <span class="at">.f=</span><span class="cf">function</span>(f) {</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">read_csv</span>(<span class="at">file=</span><span class="fu">file.path</span>(filePath,<span class="st">&quot;namesbystate&quot;</span>,f), <span class="at">col_names=</span><span class="fu">c</span>(<span class="st">&quot;State&quot;</span>,<span class="st">&quot;Sex&quot;</span>,<span class="st">&quot;Year&quot;</span>,<span class="st">&quot;Name&quot;</span>,<span class="st">&quot;Count&quot;</span>),<span class="at">col_types=</span><span class="fu">cols</span>(<span class="fu">col_character</span>(), <span class="fu">col_factor</span>(<span class="fu">c</span>(<span class="st">&quot;M&quot;</span>,<span class="st">&quot;F&quot;</span>)), <span class="fu">col_integer</span>(), <span class="fu">col_character</span>(), <span class="fu">col_integer</span>()))</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="do">##Show result</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(names, <span class="at">n=</span><span class="dv">4</span>)</span></code></pre></div>
+<pre><code>## # A tibble: 4 × 5
+##   State    Sex  Year     Name Count
+##   &lt;chr&gt; &lt;fctr&gt; &lt;int&gt;    &lt;chr&gt; &lt;int&gt;
+## 1    AK      F  1910     Mary    14
+## 2    AK      F  1910    Annie    12
+## 3    AK      F  1910     Anna    10
+## 4    AK      F  1910 Margaret     8</code></pre>
+<p>With the complete data in place, it’s easy to compute the top boy and
+girl name per state and year. For later use we convert this information
+into long-format.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Find top-1 names for each state by gender. Data are already sorted.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>topnames <span class="ot">&lt;-</span> names <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(Year,State,Sex) <span class="sc">%&gt;%</span> <span class="fu">do</span>({</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(.,<span class="at">n=</span><span class="dv">1</span>) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(Name)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">%&gt;%</span> <span class="fu">spread</span>(Sex, Name)</span></code></pre></div>
+<pre><code>## Source: local data frame [4 x 4]
+## Groups: Year, State [4]
+## 
+##    Year State     M     F
+##   &lt;int&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;
+## 1  1910    AK  John  Mary
+## 2  1910    AL James  Mary
+## 3  1910    AR James  Mary
+## 4  1910    AZ  John  Mary</code></pre>
+<h2 id="map-massaging">Map Massaging</h2>
+<p>For the map visualization we use an US map from the R package <a
+href="https://cran.r-project.org/web/packages/fiftystater/index.html"><code>fiftystater</code></a>
+where Alaska and Hawaii have been re-located as map-insets. The process
+for doing the necessary transforms <code>sp</code>-style are described
+in the package <a
+href="https://cran.r-project.org/web/packages/fiftystater/vignettes/fiftystater.html">vignette</a>.
+We store the output of this transformation as a shapefile
+<code>usa.shp</code> with appropriate support files. Furthermore, a
+<code>lines.shp</code> shapefile was created which contains information
+on where to put the text labels for each state. This was easily edited
+interactively in <a href="http://www.qgis.org/en/site/">QGIS</a>.</p>
+<p>We then use the <code>sf</code> package for loading these two
+shapefiles back into R:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressMessages</span>(<span class="fu">library</span>(<span class="st">&quot;sf&quot;</span>))</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>usa <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="fu">file.path</span>(filePath, <span class="st">&quot;maps&quot;</span>, <span class="st">&quot;usa.shp&quot;</span>))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>textplacement <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="fu">file.path</span>(filePath, <span class="st">&quot;maps&quot;</span>, <span class="st">&quot;lines.shp&quot;</span>))</span></code></pre></div>
+<p>The <code>textplacement</code> information is converted to a
+<code>data.frame</code> where each row contains the state name and the
+coordinates of the start and endpoint of each line-segment - this
+corresponds to text location and geographical centroid of the region,
+respectively.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>location <span class="ot">&lt;-</span> textplacement <span class="sc">%&gt;%</span> <span class="fu">split</span>(.<span class="sc">$</span>State) <span class="sc">%&gt;%</span> purrr<span class="sc">::</span><span class="fu">map_df</span>(<span class="at">.f =</span> <span class="cf">function</span>(x) {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  pos <span class="ot">&lt;-</span> <span class="fu">st_geometry</span>(x)[[<span class="dv">1</span>]]</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">State=</span>x<span class="sc">$</span>State, <span class="at">x1.loc=</span>pos[<span class="dv">1</span>,<span class="dv">1</span>], <span class="at">x2.loc=</span>pos[<span class="dv">1</span>,<span class="dv">2</span>], <span class="at">x1.center=</span>pos[<span class="dv">2</span>,<span class="dv">1</span>],<span class="at">x2.center=</span>pos[<span class="dv">2</span>,<span class="dv">2</span>])</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">%&gt;%</span> ungroup</span></code></pre></div>
+<p>(Note: Is there a fancier way to extract the coordinates for the
+geometry of the <code>sf</code> objects while keeping the
+<code>data.frame</code> part alongside?)</p>
+<h2 id="state-time-visualization">State-Time Visualization</h2>
+<p>By using the <code>animation::saveGIF</code> function we create an
+animation of the the top girl and boy name for each state for the
+sequence of years 1910-2015.</p>
+<p><img
+src="/blog/figure/source/2017-03-06-spacetimenames/US-babynames-spacetime.gif" /></p>
+<h2 id="state-time-cartogram">State-Time Cartogram</h2>
+<p>We use the <code>Rcartogram</code> and <code>getcartr</code> packages
+to create an analogous cartogram - see the previous <a
+href="http://staff.math.su.se/hoehle/blog/2016/10/10/cartograms.html">Cartograms
+with R</a> post for further details. The total number of births per
+state in a given year is used as scaling variable for the cartogram.</p>
+<p><img
+src="/blog/figure/source/2017-03-06-spacetimenames/US-cartogram-babynames-spacetime.gif" /></p>
+<p>Its amazing to observe how births <em>go west</em> in the US during
+the considered time period.</p>
+<!-- Note: This graphic is in need for some smart text placement, e.g., by
+ensuring that the bound box of the text is not in conflict with any
+other bounding box. -->
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2017/03/06/spacetimenames.html";
+      this.page.identifier = "/2017/03/06/spacetimenames";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

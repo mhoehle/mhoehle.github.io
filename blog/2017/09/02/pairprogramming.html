@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Pair Programming Statistical Analyses</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2017/09/02/pairprogramming.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Pair Programming Statistical Analyses</h1>
+    <p class="post-meta"><time datetime="2017-09-02T00:00:00+02:00" itemprop="datePublished">Sep 2, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>Control calculation ping-pong is the process of iteratively improving
+a statistical analysis by comparing results from two independent
+analysis approaches until agreement. We use the <code>daff</code>
+package to simplify the comparison of the two results and illustrate its
+use by a case study with two statisticians ping-ponging an analysis
+using dplyr and SQL, respectively.</p>
+<center>
+<img
+src="/blog/figure/source/2017-09-02-pairprogramming/pingpong.png" />
+</center>
+<p><br> <FONT COLOR="bbbbbb">Clip art is based on work by <a
+href="https://thenounproject.com/term/ping-pong/655102/">Gan Khoon
+Lay</a> available under a CC BY 3.0 US license.</FONT></p>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>If you are a statistician working in climate science, data driven
+journalism, official statistics, public health, economics or any related
+field working with <em>real</em> data, chances are that you have to
+perform analyses, where you know there is zero tolerance for errors. The
+easiest way to ensure the correctness of such an analysis is to check
+your results over and over again (the <strong>iterated 2-eye
+principle</strong>). A better approach is to pair-program the analysis
+by either having a colleague read through your code (the <strong>4-eye
+principle</strong>) or have a skilled colleague completely redo your
+analysis from scratch using her favorite toolchain (the
+<strong>2-mindset principle</strong>). Structured software development
+in the form of, e.g. version control and unit tests, provides valuable
+inspiration on how to ensure the quality of your code. However, when it
+comes to pair-programming analyses, surprisingly many steps remain
+manual. The <code>daff</code> package provides the equivalent of a
+<code>diff</code> statement on data frames and we shall illustrate its
+use by automatizing the comparison step of the control calculation
+ping-pong process.</p>
+<h2 id="the-case-story">The Case Story</h2>
+<p>Ada and Bob have to calculate their country’s quadrennial official
+statistics on the total income and number of employed people in <a
+href="https://www.destatis.de/DE/Publikationen/Qualitaetsberichte/Dienstleistungen/SonstDienstleistungsbereiche2010.pdf?__blob=publicationFile">fitness
+centers</a>. A sample of fitness centers is asked to fill out a
+questionnaire containing their yearly sales volume, staff costs and
+number of employees. The present exposition will for the sake of
+convenience ignore the complex survey part of the problem and just
+pretend that the sample corresponds to the population (complete
+inventory count).</p>
+<h3 id="the-data">The Data</h3>
+<p>After the questionnaire phase, the following data are available to
+Ada and Bob.</p>
+<table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Id
+</th>
+<th style="text-align:right;">
+Version
+</th>
+<th style="text-align:left;">
+Region
+</th>
+<th style="text-align:right;">
+Sales Volume
+</th>
+<th style="text-align:right;">
+Staff Costs
+</th>
+<th style="text-align:right;">
+People
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+01
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+A
+</td>
+<td style="text-align:right;">
+23000
+</td>
+<td style="text-align:right;">
+10003
+</td>
+<td style="text-align:right;">
+5
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+02
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+B
+</td>
+<td style="text-align:right;">
+12200
+</td>
+<td style="text-align:right;">
+7200
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+03
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+19500
+</td>
+<td style="text-align:right;">
+7609
+</td>
+<td style="text-align:right;">
+2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+04
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+A
+</td>
+<td style="text-align:right;">
+17500
+</td>
+<td style="text-align:right;">
+13000
+</td>
+<td style="text-align:right;">
+3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+05
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+B
+</td>
+<td style="text-align:right;">
+119500
+</td>
+<td style="text-align:right;">
+90000
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+05
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+B
+</td>
+<td style="text-align:right;">
+119500
+</td>
+<td style="text-align:right;">
+95691
+</td>
+<td style="text-align:right;">
+19
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+06
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+B
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+19990
+</td>
+<td style="text-align:right;">
+6
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+07
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+A
+</td>
+<td style="text-align:right;">
+19123
+</td>
+<td style="text-align:right;">
+20100
+</td>
+<td style="text-align:right;">
+8
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+08
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+D
+</td>
+<td style="text-align:right;">
+25000
+</td>
+<td style="text-align:right;">
+100
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+09
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+D
+</td>
+<td style="text-align:right;">
+45860
+</td>
+<td style="text-align:right;">
+32555
+</td>
+<td style="text-align:right;">
+9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+10
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+E
+</td>
+<td style="text-align:right;">
+33020
+</td>
+<td style="text-align:right;">
+25010
+</td>
+<td style="text-align:right;">
+7
+</td>
+</tr>
+</tbody>
+</table>
+<p>Here <code>Id</code> denotes the unique identifier of the sampled
+fitness center, <code>Version</code> indicates the version of a center’s
+questionnaire and <code>Region</code> denotes the region in which the
+center is located. In case a center’s questionnaire lacks information or
+has inconsistent information, the protocol is to get back to the center
+and have it send a revised questionnaire. All Ada and Bob now need to do
+is aggregate the data per region in order to obtain region stratified
+estimates of:</p>
+<ul>
+<li>the overall number of fitness centres</li>
+<li>total sales volume</li>
+<li>total staff cost</li>
+<li>total number of people employed in fitness centres</li>
+</ul>
+<p>However, the analysis protocol instructs that only fitness centers
+with an annual sales volume larger than or equal to €17,500 are to be
+included in the analysis. Furthermore, if missing values occur, they are
+to be ignored in the summations. Since a lot of muscle will be angered
+in case of errors, Ada and Bob agree on following the 2-mindset
+procedure and meet after an hour to discuss their results. Here is what
+each of them came up with.</p>
+<h3 id="ada">Ada</h3>
+<p>Ada loves the tidyverse and in particular <code>dplyr</code>. This is
+her solution:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>ada <span class="ot">&lt;-</span> fitness <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>() <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(Region,Id) <span class="sc">%&gt;%</span> <span class="fu">top_n</span>(<span class="dv">1</span>,Version) <span class="sc">%&gt;%</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Region) <span class="sc">%&gt;%</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span> <span class="sc">&gt;=</span> <span class="dv">17500</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="st">`</span><span class="at">NoOfUnits</span><span class="st">`</span><span class="ot">=</span><span class="fu">n</span>(),</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span><span class="ot">=</span><span class="fu">sum</span>(<span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span>),</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Staff Costs</span><span class="st">`</span><span class="ot">=</span><span class="fu">sum</span>(<span class="st">`</span><span class="at">Staff Costs</span><span class="st">`</span>),</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">People=</span><span class="fu">sum</span>(People))</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>ada</span></code></pre></div>
+<pre><code>## # A tibble: 4 x 5
+##   Region NoOfUnits `Sales Volume` `Staff Costs` People
+##   &lt;chr&gt;      &lt;int&gt;          &lt;int&gt;         &lt;int&gt;  &lt;int&gt;
+## 1 A              3          59623         43103     16
+## 2 B              1         119500         95691     19
+## 3 D              1          45860         32555      9
+## 4 E              1          33020         25010      7</code></pre>
+<h3 id="bob">Bob</h3>
+<p>Bob has a dark past as a relational database management system
+(RDBMS) developer and, hence, only recently experienced the joys of R.
+He therefore chooses a no-SQL-server-necessary <a
+href="https://www.r-bloggers.com/r-and-sqlite-part-1/"><code>SQLite</code>
+within R</a> approach. The hope is that in big data situation this might
+be a little more speedy than base R:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RSQLite)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Create ad-hoc database</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>db <span class="ot">&lt;-</span> <span class="fu">dbConnect</span>(<span class="fu">SQLite</span>(), <span class="at">dbname =</span> <span class="fu">file.path</span>(filePath,<span class="st">&quot;Test.sqlite&quot;</span>))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Move fitness data into the ad-hoc DB</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">dbWriteTable</span>(<span class="at">conn =</span> db, <span class="at">name =</span> <span class="st">&quot;fitness&quot;</span>, fitness, <span class="at">overwrite=</span><span class="cn">TRUE</span>, <span class="at">row.names=</span><span class="cn">FALSE</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="do">##Query using SQL</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>bob <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(db, <span class="st">&quot;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="st">    SELECT Region,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="st">           COUNT(*) As NoOfUnits,</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="st">           SUM([Sales Volume]) As [Sales Volume],</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="st">           SUM([Staff Costs]) AS [Staff Costs],</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="st">           SUM(People) AS People</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="st">    FROM fitness</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="st">    WHERE [Sales Volume] &gt; 17500 GROUP BY Region</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span>)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>bob</span></code></pre></div>
+<pre><code>##   Region NoOfUnits Sales Volume Staff Costs People
+## 1   &lt;NA&gt;         1        19500        7609      2
+## 2      A         2        42123       30103     13
+## 3      B         2       239000      185691     19
+## 4      D         2        70860       32655      9
+## 5      E         1        33020       25010      7</code></pre>
+<p><em>Update</em>: An alternative approach with less syntactic overhead
+would have been the <a
+href="https://github.com/ggrothendieck/sqldf"><code>sqldf</code></a>
+package, which has a standard SQLite backend and automagically handles
+the import of the <code>data.frame</code> into the DB using the
+<code>RSQLite</code> pkg.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Load package</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(sqldf))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="do">##Ensure SQLite backend.</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">sqldf.driver =</span> <span class="st">&quot;SQLite&quot;</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="do">##Same query as before</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>bob <span class="ot">&lt;-</span> <span class="fu">sqldf</span>(<span class="st">&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="st">    SELECT Region,</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="st">           COUNT(*) As NoOfUnits,</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="st">           SUM([Sales Volume]) As [Sales Volume],</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="st">           SUM([Staff Costs]) AS [Staff Costs],</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="st">           SUM(People) AS People</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="st">    FROM fitness</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="st">    WHERE [Sales Volume] &gt; 17500 GROUP BY Region</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span>)</span></code></pre></div>
+<p>Even shorter is the <a
+href="https://twitter.com/zevross/status/895663618158501888">direct use
+of SQL chunks</a> in knitr using the variable <code>db</code> as
+connection and using the chunk argument <code>output.var=bob</code>:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> Region,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">As</span> NoOfUnits,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>([Sales Volume]) <span class="kw">As</span> [Sales Volume],</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>([Staff Costs]) <span class="kw">AS</span> [Staff Costs],</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(People) <span class="kw">AS</span> People</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> fitness</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> [Sales Volume] <span class="op">&gt;</span> <span class="dv">17500</span> <span class="kw">GROUP</span> <span class="kw">BY</span> Region</span></code></pre></div>
+<h3 id="the-ping-pong-phase">The Ping-Pong Phase</h3>
+<p>After Ada and Bob each have a result, they compare their resulting
+<code>data.frame</code> using the <a
+href="https://cran.r-project.org/web/packages/daff/index.html"><code>daff</code></a>
+package, which was recently presented by <a
+href="https://twitter.com/edwindjonge">@edwindjonge</a> at the <a
+href="https://channel9.msdn.com/Events/useR-international-R-User-conferences/useR-International-R-User-2017-Conference/Daff-diff-patch-and-merge-for-dataframes">useR!
+2017 conference</a>.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(daff)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>diff <span class="ot">&lt;-</span> <span class="fu">diff_data</span>(ada, bob)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>diff<span class="sc">$</span><span class="fu">get_data</span>()</span></code></pre></div>
+<pre><code>##    @@ Region NoOfUnits   Sales Volume   Staff Costs People
+## 1 +++   &lt;NA&gt;         1          19500          7609      2
+## 2  -&gt;      A      3-&gt;2   59623-&gt;42123  43103-&gt;30103 16-&gt;13
+## 3  -&gt;      B      1-&gt;2 119500-&gt;239000 95691-&gt;185691     19
+## 4  -&gt;      D      1-&gt;2   45860-&gt;70860  32555-&gt;32655      9
+## 5          E         1          33020         25010      7</code></pre>
+<p>After Ada’s and Bob’s serve, the two realize that their results just
+agree for the region E.</p>
+<p><em>Note</em>: Currently, <code>daff</code> has the semi-annoying
+feature of not being able to show all the diffs when printing, but just
+<code>n</code> lines of the head and tail. As a consequence, for the
+purpose of this post, we overwrite the printing function such that it
+always shows all rows with differences.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Small helper function for better printing</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>print.data_diff <span class="ot">&lt;-</span> <span class="cf">function</span>(x) x<span class="sc">$</span><span class="fu">get_data</span>() <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">@@</span><span class="st">`</span> <span class="sc">!=</span> <span class="st">&quot;&quot;</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>diff <span class="sc">%&gt;%</span> <span class="fu">print</span>()</span></code></pre></div>
+<pre><code>##    @@ Region NoOfUnits   Sales Volume   Staff Costs People
+## 1 +++   &lt;NA&gt;         1          19500          7609      2
+## 2  -&gt;      A      3-&gt;2   59623-&gt;42123  43103-&gt;30103 16-&gt;13
+## 3  -&gt;      B      1-&gt;2 119500-&gt;239000 95691-&gt;185691     19
+## 4  -&gt;      D      1-&gt;2   45860-&gt;70860  32555-&gt;32655      9</code></pre>
+<p>The two decide to first agree on the number of units per region.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>diff<span class="sc">$</span><span class="fu">get_data</span>() <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">@@</span><span class="st">`</span> <span class="sc">!=</span> <span class="st">&quot;&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="st">`</span><span class="at">@@</span><span class="st">`</span>, Region, NoOfUnits)</span></code></pre></div>
+<pre><code>##    @@ Region NoOfUnits
+## 1 +++   &lt;NA&gt;         1
+## 2  -&gt;      A      3-&gt;2
+## 3  -&gt;      B      1-&gt;2
+## 4  -&gt;      D      1-&gt;2</code></pre>
+<p>One obvious reason for the discrepancies appears to be that Bob has
+results for an extra <code>&lt;NA&gt;</code> region. Therefore, Bob
+takes another look at his management of missing values and decides to
+improve his code by:</p>
+<h4 id="pong-bob">Pong Bob</h4>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> Region,</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">As</span> NoOfUnits,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>([Sales Volume]) <span class="kw">As</span> [Sales Volume],</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>([Staff Costs]) <span class="kw">AS</span> [Staff Costs],</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(People) <span class="kw">AS</span> People</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> fitness</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> ([Sales Volume] <span class="op">&gt;</span> <span class="dv">17500</span> <span class="kw">AND</span> REGION <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> Region</span></code></pre></div>
+<pre><code>##   @@ Region NoOfUnits   Sales Volume   Staff Costs People
+## 1 -&gt;      A      3-&gt;2   59623-&gt;42123  43103-&gt;30103 16-&gt;13
+## 2 -&gt;      B      1-&gt;2 119500-&gt;239000 95691-&gt;185691     19
+## 3 -&gt;      D      1-&gt;2   45860-&gt;70860  32555-&gt;32655      9</code></pre>
+<h4 id="ping-bob">Ping Bob</h4>
+<p>Better. Now the <code>NA</code> region is gone, but still quite some
+differences remain. <em>Note</em>: You may at this point want to stop
+reading and try yourself to fix the analysis - the <a
+href="https://github.com/hoehleatsu/hoehleatsu.github.io/blob/master/figure/source/2017-09-02-pairprogramming/fitness.csv">data</a>
+and <a
+href="https://github.com/hoehleatsu/hoehleatsu.github.io/blob/master/_source/2017-09-02-pairprogramming.Rmd">code</a>
+are available from the github repository.</p>
+<h4 id="pong-bob-1">Pong Bob</h4>
+<p>Now Bob notices that he forgot to handle the duplicate records and
+apparently misunderstood the exact definition of the €17,500 exclusion
+limit. His massaged SQL query looks as follows:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> Region,</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">As</span> NoOfUnits,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>([Sales Volume]) <span class="kw">As</span> [Sales Volume],</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>([Staff Costs]) <span class="kw">AS</span> [Staff Costs],</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(People) <span class="kw">AS</span> People</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> (<span class="kw">SELECT</span> <span class="kw">Id</span>, <span class="fu">MAX</span>(Version), Region, [Sales Volume], [Staff Costs], People <span class="kw">FROM</span> fitness <span class="kw">GROUP</span> <span class="kw">BY</span> <span class="kw">Id</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> ([Sales Volume] <span class="op">&gt;=</span> <span class="dv">17500</span> <span class="kw">AND</span> REGION <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> Region</span></code></pre></div>
+<pre><code>##    @@ Region NoOfUnits Sales Volume  Staff Costs People
+## 1 ...    ...       ...          ...          ...    ...
+## 2  -&gt;      D      1-&gt;2 45860-&gt;70860 32555-&gt;32655      9</code></pre>
+<h4 id="ping-ada">Ping Ada</h4>
+<p>Comparing with Ada, Bob is sort of envious that she was able to just
+use <code>dplyr</code>’s <code>group_by</code> and <code>top_n</code>
+functions. However, <code>daff</code> shows that there still is one
+difference left. By looking more carefully at Ada’s code it becomes
+clear that she accidentally leaves out one unit in region D. The reason
+is the too liberate use of <code>na.omit</code>, which also removes the
+one entry with an <code>NA</code> in one of the not so important
+columns. However, they discuss the issue, if one really wants to include
+partial records or not, because summation in the different columns then
+is over a different number of units. After consulting with the standard
+operation procedure (SOP) for these kind of surveys they decide to
+include the observation where possible. Here is Ada’s modified code:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ada2 <span class="ot">&lt;-</span> fitness <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Region)) <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(Region,Id) <span class="sc">%&gt;%</span> <span class="fu">top_n</span>(<span class="dv">1</span>,Version) <span class="sc">%&gt;%</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Region) <span class="sc">%&gt;%</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span> <span class="sc">&gt;=</span> <span class="dv">17500</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="st">`</span><span class="at">NoOfUnits</span><span class="st">`</span><span class="ot">=</span><span class="fu">n</span>(),</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span><span class="ot">=</span><span class="fu">sum</span>(<span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span>),</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Staff Costs</span><span class="st">`</span><span class="ot">=</span><span class="fu">sum</span>(<span class="st">`</span><span class="at">Staff Costs</span><span class="st">`</span>),</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">People=</span><span class="fu">sum</span>(People))</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>(diff_final <span class="ot">&lt;-</span> <span class="fu">diff_data</span>(ada2,bob3)) <span class="sc">%&gt;%</span> <span class="fu">print</span>()</span></code></pre></div>
+<pre><code>##    @@ Region NoOfUnits ... Staff Costs People
+## 1 ...    ...       ... ...         ...    ...
+## 2  -&gt;      D         2 ...       32655  NA-&gt;9</code></pre>
+<h4 id="pong-ada">Pong Ada</h4>
+<p>Oops, Ada forgot to take care of the <code>NA</code> in the
+summation:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>ada3 <span class="ot">&lt;-</span> fitness <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Region)) <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(Region,Id) <span class="sc">%&gt;%</span> <span class="fu">top_n</span>(<span class="dv">1</span>,Version) <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Region) <span class="sc">%&gt;%</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span> <span class="sc">&gt;=</span> <span class="dv">17500</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="st">`</span><span class="at">NoOfUnits</span><span class="st">`</span><span class="ot">=</span><span class="fu">n</span>(),</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span><span class="ot">=</span><span class="fu">sum</span>(<span class="st">`</span><span class="at">Sales Volume</span><span class="st">`</span>),</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Staff Costs</span><span class="st">`</span><span class="ot">=</span><span class="fu">sum</span>(<span class="st">`</span><span class="at">Staff Costs</span><span class="st">`</span>),</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">People=</span><span class="fu">sum</span>(People,<span class="at">na.rm=</span><span class="cn">TRUE</span>))</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>diff_final <span class="ot">&lt;-</span> <span class="fu">diff_data</span>(ada3,bob3)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="do">##Check if the results really are the same</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(diff_final<span class="sc">$</span><span class="fu">get_data</span>()) <span class="sc">==</span> <span class="dv">0</span></span></code></pre></div>
+<pre><code>## [1] TRUE</code></pre>
+<p>Finally, their results agree and they move on to production and their
+results are published in a <a
+href="https://www.destatis.de/DE/Publikationen/Thematisch/DienstleistungenFinanzdienstleistungen/KostenStruktur/KostenstrukturFitness2020163109004.pdf?__blob=publicationFile">nice
+report</a>.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>As shown, the ping-pong game is quite manual and particularly
+annoying, if at some point someone steps into the office with a
+statement like <em>Btw, I found some extra questionnaires, which need to
+be added to the analysis asap</em>. However, the two now aligned
+analysis scripts and the corresponding daff-overlay could be put into a
+script, which is triggered every time the data change. In case new
+discrepancies emerge as <code>length(diff$get_data()) &gt; 0</code>, the
+two could then be automatically informed.</p>
+<p><strong>Question 1</strong>: Now the two get the same results, do you
+agree with them?</p>
+<pre><code>## # A tibble: 4 x 5
+##   Region NoOfUnits `Sales Volume` `Staff Costs` People
+##   &lt;chr&gt;      &lt;int&gt;          &lt;int&gt;         &lt;int&gt;  &lt;int&gt;
+## 1 A              3          59623         43103     16
+## 2 B              1         119500         95691     19
+## 3 D              2          70860         32655      9
+## 4 E              1          33020         25010      7</code></pre>
+<strong>Question 2</strong>: Are you aware of any other good ways and
+tools to structure and automatize such a process? If so, please share
+your experiences as a Disqus comment below. Control calculations appear
+quite common, but little structured code support appears to be available
+for such processes.
+<p>
+<p>
+<center>
+<figure>
+<img
+src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/A_Perfect_Pair_Daffodills_%28Narcissus%29_-_8.jpg/320px-A_Perfect_Pair_Daffodills_%28Narcissus%29_-_8.jpg"
+alt="Daffodills" />
+<figcaption aria-hidden="true">Daffodills</figcaption>
+</figure>
+</center>
+<p><br> <FONT COLOR="bbbbbb">Photo is copyright <a
+href="https://en.wikipedia.org/wiki/Narcissus_(plant)#/media/File:A_Perfect_Pair_Daffodills_(Narcissus)_-_8.jpg">Johnathan
+J. Stegeman</a> under the <a
+href="https://commons.wikimedia.org/wiki/Commons:GNU_Free_Documentation_License,_version_1.2">GNU
+Free Documentation License, version 1.2</a>.</FONT></p>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2017/09/02/pairprogramming.html";
+      this.page.identifier = "/2017/09/02/pairprogramming";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

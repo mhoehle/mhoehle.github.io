@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Better Confidence Intervals for Quantiles</title>
+  <meta name="description" content="\[\newcommand{\bm}[1]{\boldsymbol{\mathbf{#1}}}\DeclareMathOperator*{\argmin}{arg\,min}\DeclareMathOperator*{\argmax}{arg\,max}\]">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2016/10/23/quantileCI.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Better Confidence Intervals for Quantiles</h1>
+    <p class="post-meta"><time datetime="2016-10-23T00:00:00+02:00" itemprop="datePublished">Oct 23, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p><span class="math display">\[
+\newcommand{\bm}[1]{\boldsymbol{\mathbf{#1}}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\]</span></p>
+<h2 id="abstract">Abstract</h2>
+<p>We discuss the computation of confidence intervals for the median or
+any other quantile in R. In particular we are interested in the
+interpolated order statistic approach suggested by <span
+class="citation" data-cites="hettmansperger_sheather1986">Hettmansperger
+and Sheather (1986)</span> and <span class="citation"
+data-cites="nyblom1992">Nyblom (1992)</span>. In order to make the
+methods available to a greater audience we provide an implementation of
+these methods in the R package <code>quantileCI</code> and a small
+simulation study is conducted to show that these intervals indeed have a
+very good coverage. The study also shows that these intervals perform
+better than the currently available approaches in R. We therefore
+propose that these intervals should be used more in the future!</p>
+<center>
+<img
+src="/blog/figure/source/2016-10-23-quantileCI/FIRSTPICTURE-1.png" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>Statistics 101 teaches that for a distribution, possibly contaminated
+with outliers, a robust measure of the central tendency is the median.
+Not knowing this fact can make your analysis worthy to report in the <a
+href="http://www.sueddeutsche.de/wirtschaft/heilbronn-dieser-mann-ist-so-reich-dass-statistiken-seines-wohnorts-wertlos-sind-1.2705044">newspaper</a>
+(<a
+href="https://translate.google.com/translate?sl=de&amp;tl=en&amp;js=y&amp;prev=_t&amp;hl=en&amp;ie=UTF-8&amp;u=http%3A%2F%2Fwww.sueddeutsche.de%2Fwirtschaft%2Fheilbronn-dieser-mann-ist-so-reich-dass-statistiken-seines-wohnorts-wertlos-sind-1.2705044&amp;edit-text=">Google
+translate</a>).</p>
+<p>Higher quantiles of a distribution also have a long history as
+threshold for when to declare an observation an outlier. For example,
+growth curves for children illustrate how the quantiles of, e.g., <a
+href="http://www.cdc.gov/growthcharts/data/set1clinical/cj41l024.pdf">the
+BMI distribution develop by age</a>. <strong>Obesity</strong> is then
+for children defined as exceedance of the <a
+href="http://www.who.int/growthref/bmifa_girls_z_5_19_labels.pdf?ua=1">97.7%
+quantile</a> of the distribution at a particular age. Quantile
+regression is a non-parametric method to compute such curves and the
+statistical community has been quite busy lately investigating new ways
+to compute such quantile regressions models.</p>
+<p>The focus of this blog post is nevertheless the simplest setting:
+Given an iid. sample <span class="math inline">\(\bm{x}\)</span> of size
+<span class="math inline">\(n\)</span> from a univariate and absolutely
+continuous distribution <span class="math inline">\(F\)</span>, how does
+one compute an estimate for the <span
+class="math inline">\(p\)</span>-Quantile of <span
+class="math inline">\(F\)</span> together with a corresponding two-sided
+<span class="math inline">\((1-\alpha)\cdot 100\%\)</span> confidence
+interval for it?</p>
+<h3 id="the-point-estimate">The Point Estimate</h3>
+<p>Computing the quantile in a sample with statistical software is
+discussed in the excellent survey of <span class="citation"
+data-cites="hyndman_fan1996">Hyndman and Fan (1996)</span>. The simplest
+estimator is based on the <a
+href="https://en.wikipedia.org/wiki/Order_statistic">order statistic</a>
+of the sample, i.e. <span class="math inline">\(x_{(1)} &lt; x_{(2)}
+&lt; \cdots &lt; x_{(n)}\)</span>. <span class="math display">\[
+\hat{x}_p = \min_{k} \left\{\hat{F}(x_{(k)}) \geq p\right\} = x_{(\lceil
+n \cdot p\rceil)},
+\]</span> where <span class="math inline">\(\hat{F}\)</span> is the <a
+href="https://en.wikipedia.org/wiki/Empirical_distribution_function">empirical
+cumulative distribution</a> function of the sample. Since <span
+class="math inline">\(\hat{F}\)</span> has jumps of size <span
+class="math inline">\(1/n\)</span> the actual value of <span
+class="math inline">\(\hat{F}(\hat{x}_{p})\)</span> can end up being
+somewhat larger than the desired <span class="math inline">\(p\)</span>.
+Therefore, <span class="citation" data-cites="hyndman_fan1996">Hyndman
+and Fan (1996)</span> prefer estimators interpolating between the two
+values of the order statistic with <span
+class="math inline">\(\hat{F}\)</span> just below and just above <span
+class="math inline">\(p\)</span>. It is interesting that even <a
+href="http://robjhyndman.com/hyndsight/sample-quantiles-20-years-later/">20
+years after</a>, there still is no universally accepted way to do this
+in different statistical software and the <code>type</code> argument of
+the <code>quantile</code> function in R has been a close friend when
+comparing results with SPSS or Stata users. In what follows we will,
+however, stick with the simple <span class="math inline">\(x_{(\lceil n
+\cdot p\rceil)}\)</span> estimator stated above.</p>
+<p>Below is illustrated how one would use R to compute the, say, the 80%
+quantile of a sample using the above estimator. We can compute this
+either manually or using the <code>quantile</code> function with
+<code>type=1</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Make a tiny artificial dataset, say, the BMI z-score of 25 children</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sort</span>(x <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">25</span>))</span></code></pre></div>
+<pre><code>##  [1] -1.44090165 -1.40318433 -1.21953433 -0.95029549 -0.90398754 -0.66095890 -0.47801787
+##  [8] -0.43976149 -0.36174823 -0.34116984 -0.33047704 -0.31576897 -0.28904542 -0.03789851
+## [15] -0.03764990 -0.03377687  0.22121130  0.30331291  0.43716773  0.47435054  0.60897987
+## [22]  0.64611097  1.20086374  1.52483138  2.67862782</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Define the quantile we want to consider</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fl">0.8</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="do">##Since we know the true distribution we can easily find the true quantile</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>(x_p <span class="ot">&lt;-</span> <span class="fu">qnorm</span>(p))</span></code></pre></div>
+<pre><code>## [1] 0.8416212</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Compute the estimates using the quantile function and manually</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">quantile=</span><span class="fu">quantile</span>(x, <span class="at">type=</span><span class="dv">1</span>, <span class="at">prob=</span>p), <span class="at">manual=</span><span class="fu">sort</span>(x)[<span class="fu">ceiling</span>(<span class="fu">length</span>(x)<span class="sc">*</span>p)])</span></code></pre></div>
+<pre><code>## quantile.80%       manual 
+##    0.4743505    0.4743505</code></pre>
+<h3 id="confidence-interval-for-the-quantile">Confidence interval for
+the quantile</h3>
+<p>Besides the point estimate <span
+class="math inline">\(\hat{x}_p\)</span> we also would like to report a
+two-sided <span class="math inline">\((1-\alpha)\cdot 100\%\)</span>
+confidence interval <span class="math inline">\((x_p^{\text{l}},
+x_p^{\text{u}})\)</span> for the desired population quantile. The
+interval <span class="math inline">\((x_p^{\text{l}},
+x_p^{\text{u}})\)</span> should, hence, fulfill the following condition:
+<span class="math display">\[
+P( (x_p^{\text{l}}, x_p^{\text{u}}) \ni x_p) = 1 - \alpha,
+\]</span> where we have used the “backwards” <span
+class="math inline">\(\in\)</span> to stress the fact that <a
+href="https://staff.math.su.se/hoehle/blog/2017/06/22/interpretcis.html">it’s
+the interval which is random</a>. Restricting the limits of this
+confidence intervals to be <strong>one of the realisations from the
+order statistics</strong> implies that we need to find indices <span
+class="math inline">\(d\)</span> and <span
+class="math inline">\(e\)</span> with <span
+class="math inline">\(d&lt;e\)</span> s.t. <span class="math display">\[
+P( x_{(d)} \leq x_p \leq x_{(e)}) \geq 1 - \alpha.
+\]</span> Note that it may not be possible to achieve the desired
+coverage exactly in this case. For now we prefer the conservative choice
+of having to attain <strong>at least</strong> the desired coverage. Note
+that for <span class="math inline">\(1\leq r \leq n\)</span> we have
+<span class="math display">\[
+\begin{align*}
+P( x_{(r)} \leq x_p) &amp;= P(\text{at least $r$ observations are
+smaller than or equal to $x_p$}) \\
+      &amp;= \sum_{k=r}^{n} P(\text{exactly $k$ observations are smaller
+than or equal to $x_p$}) \\
+      &amp;= \sum_{k=r}^{n} {n \choose k} P(X \leq x_p)^k (1-P(X \leq
+x_p))^{n-k} \\
+      &amp;= \sum_{k=r}^{n} {n \choose k} p^k (1-p)^{n-k} \\
+      &amp;= 1 - \sum_{k=0}^{r-1} {n \choose k} p^k (1-p)^{n-k}
+\end{align*}
+\]</span> In principle, we could now try out all possible <span
+class="math inline">\((d,e)\)</span> combinations and for each interval
+investigate, whether it has the desired <span class="math inline">\(\geq
+1-\alpha\)</span> property. If several combinations achieve this
+criterion we would, e.g., take the interval having minimal length. This
+is what the <code>MKmisc::quantileCI</code> function does. However, the
+number of pairs to investigate is of order <span
+class="math inline">\(O(n^2)\)</span>, which for large <span
+class="math inline">\(n\)</span> quickly becomes lengthy to compute.
+Instead, we compute an <strong>equi-tailed confidence interval</strong>
+by finding two one-sided <span class="math inline">\(1-\alpha/2\)</span>
+intervals, i.e. we find <span class="math inline">\(d\)</span> and <span
+class="math inline">\(e\)</span> s.t. <span
+class="math inline">\(P(x_{(d)} \leq x_p) = 1-\alpha/2\)</span> and
+<span class="math inline">\(P(x_p \geq x_{(e)}) = 1-\alpha/2\)</span>.
+In other words,</p>
+<p><span class="math display">\[
+\begin{align*}
+d &amp;= \argmax P(x_{(r)} \leq x_p) \geq 1 - \frac{\alpha}{2} \\
+  &amp;= \texttt{qbinom(alpha/2, size=n, prob=p)} \\
+e &amp;= \argmin P(x_p \geq x_{(r)}) \geq 1 - \frac{\alpha}{2} \\
+  &amp;= \texttt{qbinom(1-alpha/2, size=n, prob=p) + 1}
+\end{align*}
+\]</span></p>
+<p>Note that the problem can arise, that the above solutions are zero or
+<span class="math inline">\(n+1\)</span>, respectively. In this case one
+has to decide how to proceed. For an illustration of the above in case
+of the median see the <a
+href="http://freakonometrics.hypotheses.org/4199">post</a> by <a
+href="https://twitter.com/freakonometrics">@freakonometrics</a>. Also
+note that the <code>qbinom</code> function uses the <a
+href="https://en.wikipedia.org/wiki/Cornish%E2%80%93Fisher_expansion">Cornish-Fisher
+Expansion</a> to come up with an initial guess for the quantile, which
+is then refined by a numerical search. In other words, the function is
+of order <span class="math inline">\(O(1)\)</span> and will, hence, be
+fast even for large <span class="math inline">\(n\)</span>.</p>
+<p>When it comes to confidence intervals for quantiles the set of
+alternative implementations in R is extensive. <a
+href="http://finzi.psych.upenn.edu/cgi-bin/namazu.cgi?query=confidence+interval+for+quantiles&amp;max=100&amp;result=normal&amp;sort=score&amp;idxname=functions&amp;idxname=vignettes&amp;idxname=views">Searching
+for this on CRAN</a>, we found the following functionality:</p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 11%" />
+<col style="width: 64%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Package::Function</th>
+<th style="text-align: center;">Version</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a
+href="http://finzi.psych.upenn.edu/R/library/MKmisc/html/quantileCI.html"><code>MKmisc::quantileCI</code></a></td>
+<td style="text-align: center;"></td>
+<td>Implements an exact but very slow <span
+class="math inline">\(O(n^2)\)</span> search as well as an asymptotic
+method approximating the exact procedure. Due to the method being slow
+it is not investigated further, but looking at it an <code>Rcpp</code>
+implementation of the nested loop might be able to speed up the
+performance substantially. Note: New versions of <code>MKmisc</code> do
+not install, because the depency pkg <code>limma</code> is not on CRAN
+anymore.</td>
+</tr>
+<tr class="even">
+<td></td>
+<td style="text-align: center;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a
+href="http://finzi.psych.upenn.edu/R/library/jmuOutlier/html/quantileCI.html"><code>jmuOutlier::quantileCI</code></a></td>
+<td style="text-align: center;">2.2</td>
+<td>Implements the exact method.</td>
+</tr>
+<tr class="even">
+<td></td>
+<td style="text-align: center;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a
+href="http://finzi.psych.upenn.edu/R/library/EnvStats/html/eqnpar.html"><code>envStats::eqnpar</code></a></td>
+<td style="text-align: center;">2.1.1</td>
+<td>implements both an exact and an asymptotic interval</td>
+</tr>
+<tr class="even">
+<td></td>
+<td style="text-align: center;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a
+href="http://finzi.psych.upenn.edu/R/library/asht/html/quantileTest.html"><code>asht::quantileTest</code></a></td>
+<td style="text-align: center;">0.9.6</td>
+<td>also implements an exact method</td>
+</tr>
+<tr class="even">
+<td></td>
+<td style="text-align: center;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a
+href="http://finzi.psych.upenn.edu/R/library/Qtools/html/confint.midquantile.html"><code>Qtools::confint.midquantile</code></a></td>
+<td style="text-align: center;"></td>
+<td>operates on the mid-quantile (whatever that is). The method is not
+investigated further.</td>
+</tr>
+<tr class="even">
+<td></td>
+<td style="text-align: center;"></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>
+<p>There might even be more, but for now we are satisfied comparing just
+the above mentioned procedures:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">as.numeric</span>(jmuOutlier<span class="sc">::</span><span class="fu">quantileCI</span>(<span class="at">x=</span>x, <span class="at">probs=</span>p, <span class="at">conf.level=</span><span class="fl">0.95</span>)[<span class="dv">1</span>,<span class="fu">c</span>(<span class="st">&quot;lower&quot;</span>,<span class="st">&quot;upper&quot;</span>)])</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">as.numeric</span>(EnvStats<span class="sc">::</span><span class="fu">eqnpar</span>(<span class="at">x=</span>x, <span class="at">p=</span>p, <span class="at">ci=</span><span class="cn">TRUE</span>, <span class="at">ci.method=</span><span class="st">&quot;exact&quot;</span>,<span class="at">approx.conf.level=</span><span class="fl">0.95</span>)<span class="sc">$</span>interval<span class="sc">$</span>limits)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">as.numeric</span>(EnvStats<span class="sc">::</span><span class="fu">eqnpar</span>(<span class="at">x=</span>x, <span class="at">p=</span>p, <span class="at">ci=</span><span class="cn">TRUE</span>, <span class="at">ci.method=</span><span class="st">&quot;normal.approx&quot;</span>,<span class="at">approx.conf.level=</span><span class="fl">0.95</span>)<span class="sc">$</span>interval<span class="sc">$</span>limits)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="fu">as.numeric</span>(asht<span class="sc">::</span><span class="fu">quantileTest</span>(<span class="at">x=</span>x,<span class="at">p=</span>p,<span class="at">conf.level=</span><span class="fl">0.95</span>)<span class="sc">$</span>conf.int)</span></code></pre></div>
+<pre><code>## [1] -0.03377687  1.52483138
+## [1] 0.2212113 2.6786278
+## [1] -0.03377687  1.52483138
+## [1] -0.03377687  2.67862782</code></pre>
+<p>An impressive number of similar, but yet, different results! To add
+to the confusion here is our take at this as developed in the
+<code>quantileCI</code> package available from github:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;hoehleatsu/quantileCI&quot;</span>)</span></code></pre></div>
+<p>The package provides three methods for computing confidence intervals
+for quantiles:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>quantileCI<span class="sc">::</span><span class="fu">quantile_confint_nyblom</span>(<span class="at">x=</span>x, <span class="at">p=</span>p, <span class="at">conf.level=</span><span class="fl">0.95</span>,<span class="at">interpolate=</span><span class="cn">FALSE</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>quantileCI<span class="sc">::</span><span class="fu">quantile_confint_nyblom</span>(<span class="at">x=</span>x, <span class="at">p=</span>p, <span class="at">conf.level=</span><span class="fl">0.95</span>,<span class="at">interpolate=</span><span class="cn">TRUE</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>quantileCI<span class="sc">::</span><span class="fu">quantile_confint_boot</span>(x, <span class="at">p=</span>p, <span class="at">conf.level=</span><span class="fl">0.95</span>,<span class="at">R=</span><span class="dv">999</span>, <span class="at">type=</span><span class="dv">1</span>)</span></code></pre></div>
+<pre><code>## [1] -0.03377687  2.67862782
+## [1] 0.07894831 1.54608644
+## [1] -0.03377687  1.20086374</code></pre>
+<p>The first procedure with <code>interpolate=FALSE</code> implements
+the previously explained exact approach, which is also implemented in
+some of the other packages. However, when the <code>interpolate</code>
+argument is set to <code>TRUE</code> (the default), an additional
+interpolation step between the two neighbouring order statistics is
+performed as suggested in the work of <span class="citation"
+data-cites="nyblom1992">Nyblom (1992)</span>, which extends work for the
+median by <span class="citation"
+data-cites="hettmansperger_sheather1986">Hettmansperger and Sheather
+(1986)</span> to arbitrary quantiles. It generates intervals of the
+form:</p>
+<p><span class="math display">\[
+\left( (1-\lambda_1) x_{(d)} + \lambda_1 x_{(d+1)}, (1-\lambda_2)
+x_{(e-1)} + \lambda_1 x_{(e)} \right)
+\]</span></p>
+<p>with <span class="math inline">\(0 \leq \lambda_1, \lambda_2 \leq
+1\)</span> chosen appropriately to get as close to the desired coverage
+as possible without knowing the exact underlying distribution - see the
+paper for details.</p>
+<p>The last call in the above is to a basic bootstrap procedure, which
+resamples the data with replacement, computes the quantile using
+<code>type=1</code> and then reports the 2.5% and 97.5% percentiles of
+this bootstrapped distribution. Such percentiles of the basic bootstrap
+are a popular way to get confidence intervals for the quantile, e.g.,
+this is what we have used in <span class="citation"
+data-cites="hoehle_hoehle2009">Höhle and Höhle (2009)</span> for
+reporting the 95% quantile of the absolute difference in height at so
+called <strong>check points</strong> in the assessment of accuracy for a
+digital elevation model (DEM) in photogrammetry. However, the coverage
+of the percentile bootstrap procedure is not without problems, because
+the convergence rate as a function of the number of replicates <span
+class="math inline">\(r\)</span> is only of order <span
+class="math inline">\(O(r^{-\frac{1}{2}})\)</span> for quantiles (<span
+class="citation" data-cites="falk_kaufmann1991">Falk and Kaufmann
+(1991)</span>). As a trade-off between accuracy and speed we use <span
+class="math inline">\(R=999\)</span> throughout this post.</p>
+<h2 id="simulation-study-to-determine-coverage">Simulation Study to
+Determine Coverage</h2>
+<p>We write a function, which for a given sample <code>x</code> computes
+two-sided confidence intervals for the p-Quantile using a selection of
+the above described procedures:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile_confints</span>(x, <span class="at">p=</span>p, <span class="at">conf.level=</span><span class="fl">0.95</span>)</span></code></pre></div>
+<pre><code>##   jmuOutlier_exact EnvStats_exact EnvStats_asymp asht_quantTest nyblom_exact
+## 1      -0.03377687      0.2212113    -0.03377687    -0.03377687  -0.03377687
+## 2       1.52483138      2.6786278     1.52483138     2.67862782   2.67862782
+##   nyblom_interp        boot
+## 1    0.07894831 -0.03377687
+## 2    1.54608644  1.49641655</code></pre>
+<p>In order to evaluate the various methods and implementations we
+conduct a Monte Carlo simulation study to assess each methods’ coverage.
+For this purpose we write a small wrapper function to conduct the
+simulation study using <a
+href="http://gforge.se/2015/02/how-to-go-parallel-in-r-basics-tips/">parallel
+computation</a>. The function wraps the
+<code>quantileCI::qci_coverage_one_sim</code> function, which lets the
+user define a simulation scenario (true underlying distribution, size of
+the sample, etc.), then applies all confidence interval methods gathered
+in the above <code>quantile_confints</code> and finally assesses whether
+each confidence interval covers the true value or not.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>simulate.coverage_qci <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n=</span>n,<span class="at">p=</span>p,<span class="at">conf.level=</span><span class="fl">0.9</span>, <span class="at">nSim=</span><span class="fl">10e3</span>, ...) {</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Windows users: change to below lapply function or use snow.</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="do">##lapplyFun &lt;- function(x, mc.cores=NA, ...) pblapply(x, ...)</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  lapplyFun <span class="ot">&lt;-</span> parallel<span class="sc">::</span>mclapply</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  sims <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapplyFun</span>(1L<span class="sc">:</span>nSim, <span class="cf">function</span>(i) {</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>      quantileCI<span class="sc">::</span><span class="fu">qci_coverage_one_sim</span>(<span class="at">qci_fun=</span>quantile_confints, <span class="at">n=</span>n,<span class="at">p=</span>p,<span class="at">conf.level=</span>conf.level,...)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    }, <span class="at">mc.cores =</span> parallel<span class="sc">::</span><span class="fu">detectCores</span>() <span class="sc">-</span> <span class="dv">1</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), mean))</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(sims)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h4 id="simulation-1">Simulation 1</h4>
+<p>We can now compare the coverage of the different implementation for
+the particular <code>n</code>=25 and <code>p</code>=0.8 setting:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">simulate.coverage_qci</span>(<span class="at">n=</span><span class="dv">25</span>, <span class="at">p=</span><span class="fl">0.8</span>, <span class="at">conf.level=</span><span class="fl">0.95</span>)</span></code></pre></div>
+<pre><code>##   jmuOutlier_exact EnvStats_exact EnvStats_asymp asht_quantTest nyblom_exact
+## 1           0.9552         0.9461         0.9552         0.9786       0.9786
+##   nyblom_interp   boot
+## 1        0.9495 0.9198</code></pre>
+<p>Note that the <code>nyblom_interp</code> procedure is closer to the
+nominal coverage than it’s exact cousin <code>nyblom_exact</code> and
+the worst results are obtained by the bootstrap percentile method. We
+also note that the results of the <code>jmuOutlier_exact</code> method
+appear to deviate from <code>asht_quantTest</code> as well as
+<code>nyblom_exact</code>, which is surprising, because they should
+implement the same approach.</p>
+<h4 id="simulation-2">Simulation 2</h4>
+<p>As a further test-case we consider the situation for the median in a
+smaller sample:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">simulate.coverage_qci</span>(<span class="at">n=</span><span class="dv">11</span>, <span class="at">p=</span><span class="fl">0.5</span>, <span class="at">conf.level=</span><span class="fl">0.95</span>)</span></code></pre></div>
+<pre><code>##   jmuOutlier_exact EnvStats_exact EnvStats_asymp asht_quantTest nyblom_exact
+## 1           0.9873         0.9332         0.9583         0.9873       0.9873
+##   nyblom_interp   boot hs_interp
+## 1        0.9463 0.9332    0.9463</code></pre>
+<p>We note that the <code>EnvStats_exact</code> procedure again has a
+lower coverage than the nominal required level, it must therefore
+implement a slightly different procedure than expected. That coverage is
+less than the nominal for an <em>exact</em> method is, however, still
+somewhat <em>surprising</em>.</p>
+<p><strong>Edit 2019-05-14</strong>: I pointed the package maintainer to
+this problem after looking at the code. Versions larger than 2.1.1 of
+the <code>EnvStats</code> pkg now contain an updated version of this
+function and also the <a
+href="http://finzi.psych.upenn.edu/R/library/EnvStats/html/eqnpar.html">Nyblom
+function</a>.</p>
+<p>In this study for the median, the original <span class="citation"
+data-cites="hettmansperger_sheather1986">Hettmansperger and Sheather
+(1986)</span> procedure implemented in <code>quantileCI</code> as
+function <code>median_confint_hs</code> is also included in the
+comparison (<code>hs_interp</code>). Note that the <span
+class="citation" data-cites="nyblom1992">Nyblom (1992)</span> procedure
+for <span class="math inline">\(p=\frac{1}{2}\)</span> just boils down
+to this approach. Since the neighbouring order statistics are combined
+using a weighted mean, the actual level is just close to the nominal
+level. It can, as observed for the above setting, be slightly lower than
+the nominal level. The bootstrap method again doesn’t look too
+impressive.</p>
+<h4 id="simulation-3">Simulation 3</h4>
+<p>We finally also add one of the scenarios from Table 1 of the <span
+class="citation" data-cites="nyblom1992">Nyblom (1992)</span> paper,
+which allows us to check our implementation against the numerical
+integration performed in the paper to assess coverage.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">simulate.coverage_qci</span>(<span class="at">n=</span><span class="dv">11</span>, <span class="at">p=</span><span class="fl">0.25</span>, <span class="at">conf.level=</span><span class="fl">0.90</span>)</span></code></pre></div>
+<pre><code>##   jmuOutlier_exact EnvStats_exact EnvStats_asymp asht_quantTest nyblom_exact
+## 1           0.9219         0.7633          0.841         0.9219       0.9219
+##   nyblom_interp   boot
+## 1        0.9014 0.8816</code></pre>
+<p>In particular the results of <code>EnvStats_exact</code> look
+disturbing. The coverage of the interpolated order statistic approach
+again looks convincing.</p>
+<h4 id="simulation-4">Simulation 4</h4>
+<p>Finally, a setup with a large sample, but now with the t-distribution
+with one degree of freedom:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">simulate.coverage_qci</span>(<span class="at">n=</span><span class="dv">101</span>, <span class="at">p=</span><span class="fl">0.9</span>, <span class="at">rfunc=</span>rt, <span class="at">qfunc=</span>qt, <span class="at">conf.level=</span><span class="fl">0.95</span>, <span class="at">df=</span><span class="dv">1</span>)</span></code></pre></div>
+<pre><code>##   jmuOutlier_exact EnvStats_exact EnvStats_asymp asht_quantTest nyblom_exact
+## 1           0.9547         0.9352         0.9547         0.9547       0.9547
+##   nyblom_interp   boot
+## 1        0.9495 0.9362</code></pre>
+<p>Again the interpolation method provides the most convincing results.
+The bootstrap on the other hand again has the worst coverage, a larger
+<span class="math inline">\(R\)</span> might have helped here, but would
+have made the simulation study even more time consuming.</p>
+<h1 id="conclusion-and-future-work">Conclusion and Future Work</h1>
+<p>Can we based on the above recommend one procedure to use in practice?
+Well, even though the simulation study is small, the exact
+<code>EnvStats::eqnpar</code> approach appears to yield below nominal
+coverage intervals, sometimes even substantially, and hence is not
+recommended in versions below or equal to 2.1.1 <a href="#fn1"
+class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. On
+the other hand, <code>jmuOutlier_exact</code>,
+<code>asht_quantTest</code>, and <code>nyblom_exact</code> in all four
+cases provide above nominal level coverage, i.e. the intervals are
+conservative in as much as they are too wide. Also slightly disturbing
+is that the results of the exact confidence interval methods varied
+somewhat between the different R implementations. Part of the
+differences arise from handling the discreteness of the procedure as
+well as the edge cases differently. The basic percentile bootstrap
+method is a simple approach, providing acceptable, but not optimal
+coverage and also depends in part on <span
+class="math inline">\(R\)</span>. In particular for very large <span
+class="math inline">\(n\)</span> or for a large number of replication in
+the simulation study, the method with a large <span
+class="math inline">\(R\)</span> can be slow. Suggestions exist in the
+literature on how to improve the speed of coverage convergence by
+smoothing (see, e.g., <span class="citation"
+data-cites="deangelis_etal1993">De Angelis, Hall, and Young
+(1993)</span>), but such work is beyond the scope of this post.</p>
+<p>The <span class="citation"
+data-cites="hettmansperger_sheather1986">Hettmansperger and Sheather
+(1986)</span> and <span class="citation" data-cites="nyblom1992">Nyblom
+(1992)</span> method, respectively, provide very good coverage close to
+the nominal level. The method is fast to compute, available through the
+<code>quantileCI</code> R package and would be our recommendation to use
+in practice.</p>
+<p>Altogether, we summarise our findings as follows: <strong>More
+confidence in confidence intervals for quantiles!</strong> and let the
+following picture illustrating 90% confidence intervals for the 80%
+quantile of the standard normal distribution based on the above sample
+of size <span class="math inline">\(n\)</span>=25 say this in less than
+1000 words.</p>
+<p><img src="/blog/figure/source/2016-10-23-quantileCI/FIRSTPICTURE-1.png" style="display: block; margin: auto;" /></p>
+<h1 id="appendix">Appendix</h1>
+<p>Given PDF <span class="math inline">\(f\)</span> and CDF <span
+class="math inline">\(F\)</span> of the underlying distribution, the
+coverage probability of the one sided Nyblom <span
+class="math inline">\((1-\alpha/2)\cdot 100\%\)</span> confidence
+interval <span class="math inline">\((1-\lambda) x_{(r)} + \lambda
+x_{(r+1)}\)</span> for <span class="math inline">\(x_p\)</span> can be
+found as follows: Let <span class="math inline">\(z = (1-\lambda)
+x_{(r)} + \lambda x_{(r+1)}\)</span>. If the considered interval is a
+lower-confidence interval, we are interested in finding <span
+class="math inline">\(P( z \leq x_p)=\int_{-\infty}^{x_p} f_z(z)
+dz\)</span>. Here, the PDF of <span class="math inline">\(z\)</span> is
+found as</p>
+<p><span class="math display">\[
+f_z(z) = \int_{-\infty}^{z} f_{x_{(r)},x_{(r+1)}}( x_{(r)},
+x_{(r+1)}^*) dx_{(r)}, \quad\text{where}\quad x_{(r+1)}^* =
+\frac{z-(1-\lambda)x_{(r)}}{\lambda}.
+\]</span></p>
+<p>The <a
+href="https://en.wikipedia.org/wiki/Order_statistic#The_joint_distribution_of_the_order_statistics_of_an_absolutely_continuous_distribution">joint
+distribution of the order statistic</a> is here</p>
+<p><span class="math display">\[
+f_{x_{(r)},x_{(r+1)}}( x_{(r)},
+x_{(r+1)}) = \frac{n!}{(r-1)!(n-r-1)!} F(x_{(r)})^{r-1}
+\left( 1- F(x_{(r+1)})\right)^{n-r-1} f(x_{(r+1)}) f(x_{(r)}).
+\]</span> The two nested integrals can be solved by numerical
+integration using, e.g., the <code>integral</code> function.</p>
+<h1 class="unnumbered" id="references">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-deangelis_etal1993" class="csl-entry" role="listitem">
+De Angelis, D., P. Hall, and G. A. Young. 1993. <span>“A Note on
+Coverage Error of Bootstrap Confidence Intervals for Quantiles.”</span>
+<em>Mathematical Proceedings of the Cambridge Philosophical Society</em>
+114: 517–31. <a
+href="http://sci-prew.inf.ua/v114/3/S0305004100071802.pdf">http://sci-prew.inf.ua/v114/3/S0305004100071802.pdf</a>.
+</div>
+<div id="ref-falk_kaufmann1991" class="csl-entry" role="listitem">
+Falk, Michael, and Edgar Kaufmann. 1991. <span>“Coverage Probabilities
+of Bootstrap-Confidence Intervals for Quantiles.”</span> <em>Ann.
+Statist.</em> 19 (1): 485–95. <a
+href="https://doi.org/10.1214/aos/1176347995">https://doi.org/10.1214/aos/1176347995</a>.
+</div>
+<div id="ref-hettmansperger_sheather1986" class="csl-entry"
+role="listitem">
+Hettmansperger, T. P., and S. J Sheather. 1986. <span>“Confidence
+Intervals Based on Interpolated Order Statistics.”</span> <em>Statistics
+and Probability Letters</em> 4: 75–79. <a
+href="https://doi.org/10.1016/0167-7152(86)90021-0">https://doi.org/10.1016/0167-7152(86)90021-0</a>.
+</div>
+<div id="ref-hoehle_hoehle2009" class="csl-entry" role="listitem">
+Höhle, J., and M. Höhle. 2009. <span>“Accuracy Assessment of Digital
+Elevation Models by Means of Robust Statistical Methods.”</span>
+<em>ISPRS Journal of Photogrammetry and Remote Sensing</em> 64 (4):
+398–406. <a
+href="https://doi.org/10.1016/j.isprsjprs.2009.02.003">https://doi.org/10.1016/j.isprsjprs.2009.02.003</a>.
+</div>
+<div id="ref-hyndman_fan1996" class="csl-entry" role="listitem">
+Hyndman, R. J., and Y. Fan. 1996. <span>“Sample Quantiles in Statistical
+Packages.”</span> <em>American Statistician</em> 50 (4): 361–65. <a
+href="https://doi.org/10.2307/2684934">https://doi.org/10.2307/2684934</a>.
+</div>
+<div id="ref-nyblom1992" class="csl-entry" role="listitem">
+Nyblom, J. 1992. <span>“Note on Interpolated Order Statistics.”</span>
+<em>Statistics and Probability Letters</em> 14: 129–31. <a
+href="https://doi.org/10.1016/0167-7152(92)90076-H">https://doi.org/10.1016/0167-7152(92)90076-H</a>.
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Versions &gt; 2.1.1 of the package contain a bug-fix as
+described in the author information of the <a
+href="(http://finzi.psych.upenn.edu/R/library/EnvStats/html/eqnpar.html)">help
+page</a> as well as the Nyblom method.<a href="#fnref1"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2016/10/23/quantileCI.html";
+      this.page.identifier = "/2016/10/23/quantileCI";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

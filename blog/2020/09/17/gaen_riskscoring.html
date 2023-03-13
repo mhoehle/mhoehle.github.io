@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Risk Scoring in Digital Contact Tracing Apps</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2020/09/17/gaen_riskscoring.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Risk Scoring in Digital Contact Tracing Apps</h1>
+    <p class="post-meta"><time datetime="2020-09-17T00:00:00+02:00" itemprop="datePublished">Sep 17, 2020</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+We attempt a mathematical description of the risk scoring algorithm used
+in the Google and Apple exposure notification framework (v1). This
+algorithm is used in many digital contact tracing apps for COVID-19,
+e.g., in Germany or Switzerland.
+<p>
+<center>
+<img src="/blog/figure/source/2020-09-17-gaen_riskscoring/classifier3.png" width="550">
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="motivation">Motivation</h2>
+<p>My phone runs a digital COVID-19 contact tracing app based on the
+Apple and Google exposure notification (GAEN) framework [<a
+href="https://developer.apple.com/exposure-notification/">Apple</a>| <a
+href="https://www.google.com/covid19/exposurenotifications/">Google</a>|
+<a
+href="https://en.wikipedia.org/wiki/Exposure_Notification">Wikipedia</a>].
+Since my future health might depend on it, I am interested in the risk
+classification algorithm of the framework: when does it warn me about a
+possible exposure risk? Since algorithmic transparency is a key
+component in gaining acceptance for digital contact tracing apps, this
+blog post tries to give a mathematical description of the risk scoring
+algorithm in the GAEN framework - as far as I have been able to
+understand it. The description is accompanied by a small case study
+implemented in R.</p>
+<p>The GAEN is used by country specific COVID-19 Apps in <a
+href="https://github.com/PersonalDataIO/CoronaRiskScoring">several
+countries</a>, e.g., Switzerland, Latvia, Denmark, Italy, Poland. In
+this post special focus is on the German <a
+href="https://www.coronawarn.app/en/">Corona-Warn-App</a> (CWA), which
+comes with a special commitment to transparency:</p>
+<blockquote>
+<p>The Corona-Warn-App is an app that helps trace infection chains of
+SARS-CoV-2 (which can cause COVID-19) in Germany. The app is based on
+technologies with a decentralized approach and notifies users if they
+have been exposed to SARS-CoV-2. Transparency is key to both protect the
+app’s end-users and to encourage adoption.</p>
+</blockquote>
+<p>This means that all code and documentation of the CWA is available
+under an open-source license through <a
+href="https://github.com/corona-warn-app">GitHub</a>. A good overview of
+the technical foundation of the app is provided <a
+href="https://github.com/corona-warn-app/cwa-documentation/blob/master/solution_architecture.md">here</a>.
+However, important parts of the CWA risk scoring are taken from the GAEN
+framework, which is less transparent<a href="#fn1" class="footnote-ref"
+id="fnref1" role="doc-noteref"><sup>1</sup></a>. In particular I was
+interested in the <a
+href="https://developer.apple.com/documentation/exposurenotification/enexposureconfiguration/calculating_the_exposure_risk_value_in_exposurenotification_version_1">API
+v1</a> form of the risk scoring, because this forms the basis of the CWA
+and also provides epidemiological flexibility through the use of the
+transmission risk level parameter.</p>
+<h2 id="the-risk-scoring">The Risk Scoring</h2>
+<p>A phone using the GAEN framework scans the immediate surroundings in
+regular time intervals<a href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a> using the <a
+href="https://en.wikipedia.org/wiki/Bluetooth_Low_Energy">BLE</a>
+protocol. Doing so, the phone collects anonymous identifier keys of the
+devices running BLE near you. If a GAEN user is tested positive, they
+can voluntarily decide to upload their anonymous identifier keys to a
+server. With regular intervals the app on your phone downloads these
+keys and investigates whether there is a match between the keys you
+encountered and those available on the server. If there is a match, an
+algorithm decides based on attributes of the contact, e.g. duration,
+distance and infectiousness of the potential infector, whether the user
+should be displayed a warning about an increased risk for infection. It
+is this classification algorithm I am interested in.</p>
+<p>Introducing mathematical notation, let <span
+class="math inline">\(E\)</span> be the set of encounters recorded by
+your phone during the last 14 days. We assume each entry <span
+class="math inline">\(e\in E\)</span> consists of attributes<a
+href="#fn3" class="footnote-ref" id="fnref3"
+role="doc-noteref"><sup>3</sup></a> containing the identifier key - also
+known as <em>temporary exposure key</em> (TEK) - of the phone you met,
+i.e. <span class="math inline">\(\text{key}(e)\)</span>, the calendar
+day the contact happened, <span
+class="math inline">\(\text{date}(e)\)</span>, the duration of the
+contact, <span class="math inline">\(\text{duration}(e)\)</span>, and
+the average attenuation of the signal during the contact, <span
+class="math inline">\(\text{antennuation}(e)\)</span>. The later serves
+as proxy for the distance between the two phones.</p>
+<p>Furthermore, the server contains the set of uploaded keys by CWA
+users, who tested positive for COVID-19 and who gave consent to upload
+their keys. Uploaded keys of test positives are also called
+<em>diagnosis keys</em> - technically they are just TEKs. For simplicity
+we shall assume in this document that phones are using one key per
+calendar day and that an upload of keys consists of the keys used on the
+day of upload and the previous 13 days<a href="#fn4"
+class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>.
+Let <span class="math inline">\(S\)</span> denote the set of uploaded
+keys on the server and for <span class="math inline">\(s\in S\)</span>
+let <span class="math inline">\(\text{key}(s)\)</span> denote the
+diagnosis key, <span class="math inline">\(\text{day_valid}(s)\)</span>
+the calendar day the key was in use and <span
+class="math inline">\(\text{TRL}(s)\)</span> the transmission risk. The
+later is a numerical value for how infectious the potential infector was
+on <span class="math inline">\(\text{day_valid}(s)\)</span>. For
+simplicity, in what follows, we shall consider only the so called
+<strong>level</strong> of the duration, attenuation and transmission
+risk, which in the GAEN framework is a discretized version of the
+continuous quantity represented by an integer between 0-8.</p>
+<p>We shall denote by <span class="math inline">\(I\)</span> the subset
+of <span class="math inline">\(E\)</span>, which consists of keys known
+to have been positively tested for COVID-19, that is, the key was
+uploaded to the server. For simplicity we shall extend the elements of
+<span class="math inline">\(E\)</span> with additional information
+provided by the server about the key, i.e. we let <span
+class="math display">\[
+I = \{ (e, s) : e \in E , s \in S , \text{key}(s) = \text{key}(e) \}.
+\]</span></p>
+<h2 id="case-study-with-aisha-anton-and-betty">Case Study with Aisha,
+Anton and Betty</h2>
+<p>We shall illustrate the above using an example inspired by the <a
+href="https://github.com/corona-warn-app/cwa-documentation/blob/master/cwa-risk-assessment.md">CWA
+documentation</a>. In the example the CWA user Betty travels with Anton
+and Aisha together by bus to and from work on the 9th and the 16th of
+the month. Each trip lasts 10 minutes. Anton sat one meter away from
+Betty, while Aisha sat two meters away. Both Anton and Aisha become test
+positive on the 20th and decide to upload their keys to the server on
+the 20th and 21st, respectively. We perform Betty’s risk calculation on
+the 20th and 21st, respectively. To make the example clearer, the
+original trip length of 10 minutes is changed to 11 minutes.</p>
+<h3 id="gaen-configuration">GAEN Configuration</h3>
+<p>Configuration of the risk scoring parameters as done for the CWA:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Transmission risk level provided at key upload - see https://github.com/corona-warn-app/cwa-app-android/blob/fe9128fdb28384640d0a248b7ff46701d6a04f0e/Corona-Warn-App/src/main/java/de/rki/coronawarnapp/util/ProtoFormatConverterExtensions.kt#L12 for the google App</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>trl <span class="ot">&lt;-</span> <span class="fu">structure</span>(<span class="fu">c</span>(<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">8</span>, <span class="dv">8</span>, <span class="dv">5</span>, <span class="dv">3</span>, <span class="fu">rep</span>(<span class="dv">1</span>, <span class="dv">7</span>)), <span class="at">names=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">13</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Breaks in dB for the attenuation - see https://github.com/google/exposure-notifications-internals/blob/e953a09dd3c20c04dfa29e362eef461890dac25c/exposurenotification/src/main/java/com/google/samples/exposurenotification/features/ContactTracingFeature.java#L515 </span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>attenuation_breaks <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">15</span>, <span class="dv">27</span>, <span class="dv">33</span>, <span class="dv">51</span>, <span class="dv">63</span>, <span class="dv">73</span>, <span class="cn">Inf</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>attenuation_include_lowest <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Level for each attenuation bucket, see https://github.com/corona-warn-app/cwa-server/blob/master/services/distribution/src/main/resources/master-config/exposure-config.yaml</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>attenuation_lvl    <span class="ot">&lt;-</span> <span class="fu">tibble</span>( <span class="at">bucket =</span> <span class="fu">c</span>(<span class="st">&quot;[0,10]&quot;</span>, <span class="st">&quot;(10,15]&quot;</span>, <span class="st">&quot;(15,27]&quot;</span>,<span class="st">&quot;(27,33]&quot;</span>,  <span class="st">&quot;(33,51]&quot;</span>,  <span class="st">&quot;(51,63]&quot;</span>,  <span class="st">&quot;(63,73]&quot;</span>, <span class="st">&quot;(73,Inf]&quot;</span>), <span class="at">lvl=</span><span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>,  <span class="dv">2</span>,  <span class="dv">2</span>,  <span class="dv">2</span>,  <span class="dv">2</span>,  <span class="dv">0</span>))</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Bucket limits in https://github.com/google/exposure-notifications-internals/blob/e953a09dd3c20c04dfa29e362eef461890dac25c/exposurenotification/src/main/java/com/google/samples/exposurenotification/features/ContactTracingFeature.java#L502 (note that the buckets are closed to the right)</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>duration_breaks <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="sc">-</span><span class="cn">Inf</span>, <span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">15</span>, <span class="dv">20</span>, <span class="dv">25</span>, <span class="dv">30</span>, <span class="cn">Inf</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>duration_include_lowest <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Levels - see https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/exposure-config.yaml#L50</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>duration_lvl    <span class="ot">&lt;-</span> <span class="fu">tibble</span>( <span class="at">bucket =</span> <span class="fu">c</span>(<span class="st">&quot;(-Inf,0]&quot;</span>, <span class="st">&quot;(0,5]&quot;</span>, <span class="st">&quot;(5,10]&quot;</span> , <span class="st">&quot;(10,15]&quot;</span>,  <span class="st">&quot;(15,20]&quot;</span>, <span class="st">&quot;(20,25]&quot;</span>, <span class="st">&quot;(25,30]&quot;</span>, <span class="st">&quot;(30, Inf]&quot;</span>), <span class="at">lvl=</span><span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>,  <span class="dv">1</span>,  <span class="dv">1</span>,  <span class="dv">1</span>,  <span class="dv">1</span>,  <span class="dv">1</span>))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Days parameters - see https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/exposure-config.yaml#L40</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>days_lvl <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Time_attenuation_buckets (to be used later)</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>time_attenuation_bucket_breaks <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">55</span>, <span class="dv">63</span>, <span class="cn">Inf</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>time_attenuation_buckets <span class="ot">&lt;-</span> <span class="fu">levels</span>(<span class="fu">cut</span>(<span class="dv">0</span><span class="sc">:</span><span class="dv">100</span>, <span class="at">breaks=</span>time_attenuation_bucket_breaks, <span class="at">include.lowest=</span><span class="cn">TRUE</span>, <span class="at">right=</span><span class="cn">FALSE</span>))</span></code></pre></div>
+<p>The <span class="math inline">\(\text{days}(e)\)</span> parameter of
+an <span class="math inline">\(e\in E\)</span> exposure reflects the
+possibility to provide additional risk relevant information about the
+CWA user at the day of the contact. However, the CWA currently keeps it
+at a fixed value of <a
+href="https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/exposure-config.yaml#L40">5</a>
+and, hence, it plays little role in the risk calculations.</p>
+<h4 id="part-1-uploaded-keys-on-the-server">Part 1: Uploaded keys on the
+server</h4>
+<p>Anton had his CWA running since 2020-09-13, while Aisha has been
+running her app since 2020-09-01. For each of the two we build a tibble
+containing the uploaded keys at the day of transmission, i.e. on the
+20th and 21st, respectively<a href="#fn5" class="footnote-ref"
+id="fnref5" role="doc-noteref"><sup>5</sup></a>. Furthermore, we
+construct two tibbles mimicking the state of the diagnosis key server on
+2020-09-20 and 2020-09-21, respectively.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Upload of Anton on the 2020-09-20 where his app has been running for 8 days</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>anton_ndays <span class="ot">&lt;-</span> <span class="fu">min</span>(<span class="dv">14</span>, <span class="fu">as.numeric</span>(<span class="fu">as.Date</span>(<span class="st">&quot;2020-09-20&quot;</span>) <span class="sc">-</span> cwa_start_anton <span class="sc">+</span> <span class="dv">1</span>))</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>anton <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">key=</span><span class="fu">rkey</span>(anton_ndays),<span class="at">valid=</span><span class="fu">seq</span>(<span class="fu">as.Date</span>(<span class="st">&quot;2020-09-20&quot;</span>),<span class="at">length.out=</span>anton_ndays,<span class="at">by=</span><span class="st">&quot;-1 day&quot;</span>), <span class="at">trl=</span>trl[<span class="fu">seq_len</span>(anton_ndays)])</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Upload of Aisha on the 2020-09-21 where her app has been running for 14 days</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>aisha_ndays <span class="ot">&lt;-</span> <span class="fu">min</span>(<span class="dv">14</span>, <span class="fu">as.numeric</span>(<span class="fu">as.Date</span>(<span class="st">&quot;2020-09-20&quot;</span>) <span class="sc">-</span> cwa_start_aisha <span class="sc">+</span> <span class="dv">1</span>))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>aisha <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">key=</span><span class="fu">rkey</span>(aisha_ndays),<span class="at">valid=</span><span class="fu">seq</span>(<span class="fu">as.Date</span>(<span class="st">&quot;2020-09-21&quot;</span>),<span class="at">length.out=</span>aisha_ndays,<span class="at">by=</span><span class="st">&quot;-1 day&quot;</span>), <span class="at">trl=</span>trl[<span class="fu">seq_len</span>(aisha_ndays)])</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">#  Upload to server consists of keys for the last 13 days (note: day zero caveat is ignored). Hence dk&lt;date&gt; consists of all keys who were active during the last  13 days within &lt;date&gt;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>dk20200920 <span class="ot">&lt;-</span> anton <span class="sc">%&gt;%</span> <span class="fu">filter</span>(valid <span class="sc">&gt;=</span> <span class="fu">as.Date</span>(<span class="st">&quot;2020-09-20&quot;</span>) <span class="sc">-</span> <span class="dv">13</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>dk20200921 <span class="ot">&lt;-</span> <span class="fu">rbind</span>(anton, aisha) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(valid <span class="sc">&gt;=</span> <span class="fu">as.Date</span>(<span class="st">&quot;2020-09-21&quot;</span>) <span class="sc">-</span> <span class="dv">13</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Show diagnosis keys of 2020-09-20 (these are Anton&#39;s keys)</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>dk20200920</span></code></pre></div>
+<pre><code>## # A tibble: 8 x 3
+##   key    valid        trl
+##   &lt;chr&gt;  &lt;date&gt;     &lt;dbl&gt;
+## 1 2a0a87 2020-09-20     5
+## 2 051447 2020-09-19     6
+## 3 f810f4 2020-09-18     8
+## 4 17a0d6 2020-09-17     8
+## 5 3d12e3 2020-09-16     8
+## 6 aaf590 2020-09-15     5
+## 7 22b909 2020-09-14     3
+## 8 1be004 2020-09-13     1</code></pre>
+<h4 id="part-2-bettys-exposure-history">Part 2: Betty’s exposure
+history</h4>
+<p>Betty’s sighting history would look as follows:</p>
+<pre><code>## # A tibble: 6 x 7
+##   key    date       attenuation duration attenuation_lvl duration_lvl days_lvl
+##   &lt;chr&gt;  &lt;date&gt;           &lt;dbl&gt;    &lt;dbl&gt;           &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt;
+## 1 3d12e3 2020-09-16          40       11               2            1        5
+## 2 3d12e3 2020-09-16          40       11               2            1        5
+## 3 835292 2020-09-16          60       11               2            1        5
+## 4 835292 2020-09-16          60       11               2            1        5
+## 5 3d8508 2020-09-09          60       11               2            1        5
+## 6 3d8508 2020-09-09          60       11               2            1        5</code></pre>
+<p>Hence, Betty’s set of exposures with test positives provided by the
+server on the 20th is:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>i_set <span class="ot">&lt;-</span> <span class="fu">inner_join</span>(eh_betty, dk20200920, <span class="at">by=</span><span class="st">&quot;key&quot;</span>) </span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>i_set</span></code></pre></div>
+<pre><code>## # A tibble: 2 x 9
+##   key    date       attenuation duration attenuation_lvl duration_lvl days_lvl valid        trl
+##   &lt;chr&gt;  &lt;date&gt;           &lt;dbl&gt;    &lt;dbl&gt;           &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt; &lt;date&gt;     &lt;dbl&gt;
+## 1 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8
+## 2 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8</code></pre>
+<h2 id="risk-scoring">Risk scoring</h2>
+<p>The description of the risk scoring in the CWA app is centered around
+<a
+href="https://github.com/corona-warn-app/cwa-documentation/blob/master/solution_architecture.md">Fig.
+12 and 13</a> of the solution architecture documentation. An
+illustrative example of how this computation looks can be found <a
+href="https://github.com/corona-warn-app/cwa-documentation/blob/master/cwa-risk-assessment.md">here</a>.
+For further details the source code for the risk scoring in the CWA can
+be consulted [<a
+href="https://github.com/corona-warn-app/cwa-app-android/blob/5240f1baf92b9d3082d38570c4e11a4f72edde6b/Corona-Warn-App/src/main/java/de/rki/coronawarnapp/risk/DefaultRiskLevelCalculation.kt">Android
+version</a>| <a href="">iOS</a>]. However, for the Android version,
+which is the one I checked most, it is <a
+href="https://github.com/google/exposure-notifications-internals/issues/17#issuecomment-692981452">not
+100% transparent</a> (to me) how the important <a
+href="https://developers.google.com/android/exposure-notifications/exposure-notifications-api#modes"><code>exposureSummary</code></a>
+object is generated by the API. Nevertheless, the computation of the
+GAEN risk scoring algorithm consists of two steps: a per-exposure risk
+score calculation followed by an aggregation over all exposures. The
+best approximation I could find is <a
+href="https://github.com/google/exposure-notifications-internals/blob/413b561f59cd4a63b571cac83821959e6e022ce8/exposurenotification/src/main/java/com/google/samples/exposurenotification/matching/KeyExposureEvaluator.java"><code>KeyExposureEvaluator.java</code></a>,
+which might be from a later release than v1, though.</p>
+<h2 id="risk-score">Risk Score</h2>
+<p>We compute the total risk for each exposure with a test positive,
+i.e. for each element <span class="math inline">\(i\in I\)</span>, by:
+<span class="math display">\[
+\text{TR}(i) = \text{duration}(i)\times
+\text{attenuation}(i) \times
+\text{TRL}(i) \times
+\text{days}(i)
+\]</span></p>
+<p>Exposure risks with a total risk below the <a
+href="https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/app-config.yaml#L13">minimum
+risk score</a> of 11 are put to zero:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Minimum risk score - see https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/app-config.yaml#L13</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>minimum_risk_score <span class="ot">&lt;-</span> <span class="dv">11</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute risk score and filter out those below the minimum</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>risk <span class="ot">&lt;-</span> i_set <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">risk_score =</span> attenuation_lvl <span class="sc">*</span> duration_lvl <span class="sc">*</span> trl <span class="sc">*</span> days_lvl) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(risk_score <span class="sc">&gt;=</span> minimum_risk_score)</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>risk</span></code></pre></div>
+<pre><code>## # A tibble: 2 x 10
+##   key    date       attenuation duration attenuation_lvl duration_lvl days_lvl valid        trl risk_score
+##   &lt;chr&gt;  &lt;date&gt;           &lt;dbl&gt;    &lt;dbl&gt;           &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt; &lt;date&gt;     &lt;dbl&gt;      &lt;dbl&gt;
+## 1 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8         80
+## 2 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8         80</code></pre>
+<p>From this we can compute the the so called <strong>Normalized Total
+Risk Score</strong> defined as <span class="math display">\[
+\text{Normalized Total Risk Score} := \frac{\max_{i\in I}
+\text{TR}(i)}{50}.
+\]</span> I’m guessing, but the value of 50 appears to be a “baseline”
+for the transmission risk given by the risk test positives have on the
+day they upload their keys ( first element of <code>trl</code> is 5 and,
+hence, <span class="math inline">\(1 \times 2 \times 5 \times 5 =
+50\)</span>).</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Derive the normalized total risk score</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>maxTR <span class="ot">&lt;-</span> <span class="fu">max</span>(risk<span class="sc">$</span>risk_score)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>ntrs <span class="ot">&lt;-</span> maxTR <span class="sc">/</span> <span class="dv">50</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(maxTR, ntrs)</span></code></pre></div>
+<pre><code>## [1] 80.0  1.6</code></pre>
+<p>In order to reflect that the accumulation of several exposures with a
+test positive increases your risk, a weighted summation of time spent in
+three 3 attenuation buckets (distance: far, intermediate and close) is
+computed.</p>
+<p>For each class <span class="math inline">\(j=1,2,3\)</span> (signal
+strength is low, mid and high) a weighted time in the class is computed
+<span class="math display">\[
+\begin{align}
+wt_j = \max\left(30, \sum_{i\in  I^*} \mathcal{I}\left(l_j  \leq
+\text{attenuation}(i) &lt; u_j \right) \times \text{duration}(i) \times
+w_{j}\right)
+\end{align}
+\]</span> where <span class="math inline">\(\mathcal{I}(A)\)</span>
+denotes the indicator function which is 1 if the condition <span
+class="math inline">\(A\)</span> is fulfilled and zero otherwise.
+Furthermore, <span class="math inline">\(I^* = \{ i \in I :
+\text{TR}(i)&gt;0\}\)</span>, <span class="math inline">\(w_1=0,
+w_2=0.5\)</span> and <span class="math inline">\(w_3=1\)</span> and the
+limits <span class="math inline">\((l_j, u_j)\)</span> of the three
+classes are <a
+href="https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/attenuation-duration.yaml#L13">chosen</a>
+as <span class="math inline">\([63, \infty)\)</span>, <span
+class="math inline">\([55,63)\)</span> and <span
+class="math inline">\([0,55)\)</span> dB. Note that for reasons beyond
+my knowledge, the time in each class is capped at 30 minutes. The total
+time is then calculated as as <span class="math display">\[
+\text{Total time} = \sum_{j=1}^4 wt_j,
+\]</span> where <span class="math inline">\(wt_4\geq 0\)</span> is
+denoted a bucket offset value, which is currently set to 0 in the CWA.
+Hence, the largest possible total time is <span
+class="math inline">\(0\times 30 + 0.5\times 30 + 1\times 30 + 0 =
+45\)</span> minutes.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Accumulate time in the 3 attenuation buckets</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>ta_buckets <span class="ot">&lt;-</span> risk <span class="sc">%&gt;%</span> </span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>( <span class="at">time_attenuation_bucket =</span> <span class="fu">cut</span>(attenuation, <span class="at">breaks=</span>time_attenuation_bucket_breaks, <span class="at">include.lowest=</span><span class="cn">TRUE</span>, <span class="at">right=</span><span class="cn">FALSE</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(time_attenuation_bucket) <span class="sc">%&gt;%</span>  </span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">time =</span> <span class="fu">sum</span>(duration)) <span class="sc">%&gt;%</span> </span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Cap at 30 minutes</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">time =</span> <span class="fu">pmin</span>(<span class="dv">30</span>, time, <span class="at">na.rm=</span><span class="cn">TRUE</span>))</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the weights - https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/attenuation-duration.yaml#L15</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>weights <span class="ot">&lt;-</span> <span class="fu">tibble</span>( <span class="at">time_attenuation_bucket=</span>time_attenuation_buckets, <span class="at">weight=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.5</span>, <span class="dv">0</span>))</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>ta_buckets_w <span class="ot">&lt;-</span> <span class="fu">right_join</span>( ta_buckets, weights, <span class="at">by=</span><span class="st">&quot;time_attenuation_bucket&quot;</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Do the weighted summation and add the bucket offset</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>exposure_score <span class="ot">&lt;-</span> ta_buckets_w <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">total =</span> <span class="fu">sum</span>(time<span class="sc">*</span>weight, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">+</span>  <span class="dv">0</span>) <span class="sc">%&gt;%</span> <span class="fu">as.numeric</span>()</span></code></pre></div>
+<p>The combined risk score is now given as <span class="math display">\[
+\text{Combined Risk Score} = \text{Exposure Score } \times
+\text{Normalized Total Risk Score}
+\]</span></p>
+<p>A warning is given by the app, if the combined risk is above a
+threshold value of <a
+href="https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/risk-score-classification.yaml#L24">15</a>.</p>
+<p>In code:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute combined risk score and classify</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>(combined_risk_score <span class="ot">&lt;-</span> exposure_score <span class="sc">*</span> ntrs)</span></code></pre></div>
+<pre><code>## [1] 35.2</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>(alarm <span class="ot">&lt;-</span> combined_risk_score <span class="sc">&gt;=</span> <span class="dv">15</span>)</span></code></pre></div>
+<pre><code>## [1] TRUE</code></pre>
+<p>Hence, Betty receives an alarm on the 20th.</p>
+<h4 id="the-classifier-in-a-nutshell">The classifier in a nutshell</h4>
+<p>To summarise, the resulting binary risk classifier of the CWA can be
+expressed mathematically by the single formula</p>
+<p><span class="math display">\[
+\begin{align*}
+\mathcal{I}\left\{\left[\sum_{j=1}^ 3 \max\left(30, \sum_{i\in  I^*}
+\mathcal{I}\left( \text{attenuation}(i) \in [l_j,u_j) \right) \times
+\text{duration}(i) \times w_{j}\right)\right] \times \\
+\quad\quad\quad\quad\quad \max_{i\in I} \{\text{duration}(i)\times
+\text{attenuation}(i) \times
+\text{TRL}(i) \times
+\text{days}(i)\} \geq 15\cdot 50 \right\}.
+\end{align*}
+\]</span></p>
+<p>The formula can also be assembled into one classifier function, which
+we will use to repeat the risk classification based on the available
+server information on 2020-09-21:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>cwa_classifier <span class="ot">&lt;-</span> <span class="cf">function</span>(i_set) {</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Compute risk score and filter out those below the minimum</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  risk <span class="ot">&lt;-</span> i_set <span class="sc">%&gt;%</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">risk_score =</span> attenuation_lvl <span class="sc">*</span> duration_lvl <span class="sc">*</span> trl <span class="sc">*</span> days_lvl) <span class="sc">%&gt;%</span> </span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(risk_score <span class="sc">&gt;=</span> minimum_risk_score)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Derive the normalized total risk score</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  maxTR <span class="ot">&lt;-</span> <span class="fu">max</span>(risk<span class="sc">$</span>risk_score)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  ntrs <span class="ot">&lt;-</span> maxTR <span class="sc">/</span> <span class="dv">50</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Accumulate time in the 3 attenuation buckets</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  ta_buckets <span class="ot">&lt;-</span> risk <span class="sc">%&gt;%</span> </span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>( <span class="at">time_attenuation_bucket =</span> <span class="fu">cut</span>(attenuation, <span class="at">breaks=</span>time_attenuation_bucket_breaks, <span class="at">include.lowest=</span><span class="cn">TRUE</span>, <span class="at">right=</span><span class="cn">FALSE</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(time_attenuation_bucket) <span class="sc">%&gt;%</span>  </span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">time =</span> <span class="fu">sum</span>(duration)) <span class="sc">%&gt;%</span> </span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Cap at 30 minutes</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">time =</span> <span class="fu">pmin</span>(<span class="dv">30</span>, time, <span class="at">na.rm=</span><span class="cn">TRUE</span>))</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Define the weights - https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/attenuation-duration.yaml#L15</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  weights <span class="ot">&lt;-</span> <span class="fu">tibble</span>( <span class="at">time_attenuation_bucket=</span>time_attenuation_buckets, <span class="at">weight=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.5</span>, <span class="dv">0</span>))</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>  ta_buckets_w <span class="ot">&lt;-</span> <span class="fu">right_join</span>( ta_buckets, weights, <span class="at">by=</span><span class="st">&quot;time_attenuation_bucket&quot;</span>)</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Do the weighted summation and add the bucket offset</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>  exposure_score <span class="ot">&lt;-</span> ta_buckets_w <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">total =</span> <span class="fu">sum</span>(time<span class="sc">*</span>weight, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">+</span>  <span class="dv">0</span>) <span class="sc">%&gt;%</span> <span class="fu">as.numeric</span>()</span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Compute combined risk score and classify</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>  (combined_risk_score <span class="ot">&lt;-</span> exposure_score <span class="sc">*</span> ntrs)</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>  (alarm <span class="ot">&lt;-</span> combined_risk_score <span class="sc">&gt;=</span> <span class="dv">15</span>)</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Return individals elements of the risk classification</span></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">list</span>( <span class="at">risk=</span>risk, <span class="at">ta_buckets_w=</span>ta_buckets_w,  <span class="at">exposure_score=</span>exposure_score, <span class="at">ntrs=</span>ntrs, <span class="at">combined_risk_score=</span>combined_risk_score, <span class="at">alarm=</span>alarm))</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Note that the server information on 2020-09-21 is slightly different
+from 2020-09-20, because now also Aisha’s keys are available:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>i_set <span class="ot">&lt;-</span> <span class="fu">left_join</span>(eh_betty, dk20200921, <span class="at">by=</span><span class="st">&quot;key&quot;</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cwa_classifier</span>(i_set)</span></code></pre></div>
+<pre><code>## $risk
+## # A tibble: 4 x 10
+##   key    date       attenuation duration attenuation_lvl duration_lvl days_lvl valid        trl risk_score
+##   &lt;chr&gt;  &lt;date&gt;           &lt;dbl&gt;    &lt;dbl&gt;           &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt; &lt;date&gt;     &lt;dbl&gt;      &lt;dbl&gt;
+## 1 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8         80
+## 2 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8         80
+## 3 835292 2020-09-16          60       11               2            1        5 2020-09-16     5         50
+## 4 835292 2020-09-16          60       11               2            1        5 2020-09-16     5         50
+## 
+## $ta_buckets_w
+## # A tibble: 3 x 3
+##   time_attenuation_bucket  time weight
+##   &lt;chr&gt;                   &lt;dbl&gt;  &lt;dbl&gt;
+## 1 [0,55)                     22    1  
+## 2 [55,63)                    22    0.5
+## 3 [63,Inf]                   NA    0  
+## 
+## $exposure_score
+## [1] 33
+## 
+## $ntrs
+## [1] 1.6
+## 
+## $combined_risk_score
+## [1] 52.8
+## 
+## $alarm
+## [1] TRUE</code></pre>
+<p>In other words and not so surprising: we also get an alarm, if Betty
+runs the risk scoring on the 21st. However, the combined risk score is
+now also higher due to the multiple exposures.</p>
+<h2 id="discussion">Discussion</h2>
+<p>Despite an honest effort to try to understand the code and the
+documentation, there are still specific details, which I’m unsure about.
+One reason is that only parts of the code of the GAEN framework v1 are
+public - this should be improved. Another reason is that I lack the
+technical skills to really build and execute the CWA from source on my
+phone or to evaluate he GAEN snippets. This would allow me to test
+different scenarios and gain insight based on a reverse engineering
+approach. A mathematical and high-level implementation documentation as
+the one attempted in this post is not easy to understand either, but
+math is a universal language with enough abstraction to not get lost in
+the nitty-gritty details of source code. If the source code is public,
+however, a ground truth can always be established - it may just take
+time… This post mixes the two approaches by supplementing the math with
+an illustrative example using R code - the source of this is available
+from <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2020-09-17-gaen_riskscoring.Rmd">GitHub</a>.</p>
+<p>More details on the use of mathematics in digital contact tracing can
+be found in my lecture given as part of the 2020 summer course on “The
+Mathematics and Statistics of Infectious Disease Outbreaks” at Stockholm
+University [<a
+href="https://github.com/hoehleatsu/mt3002-summer2020/blob/master/Lectures/Lecture12/lecture12.pdf">slides</a>
+| <a href="https://youtu.be/KdY62_KmJEE">video part 1</a> | <a
+href="https://youtu.be/DvS6-S3S6vc">video part 2</a>].</p>
+<center>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/KdY62_KmJEE" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+</iframe>
+</center>
+<h2 id="literature">Literature</h2>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Code snippets have recently been published [<a
+href="https://github.com/google/exposure-notifications-internals">google</a>
+| <a href="https://developer.apple.com/exposure-notification/">apple</a>
+| <a
+href="https://github.com/rettichschnidi/ExposureNotification">inofficial
+GitHub of the apple code</a>]. Unfortunately, most of the published code
+appears to cover later releases of the GAEN. Furthermore, as far as I
+can tell, both the Google and the Apple snippets don’t cover the full
+code used for the risk scoring in v1. Hence, some of my above
+explanations deduced from the code may fail to truly capture the state
+and functioning of the v1 risk scoring.<a href="#fnref1"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Approximately every 5 minutes.<a href="#fnref2"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>This description is a simplification. In reality the <a
+href="https://en.wikipedia.org/wiki/Bluetooth_Low_Energy">BLE</a>
+protocol consists of a series of scans where it is recorded which keys
+can be found. These series sightings of a key are then aggregated to
+exposures periods by the GAEN, which have a beginning and an end.<a
+href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>In practice the TEKs change frequently each day to
+preserve anonymity, but it’s possible to deduce all corresponding TEK
+from one uploaded diagnosis key.<a href="#fnref4" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>For this post we ignore the fact that the key active on
+the day of upload is not uploaded until tomorrow, but see also this <a
+href="https://github.com/corona-warn-app/cwa-server/issues/723#issuecomment-684814760">issue</a>.<a
+href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2020/09/17/gaen_riskscoring.html";
+      this.page.identifier = "/2020/09/17/gaen_riskscoring";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

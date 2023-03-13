@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Age-Structure Adjusted All-Cause Mortality</title>
+  <meta name="description" content="">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2021/03/01/mortadj.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Age-Structure Adjusted All-Cause Mortality</h1>
+    <p class="post-meta"><time datetime="2021-03-01T00:00:00+01:00" itemprop="datePublished">Mar 1, 2021</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <!-- bibliography: ~/Literature/Bibtex/jabref.bib -->
+<h2 id="abstract">Abstract:</h2>
+<p>This page is an updated version of the 2020-12-28 blog post <a
+href="https://staff.math.su.se/hoehle/blog/2020/12/28/mort.html">Age
+Stratified All-Cause and COVID-19 Associated Mortality</a>. The post
+considers the age stratified all-cause and COVID-19 associated mortality
+in Germany during 2020 based on numbers provided by the Federal
+Statistical Office and the Robert Koch Institute. Important extensions
+compared to the original post are:</p>
+<ul>
+<li>an improved population adjusted expected mortality calculation</li>
+<li>an update of the analysis containing the 2020 numbers as of
+2021-03-13</li>
+</ul>
+<p>Note: The present analyses were previously kept in a separate updated
+R-Markdown file, which was updated until 2021-01-29. The present text is
+a conversion of this document into a blog post including a treamtnet of
+week 53, but does not contain any updated interpretations compared to
+the 2021-01-29 version.</p>
+<center>
+<img src="/blog/figure/source/2021-03-01-mortadj/sterbefaelle_incidence.png" width="550">
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2021-03-01-mortadj.Rmd">R-markdown
+source code</a> of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from GitHub.</p>
+<h2 id="introduction">Introduction</h2>
+<p>All-cause mortality is one of indicators used to measure the impact
+of the COVID-19 pandemic, because this indicator is less biased by the
+testing strategy needed to identify cases to have died while having a
+recent COVID-19 diagnosis. Several ressources (<a
+href="https://ourworldindata.org/covid-excess-mortality">OurWorldInData</a>,
+<a
+href="https://www.ft.com/content/a2901ce8-5eb7-4633-b89c-cbdf5b386938">Financial
+Times</a>, <span class="citation" data-cites="aburto_etal2021">Aburto et
+al. (2021)</span>) have used this indicator to compare the COVID-19
+response between countries. Since both death and COVID-19 have a strong
+age component, it appears crucial to take an age-stratified view on both
+all-cause mortality as well as deaths associated with COVID-19. The <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2021-03-01-mortadj.Rmd">R-markdown
+source code</a> of this blog is available from GitHub.</p>
+<h2 id="age-stratified-mortality">Age Stratified Mortality</h2>
+<p>Real-time mortality monitoring is not common in Germany, as can be
+seen from the coverage of the <a
+href="https://www.euromomo.eu/">EuroMoMo monitoring</a> for Germany,
+where only the two federal states Hesse and Berlin participate. However,
+as part of the COVID-19 response, the Federal Statistical Office
+(Destatis) now provides weekly updated <a
+href="https://www.destatis.de/DE/Themen/Querschnitt/Corona/Gesellschaft/kontextinformationen-gesellschaft.html#Sterbe">preliminary
+mortality statistics of all-cause mortality in 2020</a>. The methodology
+behind the numbers as well as age-stratified additional analyses are
+described in an accompanying <a
+href="https://www.destatis.de/DE/Methoden/WISTA-Wirtschaft-und-Statistik/2020/04/sonderauswertung-sterbefallzahlen-042020.pdf?__blob=publicationFile">publication</a>
+<span class="citation" data-cites="zurnieden_etal2020">(zur Nieden,
+Sommer, and Lüken 2020)</span>. The age-stratified analyses are
+unfortunately not continuously updated, however, up-to-date data are
+made publicly <a
+href="https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/Sterbefaelle-Lebenserwartung/Tabellen/sonderauswertung-sterbefaelle.html?nn=209016">available</a>.</p>
+<p>The age-stratified reported COVID-19 associated deaths (by week of
+death) are obtained from an <a
+href="https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Projekte_RKI/COVID-19_Todesfaelle.html">export
+of the RKI</a>. In order to compensate for reporting delays of deaths,
+the Destatis analysis only goes until 4 weeks before the time point of
+analysis, but in this post we shall only be interested in the 2020
+results. As additional data source we use the <a
+href="https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Projekte_RKI/COVID-19_Todesfaelle.html">age-stratified
+weekly time series by time of death</a> reported by RKI.</p>
+<h2 id="preliminary-destatis-mortality-data">Preliminary Destatis
+Mortality Data</h2>
+<p>Available all-cause deaths (by week of death) are available from <a
+href="https://www.destatis.de/EN/Home/_node.html">Destatis</a> until
+2021-W07. Hwoever, we will only use the data until the end of 2020 in
+this post. Note that Destatis stresses the <a
+href="https://twitter.com/FlorianBurg2/status/1343903541849681922?s=20">preliminary
+character of the data</a> - the numbers might change as further deaths
+arrive, however, as of 2021-03-13 changes are expected to be small.
+Stratified by age the times series for 2020 compared to the years
+2016-2019 looks as follows - please beware of the different y-axes for
+the age-groups in the plot:</p>
+<p><img src="/blog/figure/source/2021-03-01-mortadj/AGEMORT-1.png" style="display: block; margin: auto;" /></p>
+<p>Note: Because the years 2016-2019 do not contain a week 53, we obtain
+a hypothetical week 53 value for year <span class="math inline">\(Y,
+Y=2016,\ldots, 2019\)</span>, for comparison in the plot by averaging
+the observed counts in <span class="math inline">\(Y\)</span>-W52 and
+<span class="math inline">\((Y+1)\)</span>-W01.</p>
+<p>Since the age-groups contain different population sizes and - as
+pointed out by <span class="citation" data-cites="ragnitz2021">Ragnitz
+(2021)</span> - population sizes of the age-groups changed relevantly
+2016-2019, a better comparison between age-groups instead of absolute
+numbers is by <a href="sterbefaelle_incidence.png">incidence rate</a>
+(i.e. deaths per 100,000 population in the age group). For this, the
+yearly Destatis <a
+href="https://www-genesis.destatis.de/genesis//online?operation=table&amp;code=12411-0012&amp;bypass=true&amp;levelindex=0&amp;levelid=1610148266727#abreadcrumb">age-specific
+population data</a> available for the cut-off-date Dec 31st for
+2015-2019 are linearly interpolated for the weeks. An estimate of the
+2020 population is obtained from the 2020 value of the <a
+href="https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/Bevoelkerungsvorausberechnung/Publikationen/Downloads-Vorausberechnung/bevoelkerung-bundeslaender-2060-5124205199024.html">destatis
+population projection</a> (Variant G2-L2-W2).</p>
+<p><img src="/blog/figure/source/2021-03-01-mortadj/POPDYNAMICS-1.png" style="display: block; margin: auto;" /></p>
+<p>We notice the strong increase in size of the [80,90) year old age
+group (increase by 26%) and the noticable decline in the groups of
+[40,50) (-12%) and [70,80) (-9%) in just 5 years. Although not large in
+absolute size compared to the other age groups, the [90,Inf) group
+increased by 18%. These changes, and in particular those in the higher
+age groups, will be relevant for the analysis of excess mortality.</p>
+<p>Once we have the weekly age-specific population estimates available
+we can compute the incidence per week and age-group. Below the weekly
+mortality incidence rate (per 100 000 population) is shown for 2020
+compared to the minimum, mean and maximum of the corresponding week for
+the years 2016-2019.</p>
+<p><img src="/blog/figure/source/2021-03-01-mortadj/AGEMORTINC-1.png" style="display: block; margin: auto;" /></p>
+<p>Compared to the graphic with the absolute number of deaths, one
+notices that the population adjustment leads to a smaller excess in the
+[80-90) group (because the population in this group became larger). On
+the other hand, the Nov-Dec 2020 curve in the [70-80) group now is
+clearer in excess of the expected. For further insights see also <span
+class="citation" data-cites="kauermann_etal2021">Kauermann et al.
+(2021)</span> and <span class="citation"
+data-cites="ragnitz2021">Ragnitz (2021)</span>.</p>
+<p>To underline the age-gradient of all-cause mortality: 56% of the
+deaths 2016-2019 occured in the age group of 80+ years (90% in the age
+group of 60+). It becomes clear that the 2020 mortality in the 80+ age
+groups was rather low during the first 10-12 weeks and then had a spike
+in connection with the first COVID-19 wave (March-April). Subsequently,
+a summer peak (possibly associated with heat) is followed by an
+increasing and ongoing upward trend in December. One challenge for a
+statistical analysis of these numbers is to figure out how much of the
+upward trend is “catch-up mortality” due to the lower mortality in the
+beginning of the year and how much is excess related to COVID-19.
+However, both <span class="citation"
+data-cites="kauermann_etal2021">Kauermann et al. (2021)</span> and <span
+class="citation" data-cites="ragnitz2021">Ragnitz (2021)</span> show
+that the excess can be well explained by COVID-19 associated deaths.</p>
+<p>An initial analysis of this question consists of summing the
+all-cause mortalities from W1 until W53 for 2020 (observed) and compare
+this to the summation of the weekly mean of 2016-2019 for the
+corresponding time period (expected). Since both 2021-W01 and 2020-W53
+contains days outside the year 2020 we weight these two weeks in the
+summation according to the number of days in 2020 (i.e. 5/7 and 4/7). As
+a consequence, our number of deaths deviates slightly against a more
+exact calculation based on daily deaths (which however does not have
+age-strata publically available). Note: This calculation method ignores
+the population changes in the years 2016-2020. Furthermore:</p>
+<table class=" lightable-classic" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto;border-bottom: 0;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Age group
+</th>
+<th style="text-align:right;">
+observed_2020
+</th>
+<th style="text-align:right;">
+expected_20162019
+</th>
+<th style="text-align:right;">
+Percent change
+</th>
+<th style="text-align:right;">
+min_20162019
+</th>
+<th style="text-align:right;">
+max_20162019
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+[00,30)
+</td>
+<td style="text-align:right;">
+7285
+</td>
+<td style="text-align:right;">
+7781
+</td>
+<td style="text-align:right;">
+-6%
+</td>
+<td style="text-align:right;">
+7508
+</td>
+<td style="text-align:right;">
+8116
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[30,40)
+</td>
+<td style="text-align:right;">
+6811
+</td>
+<td style="text-align:right;">
+6445
+</td>
+<td style="text-align:right;">
+6%
+</td>
+<td style="text-align:right;">
+6371
+</td>
+<td style="text-align:right;">
+6512
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[40,50)
+</td>
+<td style="text-align:right;">
+15658
+</td>
+<td style="text-align:right;">
+16917
+</td>
+<td style="text-align:right;">
+-7%
+</td>
+<td style="text-align:right;">
+15505
+</td>
+<td style="text-align:right;">
+18557
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[50,60)
+</td>
+<td style="text-align:right;">
+57485
+</td>
+<td style="text-align:right;">
+58060
+</td>
+<td style="text-align:right;">
+-1%
+</td>
+<td style="text-align:right;">
+56823
+</td>
+<td style="text-align:right;">
+58943
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[60,70)
+</td>
+<td style="text-align:right;">
+118313
+</td>
+<td style="text-align:right;">
+111742
+</td>
+<td style="text-align:right;">
+6%
+</td>
+<td style="text-align:right;">
+107755
+</td>
+<td style="text-align:right;">
+114922
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[70,80)
+</td>
+<td style="text-align:right;">
+201411
+</td>
+<td style="text-align:right;">
+211212
+</td>
+<td style="text-align:right;">
+-5%
+</td>
+<td style="text-align:right;">
+202435
+</td>
+<td style="text-align:right;">
+216055
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[80,90)
+</td>
+<td style="text-align:right;">
+378011
+</td>
+<td style="text-align:right;">
+340670
+</td>
+<td style="text-align:right;">
+11%
+</td>
+<td style="text-align:right;">
+325392
+</td>
+<td style="text-align:right;">
+349797
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[90,Inf)
+</td>
+<td style="text-align:right;">
+199646
+</td>
+<td style="text-align:right;">
+178355
+</td>
+<td style="text-align:right;">
+12%
+</td>
+<td style="text-align:right;">
+165384
+</td>
+<td style="text-align:right;">
+185617
+</td>
+</tr>
+<tr grouplength="1">
+<td colspan="6" style="border-bottom: 0;">
+<strong>Total</strong>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;padding-left: 2em;color: black !important;background-color: lightgray !important;" indentlevel="1">
+</td>
+<td style="text-align:right;color: black !important;background-color: lightgray !important;">
+984621
+</td>
+<td style="text-align:right;color: black !important;background-color: lightgray !important;">
+931182
+</td>
+<td style="text-align:right;color: black !important;background-color: lightgray !important;">
+6%
+</td>
+<td style="text-align:right;color: black !important;background-color: lightgray !important;">
+906309
+</td>
+<td style="text-align:right;color: black !important;background-color: lightgray !important;">
+984621
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup>a</sup> Min and max for row ‘Total’ is obtained by first summing
+each of the years 2016-2019 and then take the min and max.
+</td>
+</tr>
+</tfoot>
+</table>
+<p>
+<p>Note: The exact mortality count for 2020 by Destatis using daily data
+is 985145, hence, the weighted weekly summation does produce a small
+discrepancy from this value. The total proportion of 2020-W1 to 2020-W53
+mortalities in the 80+ age group is currently 59%, i.e. a slightly
+higher proportion than in the previous years.</p>
+<p>A population age-structure adjusted estimate can be obtained using an
+indirect standardization approach <span class="citation"
+data-cites="keiding_clayton2014">(Keiding and Clayton 2014)</span>: For
+each age group we compute the weekly incidence rates 2016-2019, then for
+each week we take the min, mean and max of the 2016-2020 incidences. If
+we for a given age-group and week want an expected number of deaths
+based on the 2016-2019 data, we would multiply the 2016-2019 mean
+incidence on the corresponding 2020 population in order to get the
+expected number of deaths in the corresponding age-group and week of
+2020. Because the estimated incidence rates for 2016-2019 are based on
+slightly different population sizes, one could acknowledge this in the
+mean-calculation by instead computing an inverse variance weighted mean
+(or use logistic regression). However, numerical differences are
+neglible so we proceed with the equal weighting of the mean. The
+computations lead to the following table for the age-population adjusted
+2020 mortality:</p>
+<table class=" lightable-classic" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Age group
+</th>
+<th style="text-align:right;">
+observed_2020
+</th>
+<th style="text-align:right;">
+expected_20162019
+</th>
+<th style="text-align:right;">
+Percent change
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+[00,30)
+</td>
+<td style="text-align:right;">
+7285
+</td>
+<td style="text-align:right;">
+7770
+</td>
+<td style="text-align:right;">
+-6%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[30,40)
+</td>
+<td style="text-align:right;">
+6811
+</td>
+<td style="text-align:right;">
+6732
+</td>
+<td style="text-align:right;">
+1%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[40,50)
+</td>
+<td style="text-align:right;">
+15658
+</td>
+<td style="text-align:right;">
+15990
+</td>
+<td style="text-align:right;">
+-2%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[50,60)
+</td>
+<td style="text-align:right;">
+57485
+</td>
+<td style="text-align:right;">
+58709
+</td>
+<td style="text-align:right;">
+-2%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[60,70)
+</td>
+<td style="text-align:right;">
+118313
+</td>
+<td style="text-align:right;">
+118596
+</td>
+<td style="text-align:right;">
+0%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[70,80)
+</td>
+<td style="text-align:right;">
+201411
+</td>
+<td style="text-align:right;">
+202851
+</td>
+<td style="text-align:right;">
+-1%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[80,90)
+</td>
+<td style="text-align:right;">
+378011
+</td>
+<td style="text-align:right;">
+387314
+</td>
+<td style="text-align:right;">
+-2%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+[90,Inf)
+</td>
+<td style="text-align:right;">
+199646
+</td>
+<td style="text-align:right;">
+194453
+</td>
+<td style="text-align:right;">
+3%
+</td>
+</tr>
+<tr grouplength="1">
+<td colspan="4" style="border-bottom: 0;">
+<strong>Total</strong>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;padding-left: 2em;color: black !important;background-color: lightgray !important;" indentlevel="1">
+</td>
+<td style="text-align:right;color: black !important;background-color: lightgray !important;">
+984621
+</td>
+<td style="text-align:right;color: black !important;background-color: lightgray !important;">
+992416
+</td>
+<td style="text-align:right;color: black !important;background-color: lightgray !important;">
+-1%
+</td>
+</tr>
+</tbody>
+</table>
+<p>What looked like a small excess in the raw calculations becomes a
+small negative excess after population adjustment by the proposed
+method. This shows the importance of computing the expected number of
+cases in a population adjustment way, which was the point of <span
+class="citation" data-cites="ragnitz2021">Ragnitz (2021)</span>.</p>
+<p><img src="/blog/figure/source/2021-03-01-mortadj/weekly_smr-1.png" style="display: block; margin: auto;" /></p>
+<p>Altogether, the mild mortality in the older age groups during the
+first weeks (e.g. due to a mild influenza season) so far balances the
+continuing excess in the higher age-groups since Mar-Apr, which
+coincides with the start of the COVID-19 pandemic. If one is interested
+in COVID-19 associated deaths an alternative might be to focus on the
+period since Mar 2020, but then one would ignore the low influenza
+season in the beginning of the year, which is IMO relevant for all-cause
+mortality excess analysis. For comparison, excess mortality computations
+for influenza are in the northern hemisphere often done not by calendar
+year but by season, i.e. for the period from July in Year <span
+class="math inline">\(X\)</span> to June in Year <span
+class="math inline">\(X+1\)</span> <span class="citation"
+data-cites="nielsen_etal2011">(Nielsen et al. 2011)</span>. In this case
+one would associate the first COVID-19 peak to the analysis of the
+season 2019/2020 and the ongoing 2nd wave to an analysis of the ongoing
+season 2020/2021. The present analysis, however, focused on the calendar
+year 2020 following the Destatis presentation of the data.</p>
+<p>When interpreting the above results it is important to realize that
+the 2020 population numbers are currently projections. In a recent <a
+href="https://www.destatis.de/DE/Presse/Pressemitteilungen/2021/01/PD21_016_12411.html">press
+release</a> Destatis announced that the population in 2020 might not
+have increases as projected, because of a smaller migration surplus,
+higher mortality and lower birth numbers. As a consequence, Destatis now
+estimates that the 2020 population consisted of 83.20 mio (no population
+increase compared to 2019) individuals whereas in the G2-L2-W2
+projection variant the projection was 83.38 mio (population increase by
+0.3% compared to 2019). Final figures, including more detailed
+age-stratified data, will be available mid 2021 and it will be
+interesting to see how these impact the excess mortality
+calculations.</p>
+<p>Furthermore, it is important to realize that the current observed
+2020 mortality numbers contain the consequences of all type of effects
+from the pandemic management, which includes changes in the population
+behavior due to interventions. Disentangling the complex effects of
+all-cause mortality and the COVID-19 pandemic is a delicate matter,
+which takes experts in several disciplines (demographers, statisticians,
+epidemiologists) to solve. However, should you based on the above
+numbers happen to think that COVID-19 is not a serious problem, it is
+insightful to think about the <a
+href="https://en.wikipedia.org/wiki/Prevention_paradox">prevention
+paradox</a> and take a look at the <a
+href="https://www.ft.com/content/a2901ce8-5eb7-4633-b89c-cbdf5b386938">all-cause
+mortality statistics</a> from other countries and consider a more
+regional analysis as done in the next section.</p>
+<h3 id="analysis-for-the-16-federal-states">Analysis for the 16 Federal
+States</h3>
+<p>The preliminary all-cause mortality data are also available for each
+of the 16 federal states, however, with a coarser age discretization. We
+show for each of the two age-groups the weekly population adjusted
+mortality relative to the same week in 2016-2019. Note that since the
+age-groups are also coarser, i.e. the data contains only the two groups
+[00,65) and [65,Inf), the effect of the changing populations on the
+estimates is less pronounced.</p>
+<p><img src="/blog/figure/source/2021-03-01-mortadj/MORTBLREL-1.png" style="display: block; margin: auto;" /></p>
+The plot can also be compared to the recently introduced <a
+href="https://service.destatis.de/DE/bevoelkerung/sterbefallzahlen_bundeslaender.html">Destatis
+visualization of absolute case numbers on state level</a>. We note the
+strong regional differences in the plot. As an example, the highest
+mortality in the 65+ age-group occurs in 2020-W52 in the federal state
+of Sachsen, where the poulation adjusted mortality is 122% above the
+mean of 2016-2019. Note that for Sachsen, even the &lt;65 age-group has
+a visible excess. The 3 federal states with the highest excess mortality
+week in the 65+ age-group are:
+<table class=" lightable-classic" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Federal state
+</th>
+<th style="text-align:left;">
+Week
+</th>
+<th style="text-align:right;">
+Excess mortality
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Sachsen
+</td>
+<td style="text-align:left;">
+2020-W52
+</td>
+<td style="text-align:right;">
+122%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Brandenburg
+</td>
+<td style="text-align:left;">
+2020-W53
+</td>
+<td style="text-align:right;">
+72%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Thüringen
+</td>
+<td style="text-align:left;">
+2020-W52
+</td>
+<td style="text-align:right;">
+68%
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Furthermore, for the [00,65) series for Berlin it looks like not all all cases up to week W53 are available. This underlines the preliminary character of the Destatis data. -->
+<h3 id="all-cause-mortality-and-covid-19-associated-deaths">All-Cause
+Mortality and COVID-19 Associated Deaths</h3>
+<p>To see, how much of the all-cause mortality is directly contributed
+by deaths in association with COVID-19, we match the age-stratified
+all-cause mortality data with the age-stratified COVID-19 deaths
+reported by the RKI. As of 2020-01-14 the RKI provides <a
+href="https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Projekte_RKI/COVID-19_Todesfaelle.html">weekly
+time series of date of death in age groups of 10 years</a>. Hence, the
+previous rough extrapolation from day of report used in the original
+blog post is not needed anymore.</p>
+<p>We note that a large part of the increase in mortality can be
+explained by COVID-19, i.e. after subtracting the COVID-19 associated
+deaths the remainder of the mortality seems comparable with previous
+years. This is good news, because deviations would be early signs of
+possible secondary adverse health effects due to the COVID-19 pandemic,
+i.e. patients trying to avoid the hospital, or care for emergencies
+which cannot be given due to lack of ressources.</p>
+<p><img src="/blog/figure/source/2021-03-01-mortadj/AGEMORTWCOVID-1.png" style="display: block; margin: auto;" /></p>
+<p>We note that the COVID-19 associated deaths in the most recent weeks
+in the [80,90) age groups make up approximately <a
+href="deaths_covid19_proportion.png">25% of all deaths reported in the
+week</a>.</p>
+<h2 id="discussion">Discussion</h2>
+<p>Considering all-cause mortality and COVID-19 associated mortality as
+a measure for the impact of an pandemic is a rather simplistic view of
+the pandemic. COVID-19 infections can be very mild, but complicated
+progressions can occur without leading to death (see, e.g., <a
+href="https://en.wikipedia.org/wiki/Long_COVID">long COVID</a>). Looking
+at mortality also ignores the complex interplay between age-groups,
+where it can be beneficial to reduce infections in a
+not-so-affected-by-the-disease age-group in order to protect the
+higher-risk groups. The motivation of this post was primarily to put
+COVID-19 associated mortality in relation to all-cause mortality in
+order to get a better understanding of the daily number of COVID-19
+deaths. An age-stratified view is necessary for this. Furthermore, as
+pointed out by <span class="citation" data-cites="ragnitz2021">Ragnitz
+(2021)</span>, excess mortality calculations should take the changing
+population structure into account.</p>
+<p>For a more modelling based analysis of the German COVID-19 associated
+mortality data based on reported infections see also the work by <span
+class="citation" data-cites="linden_etal2020">Linden et al.
+(2020)</span> (<a
+href="https://twitter.com/matthiaslinden/status/1344088091020165125?s=20">updated
+analysis</a>). More information on real-time mortality monitoring can be
+obtained from the <a
+href="https://www.euromomo.eu/how-it-works/methods/">EuroMoMo
+methodology</a> page or <span class="citation"
+data-cites="hoehle_mazick2010">Höhle and Mazick (2010)</span>. Comments
+and feedback to the analysis in this blog post are much appretiated.</p>
+<h2 class="unnumbered" id="literature">Literature</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-aburto_etal2021" class="csl-entry" role="listitem">
+Aburto, José Manuel, Jonas Schöley, Luyin Zhang, Ilya Kashnitsky,
+Charles Rahal, Trifon I. Missov, Melinda C. Mills, Jennifer B. Dowd, and
+Ridhi Kashyap. 2021. <span>“Recent Gains in Life Expectancy Reversed by
+the COVID-19 Pandemic.”</span> <em>medRxiv</em>. <a
+href="https://doi.org/10.1101/2021.03.02.21252772">https://doi.org/10.1101/2021.03.02.21252772</a>.
+</div>
+<div id="ref-hoehle_mazick2010" class="csl-entry" role="listitem">
+Höhle, M., and A. Mazick. 2010. <span>“Aberration Detection in
+<span>R</span> Illustrated by <span>D</span>anish Mortality
+Monitoring.”</span> In <em>Biosurveillance: A Health Protection
+Priority</em>, edited by T. Kass-Hout and X. Zhang, 215–38. CRC Press.
+<a
+href="https://staff.math.su.se/hoehle/pubs/hoehle_mazick2009-preprint.pdf">https://staff.math.su.se/hoehle/pubs/hoehle_mazick2009-preprint.pdf</a>.
+</div>
+<div id="ref-kauermann_etal2021" class="csl-entry" role="listitem">
+Kauermann, G., M. Schneble, G. De Nicola, and U. Berger. 2021.
+<span>“Übersterblichkeit in Deutschland - Große Unterschiede Zwischen
+Den Bundesländern- in Sachsen Sehr Starke Übersterblichkeit Mit Und Ohne
+Corona-Todesfälle.”</span> Department of Statistics, University of
+Munich. <a
+href="https://www.covid19.statistik.uni-muenchen.de/pdfs/codag_bericht_6.pdf">https://www.covid19.statistik.uni-muenchen.de/pdfs/codag_bericht_6.pdf</a>.
+</div>
+<div id="ref-keiding_clayton2014" class="csl-entry" role="listitem">
+Keiding, N., and D. Clayton. 2014. <span>“Standardization and Control
+for Confounding in Observational Studies: A Historical
+Perspective.”</span> <em>Statistical Science</em> 29 (4): 529–58. <a
+href="http://www.jstor.org/stable/43288498">http://www.jstor.org/stable/43288498</a>.
+</div>
+<div id="ref-linden_etal2020" class="csl-entry" role="listitem">
+Linden, M., J Dehning, SB Mohr, J Mohring, M Meyer-Hermann, I Pigeot, A
+Schöbel, and V Priesemann. 2020. <span>“Case Numbers Beyond Contact
+Tracing Capacity Are Endangering the Containment of COVID-19.”</span>
+<em>Dtsch Arztebl Int</em> 117: 790–91. <a
+href="https://doi.org/10.3238/arztebl.2020.0790">https://doi.org/10.3238/arztebl.2020.0790</a>.
+</div>
+<div id="ref-nielsen_etal2011" class="csl-entry" role="listitem">
+Nielsen, J., A. Mazick, S. Glismann, and K. Mølbak. 2011. <span>“Excess
+Mortality Related to Seasonal Influenza and Extreme Temperatures in
+Denmark, 1994-2010.”</span> <em>BMC Infectious Diseases</em> 11 (1):
+350.
+</div>
+<div id="ref-ragnitz2021" class="csl-entry" role="listitem">
+Ragnitz, J. 2021. <span>“Hat Die Corona-Pandemie Zu Einer
+Übersterblichkeit in Deutschland Geführt? - Aktualisierung
+15.1.2020.”</span> ifo Institute. <a
+href="https://www.ifo.de/publikationen/2021/monographie-autorenschaft/corona-pandemie-uebersterblichkeit-aktualisierung">https://www.ifo.de/publikationen/2021/monographie-autorenschaft/corona-pandemie-uebersterblichkeit-aktualisierung</a>.
+</div>
+<div id="ref-zurnieden_etal2020" class="csl-entry" role="listitem">
+zur Nieden, F., B. Sommer, and S. Lüken. 2020. <span>“Sonderauswertung
+Der Sterbefallzahlen 2020.”</span> <em>WISTA – Wirtschaft Und Statistik
+– Amtliche Statistik in Zeiten von Corona</em>, no. 4 (August): 38–50.
+<a
+href="https://www.destatis.de/DE/Methoden/WISTA-Wirtschaft-und-Statistik/2020/04/sonderauswertung-sterbefallzahlen-042020.pdf?__blob=publicationFile">https://www.destatis.de/DE/Methoden/WISTA-Wirtschaft-und-Statistik/2020/04/sonderauswertung-sterbefallzahlen-042020.pdf?__blob=publicationFile</a>.
+</div>
+</div>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2021/03/01/mortadj.html";
+      this.page.identifier = "/2021/03/01/mortadj";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Happy pbirthday class of 2016</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2017/02/13/bday.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Happy pbirthday class of 2016</h1>
+    <p class="post-meta"><time datetime="2017-02-13T00:00:00+01:00" itemprop="datePublished">Feb 13, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>Continuing the analysis of first names given to newborns in Berlin
+2016, we solve the following problem: what is the probability, that in a
+school class of size <span class="math inline">\(n\)</span> of these
+kids there will be at least two kids having the same first name? The
+answer to the problem for classes of size 26 is 34% and can be solved as
+an instance of the birthday problem with unequal probabilities. R code
+is provided for solving the problem exactly for moderate <span
+class="math inline">\(n\)</span> and approximately for larger <span
+class="math inline">\(n\)</span>. For the case that all probabilities
+are equal, our results are compared to the output of R’s lovely
+<code>pbirthday</code> function.</p>
+<center>
+<img src="/blog/figure/source/2017-02-13-bday/APPROXVSEXACT-1.png" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>The previous post <a
+href="http://staff.math.su.se/hoehle/blog/2017/02/06/onomastics.html">Naming
+Uncertainty by the Bootstrap</a> contained an analysis of first names
+given to newborns in Berlin 2016 <span class="citation"
+data-cites="opendataberlinNames2016">(Landesamt für Bürger- und
+Ordnungsangelegenheiten Berlin 2017)</span>. For instance, Marie and
+Alexander were the top names among girls and boys, respectively. In a
+comment <a href="http://www.masalmon.eu/">Maëlle</a> asked <em>what’s
+the resulting probability that there will be kids with the same first
+name in a school class</em>? We implement equations by <span
+class="citation" data-cites="klotz1979">Klotz (1979)</span> and <span
+class="citation" data-cites="mase1992">Mase (1992)</span> in R in order
+to answer this important question.</p>
+<h2 id="the-birthday-problem">The Birthday Problem</h2>
+<p>The above posed question is a variation of the <a
+href="https://en.wikipedia.org/wiki/Birthday_problem"><strong>birthday
+problem</strong></a>, which every statistician has solved at least once
+in an introductory probability class: <em>in a class of <span
+class="math inline">\(n\)</span> randomly chosen persons, what is the
+probability that some pair of them will have the same birthday</em>?
+Assuming that there are <span class="math inline">\(N=365\)</span>
+possible birthdays and all birthdays are equally probable the answer can
+be calculated as:</p>
+<p><span class="math display">\[
+P(\text{at least two people in the class have the same birthday}) =
+1-\frac{(N)_{n}}{N^n},
+\]</span></p>
+<p>where <span class="math inline">\((x)_n = x! / (x-n)!\)</span> is the
+so called <strong>factorial polynomial</strong>. Say we are interested
+in <span class="math inline">\(n=26\)</span>, which is the <a
+href="https://www.berlin.de/imperia/md/content/sen-bildung/rechtsvorschriften/grundschulverordnung.pdf">maximal
+allowed class size</a> in Berlin’s elementary schools (§4, Sect. 8 in
+the regulation). We can perform the necessary calculations either
+directly or by R’s <code>pbirthday</code>function.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">26</span> ; N <span class="ot">&lt;-</span> <span class="dv">365</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">manual=</span><span class="dv">1</span> <span class="sc">-</span> <span class="fu">exp</span>(<span class="fu">lfactorial</span>(N)<span class="sc">-</span><span class="fu">lfactorial</span>(N<span class="sc">-</span>n) <span class="sc">-</span> n<span class="sc">*</span><span class="fu">log</span>(N)),</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">pbirthday=</span><span class="fu">pbirthday</span>(<span class="at">n=</span>n,<span class="at">classes=</span>N))</span></code></pre></div>
+<pre><code>##    manual pbirthday
+## 0.5982408 0.5982408</code></pre>
+<p>Finding the <code>pbirthday</code> function as part of base R was a
+bit surprising, but just underlines that R really has its roots in
+<strong>statistics</strong>!</p>
+<h3 id="birthday-problem-with-unequal-probabilities">Birthday Problem
+with Unequal Probabilities</h3>
+<p>In our problem <span class="math inline">\(N\)</span> corresponds to
+all possible names of newborns in 2016. For the analysis we only group
+by first name and thus do not distinguish between instances of the same
+name used for both girls and boys.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>newborn <span class="ot">&lt;-</span> distrNames <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(firstname) <span class="sc">%&gt;%</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">count=</span><span class="fu">sum</span>(count)) <span class="sc">%&gt;%</span> <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p=</span>count<span class="sc">/</span><span class="fu">sum</span>(count)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(count))</span></code></pre></div>
+<pre><code>## # A tibble: 13,245 × 3
+##   firstname count           p
+##       &lt;chr&gt; &lt;int&gt;       &lt;dbl&gt;
+## 1     Marie   695 0.009996404
+## 2    Sophie   649 0.009334772
+## 3 Charlotte   495 0.007119741
+## 4 Alexander   468 0.006731392
+## # ... with 1.324e+04 more rows</code></pre>
+<p>In total there are <span class="math inline">\(N=13245\)</span>
+possible names. From the <span class="math inline">\(p\)</span> column
+it also becomes obvious that not all names are equally likely. Had they
+been, the quick solution to Maëlle’s question would have been:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pbirthday</span>(<span class="at">n=</span><span class="dv">26</span>, <span class="at">classes=</span><span class="fu">nrow</span>(newborn))</span></code></pre></div>
+<pre><code>## [1] 0.02425434</code></pre>
+<p>Less than 3%! However, we expect this probability to be much higher,
+if we start to take the unequal occurrence probabilities into account.
+So let’s do it!</p>
+<p>It’s easy to see that the probability of no collision, i.e. no kids
+having the same name in the class, can be calculated as: <span
+class="math display">\[
+P(\overline{C}_n) = n!
+\underset{1\leq i_1 &lt; i_2 &lt; \cdots &lt;i_n \leq N}{\sum \sum
+\cdots \sum} \&gt;
+p_{i_1} p_{i_2} \cdots p_{i_n}.
+\]</span></p>
+<p>However, this is a formidable number of terms to sum. In the case of
+<span class="math inline">\(N=13245\)</span> and <span
+class="math inline">\(n=26\)</span> the number is:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>Rmpfr<span class="sc">::</span><span class="fu">chooseMpfr</span>(N,n)</span></code></pre></div>
+<pre><code>## 1 &#39;mpfr&#39; number of precision  294   bits
+## [1] 360635627424461042343649241991659010127226742008898829465568350273963478046740130</code></pre>
+<p>That’s an 81 digit number! This is not <em>ever</em> going to happen.
+Instead <span class="citation" data-cites="klotz1979">Klotz
+(1979)</span>, based on generating functions, showed that the above
+equation corresponds to</p>
+<p><span class="math display">\[
+P(\overline{C}_n) = n!
+\underset{\underset{\sum_{j=1}^n j \cdot t_j = n}{0\leq
+t_1,t_2,\ldots,t_n \leq n}}{\sum \sum \cdots \sum}
+(-1)^{n + \sum_j t_j}
+\left(
+\prod_{j=1}^n \frac{ (P_j/j)^{t_j}}{t_j!}
+\right),
+\]</span> where <span class="math inline">\(P_j = \sum_{i=1}^N
+p_i^j\)</span>. Let the vector <span
+class="math inline">\(\mathbf{t}=(t_1,\ldots,t_n)\)</span> count the
+number of singletons (<span class="math inline">\(t_1\)</span>),
+doubletons (<span class="math inline">\(t_2\)</span>), triplets (<span
+class="math inline">\(t_3\)</span>), …, up to the number of names
+occurring <span class="math inline">\(n\)</span> times (<span
+class="math inline">\(t_n\)</span>). The above sum means that we have to
+sum over all <span class="math inline">\(\mathbf{t}\)</span> such that
+<span class="math inline">\(\sum_{j=1}^n j \cdot t_j = n\)</span>. The
+number of such terms to sum is much lower than in the previous
+expression, e.g., for <span class="math inline">\(N=13245\)</span> and
+<span class="math inline">\(n=26\)</span> the number of terms is
+2436.</p>
+<p>The above computations have been made available in the R package <a
+href="(https://github.com/hoehleatsu/birthdayproblem)"><code>birthdayproblem</code></a>
+available from github:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;hoehleatsu/birthdayproblem&quot;</span>)</span></code></pre></div>
+<p>As an example, for <span class="math inline">\(n=4\)</span> all the
+necessary terms to sum can be found somewhat brute-force’ish by running
+through the following four nested for loops:</p>
+<pre><code>## compute_tList &lt;- function() {
+## n &lt;- 4
+## tList &lt;- NULL
+## for (t4 in 0:floor(n/4)) {
+##  for (t3 in 0:floor(n/3)) {
+##   for (t2 in 0:floor(n/2)) {
+##    for (t1 in 0:floor(n/1)) {
+##     t &lt;- c(t1,t2,t3,t4)
+##     if (sum( (1:n)*t) == n) tList &lt;- rbind(tList, t)
+##     if (sum( (n:(n-4+1)*t[n:(n-4+1)])) &gt; n) break;
+##    }
+##    if (sum( (n:(n-3+1)*t[n:(n-3+1)])) &gt; n) break;
+##   }
+##   if (sum( (n:(n-2+1)*t[n:(n-2+1)])) &gt; n) break;
+##  }
+##  if (sum( (n:(n-1+1)*t[n:(n-1+1)])) &gt; n) break;
+## }
+## return(tList)
+## }</code></pre>
+<p>This function would then return the necessary sets for the <span
+class="math inline">\(n=4\)</span> case:</p>
+<pre><code>##   [,1] [,2] [,3] [,4]
+## t    4    0    0    0
+## t    2    1    0    0
+## t    0    2    0    0
+## t    1    0    1    0
+## t    0    0    0    1</code></pre>
+<p>which can be processed further as in the <span class="citation"
+data-cites="klotz1979">Klotz (1979)</span> equation stated above in
+order to compute the probability of interest.</p>
+<p>In the accompanying <a
+href="https://github.com/hoehleatsu/hoehleatsu.github.io/blob/master/_source/2017-02-13-bday.Rmd">R
+code of this blog post</a> the above <span
+class="math inline">\(n\)</span> nested loops are constructed by the
+function <code>birthdayproblem:::make_tListFunc_syntax</code>, which
+given <span class="math inline">\(n\)</span> generates the syntax of the
+necessary function nested loop function. Calling <code>source</code> on
+this syntax string then provides a proper R function to evaluate. A
+similar function
+<code>birthdayproblem:::make_tListFunc_syntax_cpp</code> is provided to
+generate an equivalent C++ function, which then using Rcpp’s
+<code>sourceCpp</code> function can be turned into an R function. As a
+<strong>side note</strong>: The nested for loops for increasing <span
+class="math inline">\(n\)</span> quickly look foul, which earned it the
+predicate <em>possibly the best nested loop ever</em> in a comment of a
+<a
+href="http://stackoverflow.com/questions/42130954/compiling-many-nested-loops-using-the-rcppcppfunction">stackoverflow
+post</a> concerned with the many nested loops breaking the
+<code>clang</code> compiler on MacOS.</p>
+<p>The above described syntax generation, evaluation and post-processing
+steps necessary to compute the desired probability <span
+class="math inline">\(1-P(\overline{C}_n)\)</span> are all implemented
+in the function <code>birthdayproblem::pbirthday_up</code> (postfix:
+<code>up</code> for <em>u</em>nequal <em>p</em>ropabilities) in honour
+of R’s <code>pbirthday</code> function. A <code>method</code> argument
+allows the user to choose if the nested-loops should be computed using
+<code>"R"</code>, <code>"Rcpp"</code>. As an alternative to the this
+exact solution by <span class="citation" data-cites="klotz1979">Klotz
+(1979)</span> one can also compute an approximate solution described in
+<span class="citation" data-cites="mase1992">Mase (1992)</span>, which
+is of the impressive order <span class="math inline">\(O(1)\)</span>
+while being extremely accurate (use <code>method="mase1992"</code>). The
+R method works in acceptable time for <span
+class="math inline">\(n\)</span>’s up to around 35, the Rcpp runs <span
+class="math inline">\(n=60\)</span> in less than three minutes; for
+larger <span class="math inline">\(n\)</span> the approximation is to be
+recommended if you don’t like waiting.</p>
+<p>With all code in place we finally can provide Maëlle with the correct
+answer to her question:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> 26L</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>(p_theAnswer <span class="ot">&lt;-</span> birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>n, <span class="at">prob=</span>newborn <span class="sc">%$%</span> p)<span class="sc">$</span>prob)</span></code></pre></div>
+<pre><code>## [1] 0.3399286</code></pre>
+<p>In other words, the probability of having a name collision in a class
+of <span class="math inline">\(n=26\)</span> is 34.0%. If local politics
+would decide to increase the maximum class size by one, the resulting
+probability for <span class="math inline">\(n=27\)</span> would be:
+36.1%. One more reason against increasing <a
+href="http://www.nzherald.co.nz/nz/news/article.cfm?c_id=1&amp;objectid=11288618">school
+class size</a>?</p>
+<h3 id="numerical-comparisons">Numerical Comparisons</h3>
+<p>We first test the <code>birthdayproblem</code> package’s
+<code>pbirthday_up</code> function on the classical birthday problem
+with equal probabilities:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">pbirthday=</span><span class="fu">pbirthday</span>(<span class="at">n=</span>26L, <span class="dv">365</span>),</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">klotz1979_R=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>26L, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;R&quot;</span>)<span class="sc">$</span>prob,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">klotz1979_Rcpp=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>26L, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;Rcpp&quot;</span>)<span class="sc">$</span>prob,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">mase1992=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>26L, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;mase1992&quot;</span>)<span class="sc">$</span>prob)</span></code></pre></div>
+<pre><code>##      pbirthday    klotz1979_R klotz1979_Rcpp       mase1992
+##      0.5982408      0.5982408      0.5982408      0.5981971</code></pre>
+<p>works like a <strong>dream</strong>!</p>
+<p>Speed-wise, the R looping approach takes 385s to compute the result
+for <span class="math inline">\(n=40\)</span>. The Rcpp approach on the
+other hand works in just 61s. The approximation by <span
+class="citation" data-cites="mase1992">Mase (1992)</span> only takes
+0.021 s. To assess the quality of the approximation we consider a range
+of different <span class="math inline">\(n\)</span>:</p>
+<p><img src="http://staff.math.su.se/hoehle/blog/figure/source/2017-02-13-bday/APPROXVSEXACT-1.png" style="display: block; margin: auto;" /></p>
+<p>It’s hardly possible to see the difference between the approximation
+and the exact solution. For better comparison, we also show the absolute
+error between the approximate solution and the exact solution:</p>
+<p><img src="http://staff.math.su.se/hoehle/blog/figure/source/2017-02-13-bday/ABSERROR-1.png" style="display: block; margin: auto;" /></p>
+<p>It’s amazing to see how small the error really is.</p>
+<h2 id="discussion">Discussion</h2>
+<p>We calculated that the probability of a name-collision in a class of
+<span class="math inline">\(n=26\)</span> kids born in Berlin 2016 is
+34%. Furthermore, we showed that clever mathematical approximations are
+better than brute-force computations, that stack-exchange rules and that
+Rcpp can speed up your R program considerably. Furthermore, you have
+been shown the best nested for loop ever! Finally, in honour of <a
+href="https://www.secfac.wisc.edu/senate/2007/0305/1976(mem_res).pdf">Jerome
+Klotz</a> a screenshot of the Acknowledgements section of the <span
+class="citation" data-cites="klotz1979">Klotz (1979)</span> technical
+report:</p>
+<center>
+<img src="/blog/figure/source/2017-02-13-bday/klotz1979.png" />
+</center>
+<p>
+<p>
+<h2 class="unnumbered" id="literature">Literature</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-klotz1979" class="csl-entry" role="listitem">
+Klotz, J. 1979. <span>“The Birthday Problem with Unequal
+Probabilities.”</span> 591. Department of Statistics, University of
+Wisconsin, Madison. <a
+href="https://www.stat.wisc.edu/techreports/tr591.pdf">https://www.stat.wisc.edu/techreports/tr591.pdf</a>.
+</div>
+<div id="ref-opendataberlinNames2016" class="csl-entry" role="listitem">
+Landesamt für Bürger- und Ordnungsangelegenheiten Berlin. 2017.
+<span>“Liste Der Häufigen Vornamen 2016.”</span> <a
+href="https://daten.berlin.de/datensaetze/liste-der-häufigen-vornamen-2016"
+class="uri">https://daten.berlin.de/datensaetze/liste-der-häufigen-vornamen-2016</a>.
+Data published under a CC-BY license.
+</div>
+<div id="ref-mase1992" class="csl-entry" role="listitem">
+Mase, S. 1992. <span>“Approximations to the Birthday Problem with
+Unequal Occurrence Probabilities and Their Application to the Surname
+Problem in <span>J</span>apan.”</span> <em>Ann. Inst. Stat. Math.</em>
+44 (3): 479–99.
+</div>
+</div>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2017/02/13/bday.html";
+      this.page.identifier = "/2017/02/13/bday";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

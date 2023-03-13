@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Optimal Choice - Mathematical Advice for Real Life</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2016/06/12/optimalChoice.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Optimal Choice - Mathematical Advice for Real Life</h1>
+    <p class="post-meta"><time datetime="2016-06-12T00:00:00+02:00" itemprop="datePublished">Jun 12, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>We discuss how to choose the optimal candidate from a rankable
+sequence of candidates arriving one by one. The candidates could for
+example be job applicants, princes, tinder profiles or flats. This
+<strong>choice problem</strong> is casted into the context of sequential
+decision making and is solved using optimal stopping theory. Two R
+functions are provided to compute optimal selection strategies in two
+specific instances of the problem. Altogether, the mathematical inclined
+decision maker is given valuable open-source tools to support prudent
+real life decision making.</p>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h1 id="introduction">Introduction</h1>
+<p>Life is full of choices. The prudent <a
+href="https://en.wikipedia.org/wiki/Decision-making">decision maker</a>
+likes to rationally balance alternatives, assess uncertain outcomes,
+gather additional information and - when ready - pick the best action. A
+mathematical approach to such decision making under uncertainty is based
+on maximizing an adequate utility function subject to the identified
+stochasticity, e.g., by maximizing expected utility. The ultimate
+statistical guides to such <a
+href="https://en.wikipedia.org/wiki/Optimal_decision">optimal decision
+making</a> are the books by <span class="citation"
+data-cites="degroot1970">DeGroot (1970)</span> and <span
+class="citation" data-cites="berger1985">Berger (1985)</span>. <a
+href="https://en.wikipedia.org/wiki/Influence_diagram">Influence
+diagrams</a> are compact representations of decision problems embedded
+within the graphical modelling toolset of Bayesian networks, see e.g.
+<span class="citation" data-cites="jensen_nielsen2007">Jensen and
+Nielsen (2007)</span>.</p>
+<center>
+<img
+src="/blog/figure/source/2016-06-12-optimalChoice/indecisive-silhouette-300px-scaled.png"
+title="Source: https://openclipart.org/detail/171299/indecisive-silhouettesvg" />
+</center>
+<p><br></p>
+<p>In this note we consider the very simple – but entertaining –
+sequential decision problem known as the optimal choice, secretary,
+marriage, dowry or game of googol problem <span class="citation"
+data-cites="ferguson1989">(Ferguson 1989)</span>. Scientific publishing
+about the <a
+href="https://en.wikipedia.org/wiki/Secretary_problem"><strong>optimal
+choice problem</strong></a> dates back to the 1950’s and 1960’s, but
+accounts of variations of the problem date back as far as <a
+href="https://en.wikipedia.org/wiki/Johannes_Kepler#Second_marriage">1613</a>.
+To illustrate the problem we use the process of finding a real estate
+property in an overheated housing market as example. Of course, the
+human resource manager, wooed princess, <a
+href="http://www.npr.org/sections/krulwich/2014/05/15/312537965/how-to-marry-the-right-girl-a-mathematical-solution">Johannes
+Kepler</a>, tinder hustler as well as the mathematical enthusiast
+(subsets might overlap) should easily be able to adapt terminology to
+their needs.</p>
+<h2 id="the-optimal-choice-problem">The optimal choice problem</h2>
+<p>The rules of the game are as follows:</p>
+<ol type="1">
+<li>You want to choose exactly one property (say, buy a
+<strong>flat</strong>) within a given period of time</li>
+<li>The number of candidate flats available on the market and
+inspectable in the given time period is assumed to be known. We shall
+denote this number by <span class="math inline">\(n\)</span>.</li>
+<li>The flats are assumed to be rankable from best (rank 1) to worst
+(rank <span class="math inline">\(n\)</span>) without ties.</li>
+<li>The flats can only be inspected sequentially and in some random
+order.</li>
+<li>After seeing a flat one has to decide whether to pick this flat or
+not.</li>
+<li>Once a flat is rejected, this choice is permanent and cannot be
+re-called.</li>
+</ol>
+<p>Your objective is to find the <em>best candidate</em> among the <span
+class="math inline">\(n\)</span> flats. Less will not work for you,
+i.e. you have no interest in the 2nd best candidate or any other worse
+candidate. Furthermore, the decision you have to make at each decision
+time is to either select the current candidate flat or reject it and
+inspect futher candidate flats. Which flat to pick thus at each time
+point is based only on the flat’s relative rank within the set of flats
+seen up to now. Our goal is to find a strategy s.t. we end up with the
+best flat, i.e. rank 1, among all of the <span
+class="math inline">\(n\)</span> flats. Note that simply looking at all
+candidates and then picking the best one will not work due to rules 5
+and 6.</p>
+<h2 id="mathematical-notation">Mathematical notation</h2>
+<p>Following <span class="citation" data-cites="chow_etal1964">Chow et
+al. (1964)</span> we introduce the following mathematical notation: Let
+<span class="math inline">\(x_1,\ldots, x_n\)</span> be a permutation of
+the integers between 1 and <span class="math inline">\(n\)</span>. At
+the time we are considering the <span
+class="math inline">\(i\)</span>’th candidate in our ordered sequence we
+have seen the candidates <span
+class="math inline">\(1,\ldots,i\)</span>. Let <span
+class="math inline">\(y_i\)</span>, <span class="math inline">\(y_i \in
+\{1,\ldots,i\}\)</span>, denote the rank of the <span
+class="math inline">\(i\)</span>’th candidate among these <span
+class="math inline">\(i\)</span> candidates. We call this the
+<strong>relative rank</strong> at time <span
+class="math inline">\(i\)</span> of the <span
+class="math inline">\(i\)</span>’th candidate. Note that the relative
+rank can be 1 even though a candidates’ <strong>overall rank</strong> is
+not 1. This is a consequence of the overall rank being only partially
+revealed by knowing more of the candidates.</p>
+<p>A code example illustrates the concept:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Generate a sequence of ranks between 1 and n</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> 10L ; x <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span>n,<span class="at">replace=</span><span class="cn">FALSE</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Function to compute sequential relative ranks, where smallest is best</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#Now programmed with Rcpp, which is faster than plain R. Github code</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#contains an even faster version relrank_rcpp_novec. Note index start at 0</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#in Rcpp.</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>Rcpp<span class="sc">::</span><span class="fu">cppFunction</span>(<span class="st">&#39;NumericVector relrank(NumericVector x) {</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="st">  int n = x.size();</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="st">  NumericVector output(n);</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="st">  for (int i = 0; i &lt; n; ++i) {</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="st">     output[i] = sum(x[Range(0,i)] &lt;= x[i]);</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="st">  }</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="st">  return output;</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="st">}&#39;</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="fu">rbind</span>(<span class="at">x=</span>x, <span class="at">y=</span>y<span class="ot">&lt;-</span><span class="fu">relrank</span>(x))</span></code></pre></div>
+<pre><code>##   [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+## x    3    8    4    7    6    1   10    9    2     5
+## y    1    2    2    3    3    1    7    7    2     5</code></pre>
+<h2 id="finding-the-best">Finding the best</h2>
+<p>It is possible to show <span class="citation"
+data-cites="gilbert_mosteller1966">(Gilbert and Mosteller 1966)</span>
+that the optimal selection policy is to follow the rather intuitive
+procedure:</p>
+<ul>
+<li>Consider the first <span class="math inline">\(r-1\)</span>
+candidates without picking any of them (=“training sample”).</li>
+<li>Then select the first candidate, which is better than the best among
+the training sample.</li>
+<li>If no candidate has been selected by the time <span
+class="math inline">\(n\)</span> and, hence, the last candidate is
+reached, one is forced to select this candidate.</li>
+</ul>
+<p>Mathematically expressed the optimal stopping time is thus</p>
+<p><span class="math display">\[
+\min_{i \in \{r,\ldots,n\}}\{y_i = 1 \text{ or } i = n\}.
+\]</span></p>
+<p>The question is what <span class="math inline">\(r\)</span> to
+choose? <span class="citation" data-cites="ferguson1989">Ferguson
+(1989)</span> in equation 2.1 shows that the probability <span
+class="math inline">\(\phi_n(r)\)</span> of finding the overall best
+rank using a value of <span class="math inline">\(r\)</span> in the
+above strategy is</p>
+<p><span class="math display">\[
+\phi_n(r) = \frac{r-1}{n} \sum_{j=r}^n \frac{1}{j-1}.
+\]</span></p>
+<p>It is obvious that <span
+class="math inline">\(\phi_n(1)=1/n\)</span>. The remaining
+probabilities can easily be computed with R:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Compute probability of finding max after screening the r-1 first out of n and then</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#picking the first, which is better than the best in the training sample.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>phi <span class="ot">&lt;-</span> <span class="cf">function</span>(r,n) {</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (r<span class="sc">==</span><span class="dv">1</span>) <span class="fu">return</span>(<span class="dv">1</span><span class="sc">/</span>n)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  j <span class="ot">&lt;-</span> r<span class="sc">:</span>n</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>((<span class="dv">1</span><span class="sc">/</span>n)<span class="sc">*</span>(r<span class="dv">-1</span>)<span class="sc">*</span><span class="fu">sum</span>(<span class="dv">1</span><span class="sc">/</span>(j<span class="dv">-1</span>)))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">#Compute probabilities for all i in {1,...,n}</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">i=</span><span class="dv">1</span><span class="sc">:</span>n)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span> <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">phi=</span><span class="fu">phi</span>(i,n)) <span class="sc">%&gt;%</span> <span class="fu">ungroup</span>()</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>r <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span> <span class="fu">filter</span>(phi<span class="sc">==</span><span class="fu">max</span>(phi))  <span class="sc">%&gt;%</span> <span class="fu">select</span>(i)  <span class="sc">%&gt;%</span> <span class="fu">unlist</span>() <span class="sc">%&gt;%</span> <span class="fu">as.numeric</span>()</span></code></pre></div>
+<p>We can illustrate <span class="math inline">\(\phi_n(r)\)</span> as a
+function of <span class="math inline">\(r\)</span>:</p>
+<p><img
+src="http://staff.math.su.se/hoehle/blog/figure/source/2016-06-12-optimalChoice/PHIPLOT-1.png" /></p>
+<p>We thus select the <span class="math inline">\(r\)</span>, which
+gives the highest value of <span
+class="math inline">\(\phi_n(r)\)</span>. In the example with <span
+class="math inline">\(n=10\)</span> the best choice is <span
+class="math inline">\(r= 4\)</span>. We wrap these two steps into a
+function <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2016-06-12-optimalChoice.Rmd"><code>find_r(n)</code></a>,
+which given <code>n</code> returns the best choice <code>r</code>. In
+the example we therefore look at <span
+class="math inline">\(r-1=\)</span><code>find_r(10)-1</code><span
+class="math inline">\(=3\)</span> candidates in order to get a
+<em>baseline</em> and then take the first candidate, which is better
+than this baseline. In code this corresponds to:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(pickIdx <span class="ot">&lt;-</span> <span class="fu">which.max</span>(<span class="fu">relrank</span>(x)[r<span class="sc">:</span>n] <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> (r<span class="sc">:</span>n <span class="sc">==</span> n)))</span></code></pre></div>
+<pre><code>## [1] 3</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>x[pickIdx <span class="sc">+</span> (r<span class="dv">-1</span>)]</span></code></pre></div>
+<pre><code>## [1] 1</code></pre>
+<p>In the example we thus actually manage to select the best candidate!
+However, this is not always guaranteed: for example, if the best overall
+candidate is among the training sample (4/10 chance for this to happen)
+we would end up with the last candidate flat no matter how good or bad
+it is. As stated above: the probability that the above decision strategy
+will pick the best candidate is <span
+class="math inline">\(\phi_{10}(4)=0.40\)</span>.</p>
+<p>In order to compare the decision strategy with later formulations we
+denote by <span
+class="math inline">\(\mathbf{s}=(s_1,\ldots,s_n)\)</span> a strategy
+which at time <span class="math inline">\(i\)</span> selects candidate
+<span class="math inline">\(i\)</span>, if <span
+class="math inline">\(y_i \leq s_i\)</span>. In other words, the above
+strategy for <span class="math inline">\(n=10\)</span> is:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>s <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="dv">0</span>,r<span class="dv">-1</span>),<span class="fu">rep</span>(<span class="dv">1</span>,n<span class="sc">-</span>(r<span class="dv">-1</span>)<span class="sc">-</span><span class="dv">1</span>),n)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>s</span></code></pre></div>
+<pre><code>##  [1]  0  0  0  1  1  1  1  1  1 10</code></pre>
+<p>And the selected candidate can easily found as</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">which.max</span>(y <span class="sc">&lt;=</span> s)</span></code></pre></div>
+<pre><code>## [1] 6</code></pre>
+<p>For small <span class="math inline">\(n\)</span> the optimal <span
+class="math inline">\(r\)</span> and corresponding probability of
+success can easily be computed numerically. However, for large <span
+class="math inline">\(n\)</span> the numerical precision as well as the
+computations become more tedious and hence interest is in finding a
+general asymptotic approximation as <span
+class="math inline">\(n\)</span> grows large: One can show that as <span
+class="math inline">\(n\)</span> gets large the optimal procedure is
+always to screen the first <span class="math inline">\(1/e\)</span> =
+37% and then select the first candidate better than the training sample
+<span class="citation" data-cites="gilbert_mosteller1966">(Gilbert and
+Mosteller 1966)</span>. The asymptotic probability of success,
+i.e. finding the overall best candidate, when following the such a
+procedure is also about <span class="math inline">\(1/e\)</span>=37%
+<span class="citation" data-cites="gilbert_mosteller1966">(Gilbert and
+Mosteller 1966)</span>. Below we show a small table illustrating the
+precision of the asymptotic approximation.</p>
+<center>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: right;"><span
+class="math inline">\(n\)</span></th>
+<th style="text-align: right;"><span
+class="math inline">\(r-1\)</span></th>
+<th style="text-align: right;"><span
+class="math inline">\((r-1)/n\)</span> (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">40.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">38.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1000</td>
+<td style="text-align: right;">369</td>
+<td style="text-align: right;">36.9</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">10000</td>
+<td style="text-align: right;">3680</td>
+<td style="text-align: right;">36.8</td>
+</tr>
+</tbody>
+</table>
+</center>
+<p>We summarise our above findings for how to find the best candidate in
+the following function:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>strategy_best <span class="ot">&lt;-</span> <span class="cf">function</span>(n) {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  r <span class="ot">&lt;-</span> <span class="fu">find_r</span>(n)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="dv">0</span>,r<span class="dv">-1</span>),<span class="fu">rep</span>(<span class="dv">1</span>,n<span class="sc">-</span>(r<span class="dv">-1</span>)<span class="sc">-</span><span class="dv">1</span>),n)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(s)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>(s <span class="ot">&lt;-</span> <span class="fu">strategy_best</span>(n))</span></code></pre></div>
+<pre><code>##  [1]  0  0  0  1  1  1  1  1  1 10</code></pre>
+<p>…and sometimes one animation says more than a lot of text and
+equations:</p>
+<p><img
+src="/blog/figure/source/2016-06-12-optimalChoice/animation-select.gif" /></p>
+<h2 id="maximizing-the-expected-rank">Maximizing the expected rank</h2>
+<p>As attractive as it may sound, finding the overall best candidate
+appears a pedant’s criterion. In reality, you would typically settle
+with a lesser rank, as long as you know the candidate is good and it’s
+yours to keep. Hence, finding a <a
+href="https://en.wikipedia.org/wiki/Satisficing">satisficing</a>
+strategy to minimize, e.g., the expected rank appears a more prudent
+objective for the risk adverse decision maker. This problem was
+addressed by <span class="citation" data-cites="chow_etal1964">Chow et
+al. (1964)</span>, we shall follow their treatment in what follows.</p>
+<p>In their paper they show that the relative ranks <span
+class="math inline">\(y_1,\ldots,y_n\)</span> are independent and the
+probability mass function of the <span
+class="math inline">\(i\)</span>’s relative rank is <span
+class="math inline">\(P(y_i=j)=1/i\)</span>, <span
+class="math inline">\(j=1,\ldots,i\)</span>. Furthermore, the sequence
+of relative ranks has the Markov property and, hence,</p>
+<p><span class="math display">\[
+P(x_i=k|y_1=j_1,\ldots,y_{i-1}=j_{i-1},y_i=j) = P(x_i=k|y_i=j) =
+\frac{\binom{k-1}{j-1} \binom{n-k}{i-j}}{\binom{n}{i}}.
+\]</span></p>
+<p>From this one computes</p>
+<p><span class="math display">\[
+E(x_i|y_i=j) = \sum_{k=1}^n k\cdot P(x_i=k|y_i=j) = \frac{n+1}{i+1} j.
+\]</span></p>
+<p>Define <span class="math inline">\(c_i=c_i(n)\)</span> to be the
+minimal possible expected overall rank selected if we limit us to
+strategies of the following type: use the first <span
+class="math inline">\(i\)</span> candidates to generate a baseline and
+then, starting from <span class="math inline">\(i+1\)</span>, select the
+first candidate better than the baseline. <span class="citation"
+data-cites="chow_etal1964">Chow et al. (1964)</span> shows that <span
+class="math inline">\(c_i\)</span> can be computed by backwards
+recursion: Beginning with</p>
+<p><span class="math display">\[
+c_{n-1} = E\left(\frac{n+1}{n+1}y_n\right) = \frac{1}{n} \sum_{j=1}^n
+j = \frac{n+1}{2},
+\]</span> and then for <span
+class="math inline">\(i=n-1,n-2,\ldots,1\)</span> letting <span
+class="math display">\[
+s_i     = \left[ \frac{i+1}{n+1} c_i\right] \\
+c_{i-1} = \frac{1}{i} \left[ \frac{n+1}{i+1} \cdot \frac{s_i(s_i+1)}{2}+
+(i-s_i)c_i \right],
+\]</span> where <span class="math inline">\([x]\)</span> denotes the
+largest integer smaller or equal to <span
+class="math inline">\(x\)</span>, i.e. <code>floor(x)</code>. Because at
+each decision time <span class="math inline">\(i\)</span> we choose
+between either picking the current candidate or proceeding to the next
+candidate, we can evaluate the two options according to their expected
+payoff:</p>
+<ol type="1">
+<li>if we decide to wait deciding for at least another round the
+expected payoff is <span class="math inline">\(c_i\)</span></li>
+<li>If we selected the current candidate, which has relative rank <span
+class="math inline">\(y_i=j\)</span> our expected payoff is <span
+class="math inline">\(E(x_i|y_i=j)\)</span></li>
+</ol>
+<p>Our optimal stopping time is thus</p>
+<p><span class="math display">\[
+\min_{i\in \{1,\ldots,n\}} \{ E(x_i|y_i=j) \geq c_{i} \&gt; \text{or}
+\&gt; i=n \}.
+\]</span></p>
+<p>Implicitly, the above computed sequence of <span
+class="math inline">\(s_i\)</span>’s actually contains the resulting
+decision strategy <span class="citation"
+data-cites="chow_etal1964">(Chow et al. 1964)</span>. We transfer the
+procedure into R code as follows:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to find a strategy minimizing expected rank as done by Chow et al. (1964).</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>strategy_erank <span class="ot">&lt;-</span> <span class="cf">function</span>(n) {</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  c <span class="ot">&lt;-</span> s <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">NA</span>,n)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="cf">function</span>(i) {i<span class="sc">+</span><span class="dv">1</span>}</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  c[<span class="fu">idx</span>(n<span class="dv">-1</span>)] <span class="ot">&lt;-</span> (n<span class="sc">+</span><span class="dv">1</span>)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  s[<span class="fu">idx</span>(n)] <span class="ot">&lt;-</span> n</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> (n<span class="dv">-1</span>)<span class="sc">:</span><span class="dv">1</span>) {</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    s[<span class="fu">idx</span>(i)]   <span class="ot">&lt;-</span> <span class="fu">floor</span>( (i<span class="sc">+</span><span class="dv">1</span>)<span class="sc">/</span>(n<span class="sc">+</span><span class="dv">1</span>)<span class="sc">*</span>c[<span class="fu">idx</span>(i)])</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    c[<span class="fu">idx</span>(i)<span class="sc">-</span><span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>i <span class="sc">*</span> ( (n<span class="sc">+</span><span class="dv">1</span>)<span class="sc">/</span>(i<span class="sc">+</span><span class="dv">1</span>)<span class="sc">*</span>s[<span class="fu">idx</span>(i)]<span class="sc">*</span>(s[<span class="fu">idx</span>(i)]<span class="sc">+</span><span class="dv">1</span>)<span class="sc">/</span><span class="dv">2</span> <span class="sc">+</span> (i<span class="sc">-</span>s[<span class="fu">idx</span>(i)])<span class="sc">*</span>c[<span class="fu">idx</span>(i)])</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">list</span>(<span class="at">s=</span>s,<span class="at">c=</span>c))</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">strategy_erank</span>(n),<span class="at">digits=</span><span class="dv">4</span>)</span></code></pre></div>
+<pre><code>## $s
+##  [1] NA  0  0  0  1  1  2  2  3  5 10
+## 
+## $c
+##  [1] 2.558 2.558 2.558 2.558 2.677 2.888 3.154 3.590 4.278 5.500</code></pre>
+<p>Note that in the above, the first element of the vectors
+<code>s</code> and <code>c</code> is the element 0. Hence, <span
+class="math inline">\(s_1\)</span> is located at position two of the
+vector. It is interesting to observe that for the example one forms a
+baseline for the same amount of time, but after a while becomes more
+<strong>desperate</strong> and accepts candidates who are not
+optimal.</p>
+<p>Finally, it is interesting to compare the two strategies for any
+<span class="math inline">\(n\)</span> we like, e.g. <span
+class="math inline">\(n=15\)</span>:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>(two_s <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="at">best=</span><span class="fu">strategy_best</span>(<span class="at">n=</span><span class="dv">15</span>), <span class="at">erank=</span><span class="fu">strategy_erank</span>(<span class="at">n=</span><span class="dv">15</span>)<span class="sc">$</span>s[<span class="sc">-</span><span class="dv">1</span>]))</span></code></pre></div>
+<pre><code>##       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12] [,13] [,14] [,15]
+## best     0    0    0    0    0    1    1    1    1     1     1     1     1     1    15
+## erank    0    0    0    0    1    1    1    1    2     2     3     4     5     7    15</code></pre>
+<p>Again, for the expected minimizing rank strategy our training sample
+is slightly smaller than for the selecting the best strategy.
+Furthermore, we again adapt our relative-rank criterion as one becomes
+more desperate towards the end. Finally, we illustrate the two
+strategies on the <span class="math inline">\(n=15\)</span> sequence
+with ranks <span class="math inline">\(x\)</span> (and resulting
+relative ranks <span class="math inline">\(y\)</span>):</p>
+<pre><code>##   [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12] [,13] [,14] [,15]
+## x    8    5    6    9    1    3   10   12   14    15     4    13    11     2     7
+## y    1    1    2    4    1    2    7    8    9    10     3    10     9     2     7</code></pre>
+<p><img
+src="/blog/figure/source/2016-06-12-optimalChoice/animation-select2.gif" /></p>
+<h1 id="monte-carlo-simulation">Monte Carlo simulation</h1>
+<p>Using Monte Carlo integration we can for a given <span
+class="math inline">\(n\)</span> compute the expected rank obtained by
+each of the strategies.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>simulate <span class="ot">&lt;-</span> <span class="cf">function</span>(s,n) {</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">seq_len</span>(n),<span class="at">size=</span>n,<span class="at">replace=</span><span class="cn">FALSE</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">relrank</span>(x)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  idxSelect <span class="ot">&lt;-</span> <span class="fu">which.max</span>(y <span class="sc">&lt;=</span> s)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">c</span>(<span class="at">rank=</span>x[idxSelect],<span class="at">idx=</span>idxSelect,<span class="at">isBest=</span>(x[idxSelect]<span class="sc">==</span><span class="dv">1</span>)))</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>strategies <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">s_best=</span><span class="fu">strategy_best</span>(n), <span class="at">s_erank=</span><span class="fu">strategy_erank</span>(n)<span class="sc">$</span>s[<span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">lapply</span>(strategies, <span class="cf">function</span>(s) <span class="fu">replicate</span>(<span class="fl">1e5</span>, <span class="fu">simulate</span>(<span class="at">s=</span>s,<span class="at">n=</span>n)))</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>(sim <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="at">best=</span><span class="fu">apply</span>(res[[<span class="dv">1</span>]], <span class="dv">1</span>,mean), <span class="at">erank=</span><span class="fu">apply</span>(res[[<span class="dv">2</span>]],<span class="dv">1</span>,mean)))</span></code></pre></div>
+<pre><code>##          rank     idx  isBest
+## best  3.02481 6.98755 0.39855
+## erank 2.55563 6.27949 0.33177</code></pre>
+<p>From the results it becomes clear that the expected rank optimizing
+strategy on average takes a little less time before selecting a
+candidate. Furthermore, the obtained expected rank is somewhat better
+than for the overall best decision strategy. We can also compare the
+Monte Carlo estimate <code>sim["erank","rank"]</code>=2.556 against the
+theoretical value of <span class="math inline">\(c_0\)</span>=2.558.</p>
+<h1 id="discussion">Discussion</h1>
+<p>Is the blog title <em>Mathematical advice for real life</em> an
+<strong>oxymoron</strong>? Certainly not! Assumptions 1-6 clearly state
+the abstraction. You may not agree with these assumptions, but given
+that framework, the two functions <code>strategy_best</code>and
+<code>strategy_erank</code> give practical advice for a certain class of
+decisions. The methods are also clearly superior to <a
+href="https://www.youtube.com/watch?v=BVIjqd8DBGw">Sheldon Cooper’s dice
+strategy</a>. Furthermore, assumptions 1-6 have been improved upon in a
+multitude of ways <span class="citation"
+data-cites="freeman1983">(Freeman 1983)</span>. For example:</p>
+<ul>
+<li>unknown <span class="math inline">\(n\)</span> or random <span
+class="math inline">\(n\sim\operatorname{Po}(\lambda)\)</span></li>
+<li>the opportunity to return to previous candidates, but with a
+probability <span class="math inline">\(p\)</span> of being
+rejected</li>
+<li>Candidate score originating from a known underlying distribution,
+e.g. the uniform or the normal</li>
+<li>Candidate score originating from an <span
+class="math inline">\(U(a,b)\)</span> uniform with unknown <span
+class="math inline">\(a&lt;b\)</span>, but with a conjugate and
+sequentially updated bivariate Pareto prior on <span
+class="math inline">\((a,b)\)</span></li>
+</ul>
+<p>Altogether, such methods provide decision support: One can evaluate a
+potential decision and compare results with other ways of reaching the
+decision. <span class="citation" data-cites="frey_eichenberger1996">Frey
+and Eichenberger (1996)</span> discuss that for marriage decisions
+investigations show that individuals decide rather quickly marrying the
+first reasonably serious partner. Where does this misalignment between
+theory and practice originate from? Some of it appears to be
+consequences of additional effects not addressed by the model, e.g.,
+little marginal gain of searching longer, <em>lemon effects</em>,
+satisficing, endowment effects, etc… <strong>Life is
+complicated</strong>. Finding a satisficing complexity representation is
+non-trivial - even for mathematicians. :-)</p>
+<p><img src="http://staff.math.su.se/hoehle/blog/figure/source/2016-06-12-optimalChoice/unnamed-chunk-17-1.png" style="display: block; margin: auto;" /></p>
+<h1 class="unnumbered" id="references">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-berger1985" class="csl-entry" role="listitem">
+Berger, J. O. 1985. <em>Statistical Decision Theory and Bayesian
+Analysis : With 23 Illustrations</em>. 2nd ed. Springer Series in
+Statistics. New York, Berlin, Heidelberg: Springer.
+</div>
+<div id="ref-chow_etal1964" class="csl-entry" role="listitem">
+Chow, Y. S., S. Moriguti, H. Robbins, and S. M. Samuels. 1964.
+<span>“Optimal Selection Based on Relative Rank (the <span>‘Secretary
+Problem’</span>).”</span> <em>Israel Journal of Mathematics</em> 2 (2):
+81–90. <a
+href="https://doi.org/10.1007/BF02759948">https://doi.org/10.1007/BF02759948</a>.
+</div>
+<div id="ref-degroot1970" class="csl-entry" role="listitem">
+DeGroot, Morris. 1970. <em>Optimal Statistical Decisions</em>.
+McGraw-Hill. New York.
+</div>
+<div id="ref-ferguson1989" class="csl-entry" role="listitem">
+Ferguson, T. S. 1989. <span>“Who Solved the Secretary Problem?”</span>
+<em>Statist. Sci.</em> 4 (3): 282–89. <a
+href="https://doi.org/10.1214/ss/1177012493">https://doi.org/10.1214/ss/1177012493</a>.
+</div>
+<div id="ref-freeman1983" class="csl-entry" role="listitem">
+Freeman, P. R. 1983. <span>“The Secretary Problem and Its Extensions: A
+Review.”</span> <em>International Statistical Review / Revue
+Internationale de Statistique</em> 51 (2): 189–206. <a
+href="http://www.jstor.org/stable/1402748">http://www.jstor.org/stable/1402748</a>.
+</div>
+<div id="ref-frey_eichenberger1996" class="csl-entry" role="listitem">
+Frey, B. S., and R. Eichenberger. 1996. <span>“Marriage
+Paradoxes.”</span> <em>Rationality and Society</em> 8 (2): 187–206.
+</div>
+<div id="ref-gilbert_mosteller1966" class="csl-entry" role="listitem">
+Gilbert, J. P., and F. Mosteller. 1966. <span>“Recognizing the Maximum
+of a Sequence.”</span> <em>Journal of the American Statistical
+Association</em> 61 (313): 35–73. <a
+href="http://www.jstor.org/stable/2283044">http://www.jstor.org/stable/2283044</a>.
+</div>
+<div id="ref-jensen_nielsen2007" class="csl-entry" role="listitem">
+Jensen, F. V., and T. D. Nielsen. 2007. <em>Bayesian Networks and
+Decision Graphs</em>. 2nd ed. Springer Verlag.
+</div>
+</div>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2016/06/12/optimalChoice.html";
+      this.page.identifier = "/2016/06/12/optimalChoice";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

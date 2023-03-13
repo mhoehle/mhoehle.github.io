@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Long time, no see: Virtual Lunch Roulette</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2021/04/04/socialsamp.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Long time, no see: Virtual Lunch Roulette</h1>
+    <p class="post-meta"><time datetime="2021-04-04T00:00:00+02:00" itemprop="datePublished">Apr 4, 2021</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>When distributing individuals into groups every week for a virtual
+social mixer, e.g. using Zoom breakout rooms, it’s boring to end up in a
+group with someone, who you already met last week. We compute the
+probility for this to happen and state a simple rejection sampling
+proposal for how to increase social diversity in such groupings.</p>
+<center>
+<img src="/blog/figure/source/2021-04-04-socialsamp/plot_p_meetagain-1.png" width="550">
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2021-04-04-socialsamp.Rmd">R-markdown
+source code</a> of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from GitHub.</p>
+<h2 id="introduction">Introduction</h2>
+<p>As a pandemic replacement for the cross-division-chance-encounter in
+the coffee kitchen, it has become common to use a virtual social mixer
+format, where the <span class="math inline">\(n\)</span> participants
+are randomly divided into groups of at least <span
+class="math inline">\(m\)</span> people, e.g., for a video meeting or
+Zoom breakout rooms. Software exists to institutionalize such <a
+href="https://de.wikipedia.org/wiki/Random_Lunch">Random Lunches</a>
+for, e.g., <a href="https://lunchroulette.co/">Slack</a>. In this post
+we shall be interested in the properties of such group assignment
+algorithms.</p>
+<p>A practical experience is that all too often, the algorithm assigns
+me to a group where at least one of the participants was already in my
+group the last time. Before accusing the programmers of writing a poor
+grouping algorithm: can we determine mathematically what the probability
+for such a “reunion” is? How can we modify the algorithm to avoid
+this?</p>
+<h4 id="survey-of-the-field">Survey of the field</h4>
+<p>Arranging a fixed set of <span class="math inline">\(n=k\times
+m\)</span> individuals into <span class="math inline">\(k\)</span>
+groups of size <span class="math inline">\(m\)</span> in subsequent
+rounds ensuring that no overlap occurs between the groups for as many
+rounds as possible is also known as the <a
+href="http://www.mathpuzzle.com/MAA/54-Golf%20Tournaments/mathgames_08_14_07.html">social
+golfer problem</a> or round robin scheduling in combinatorics - and can
+be solved using <a href="https://www.metalevel.at/mst.pdf">constraint
+programming</a>. Compared to the social golfer problem, we have the
+additional challenge that the group of people between rounds may be
+subject to change. Furthermore, <span class="math inline">\(m\)</span>
+might not be a divisor of <span class="math inline">\(n\)</span>. Hence,
+somewhat closer to our problem is the so called <a
+href="http://grafo.etsii.urjc.es/index.php/category/maximally-diverse-grouping/">maximally
+diverse grouping problem</a>, where the grouping is to be done such that
+the requirements on group size are met and a diversity score over the
+elements in each group is maximized. For our setup, the score could,
+e.g., be time since the last meet between individuals. Integer
+programming can be used to solve the NP-complete problem.</p>
+<p>However, in our application we will either ignore the diversity score
+altogether (i.e. set it to 1 always) or use a 0/1 diversity score (met
+last time or not). Furthermore, we are interested in random assignment
+algorithms selecting uniformly among the valid configurations. As a
+consequence, we choose a more probabilistic approach and instead use a
+custom group assignment algorithm as described in the next section.</p>
+<h3 id="the-grouping">The Grouping</h3>
+<p>We want to split the <span class="math inline">\(n\)</span>
+individuals into groups of preferably <span
+class="math inline">\(m\)</span> members. However, if <span
+class="math inline">\(m\)</span> is not a divisor of <span
+class="math inline">\(n\)</span> then after making <span
+class="math inline">\(\lfloor n/m \rfloor\)</span> groups of <span
+class="math inline">\(m\)</span> members we would have <span
+class="math inline">\(l = n - \lfloor n/m \rfloor\)</span> individuals
+left. Instead of assigning these to a single leftover group, which would
+be of size less than <span class="math inline">\(m\)</span>
+(particularly critical is size 1), we assign the remaining individuals
+to the <span class="math inline">\(l\)</span> groups in round robin
+fashion. This ensures that each group has size at least <span
+class="math inline">\(m\)</span>. Note: Depending on <span
+class="math inline">\(n\)</span> and <span
+class="math inline">\(m\)</span> the resulting sizes might be larger
+<span class="math inline">\(m+1\)</span>, but the difference in the
+resulting group size will never be larger than 1<a href="#fn1"
+class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.
+Let <code>people</code> be a tibble with a column <code>id</code>
+denoting a primary identifier key - this could, e.g., be the people’s
+email address. An R function to perform a random assignment of the <span
+class="math inline">\(n\)</span>=<code>nrow(people)</code> individuals
+into groups of at least <span class="math inline">\(m\)</span> could
+look like:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; Sample people into groups (original algorithm)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param people tibble containing name and email of available ppl</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param m requested group size. If m not a divisor of nrow(people) then put leftovers in existing groups</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @return A list of vectors where each vector containing the ids (row number in ppl) of those belonging to the same group</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>sample_groups <span class="ot">&lt;-</span> <span class="cf">function</span>(people, m) {</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Number of groups needed</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  n_g <span class="ot">&lt;-</span> <span class="fu">nrow</span>(people) <span class="sc">%/%</span> m</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Group membership indicator</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  g <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(n_g), <span class="at">length.out=</span><span class="fu">nrow</span>(people))</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Permutation order</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  perm <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(people)))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Make a list of ids in each group</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  groups <span class="ot">&lt;-</span> <span class="fu">map</span>(<span class="fu">seq_len</span>(n_g), <span class="cf">function</span>(i) {</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    idx <span class="ot">&lt;-</span> perm[<span class="fu">which</span>(g <span class="sc">==</span> i)]</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    people <span class="sc">%&gt;%</span> <span class="fu">slice</span>(idx) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(id)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(groups)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Example: Let <code>people</code> denote the population of 47
+individuals to be assigned into groups of at least <span
+class="math inline">\(m=4\)</span> according to the above
+description.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">47</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>people <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">id =</span> <span class="fu">str_c</span>(<span class="st">&quot;id&quot;</span>, <span class="fu">sprintf</span>(<span class="st">&quot;%0.2d&quot;</span>,<span class="fu">seq_len</span>(n)))) </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>m <span class="ot">&lt;-</span> <span class="dv">4</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>groups <span class="ot">&lt;-</span> <span class="fu">sample_groups</span>(people, <span class="at">m=</span>m)</span></code></pre></div>
+<p>This leads to 11 groups with between 4 and 5 members. We can
+visualize the group allocation as a graph, where each group will
+correspond to a fully connected sub-graph, but with no connections
+between the sub-graphs.</p>
+<p><img src="/blog/figure/source/2021-04-04-socialsamp/unnamed-chunk-4-1.png" style="display: block; margin: auto;" /></p>
+<h3 id="mathematical-formulation">Mathematical Formulation</h3>
+<p>The mathematical question is now: Given you were in the group with
+<span class="math inline">\(l\)</span> other persons the last time, what
+is the probability that after assigning <span
+class="math inline">\(n\)</span> individuals into groups of preferred
+size <span class="math inline">\(m\geq 2\)</span>, that you will be in
+the same group with at least one of them again this time<a href="#fn2"
+class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.
+Let <span class="math inline">\(m \leq k\)</span> be the size of your
+group in the current assignment. Combinatorical considerations tell us
+the probability to meet at least one of the <span
+class="math inline">\(l\)</span> persons again is:</p>
+<p><span class="math display">\[
+p(k, l, n) = 1 - \frac{1\cdot\prod_{i=2}^{k}
+(n-(l+i-1))}{1\cdot\prod_{i=2}^{k} (n-i+1)}.
+\]</span> In order to determine the overall probability for a reunion
+after assignment, we need to determine the PMF <span
+class="math inline">\(f_{n,m}\)</span> of the group size, i.e. what is
+the probability that the algorithm dividing <span
+class="math inline">\(n\)</span> individuals into groups of size at
+least <span class="math inline">\(m\)</span> will assign me to a group
+of size <span class="math inline">\(k, k\geq m\)</span>. The probability
+of interest is then: <span class="math display">\[
+p(n,m,l) = \sum_{k=1}^\infty p(k,l,n) f_{n,m}(k)
+\]</span> Note: Even though we write the summation to be from 1 to <span
+class="math inline">\(\infty\)</span>, the PMF will only have support on
+at most two integers.</p>
+<p>The calculations in R and verified by 1000 Monte Carlo
+simulations:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Group membership indicator for the n individuals</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(n <span class="sc">%/%</span> m), <span class="at">length.out=</span>n)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Which previous group sizes to consider. Note:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># can be way beyond m, even if m was selected</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>p_groupsize <span class="ot">&lt;-</span> <span class="fu">prop.table</span>(<span class="fu">table</span>(<span class="fu">table</span>(g)))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>p_kln <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">as.numeric</span>(<span class="fu">names</span>(p_groupsize)), prob_reunion, <span class="at">l=</span>l, <span class="at">n=</span>n)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">p_analytical =</span> <span class="fu">sum</span>(p_kln <span class="sc">*</span> p_groupsize), <span class="at">p_mc =</span> p_reunion_mc) </span></code></pre></div>
+<pre><code>## p_analytical         p_mc 
+##    0.2024913    0.2010000</code></pre>
+<p>We can illustrate this reunion probability as a function of <span
+class="math inline">\(k\)</span> and <span
+class="math inline">\(n\)</span>.</p>
+<p><img src="/blog/figure/source/2021-04-04-socialsamp/plot_p_reunion-1.png" style="display: block; margin: auto;" /></p>
+<p>As a next step we need to marginalise out the previous group size
+<span class="math inline">\(l+1\)</span>. For simplicity, we will assume
+that exactly the same participants participate in each round. Hence, we
+can use the same group size PMF as before when summing out <span
+class="math inline">\(l\)</span>: <span class="math display">\[
+p(n,m) = \sum_{l=1}^\infty \sum_{k=1}^\infty p(k,l,n) f_{n,m}(k)
+f_{n,m}(l+1)
+\]</span></p>
+<p>The result thus denotes the probability that you in two consecutive
+assigments of <span class="math inline">\(n\)</span> individuals into
+groups of at least <span class="math inline">\(m\)</span> individuals
+will be in the same group with someone twice. We will denote this the
+<em>reunion probability</em>. The graph below shows this probability as
+a function of <span class="math inline">\(n\)</span> and <span
+class="math inline">\(m\)</span> and is also available in a <a
+href="/blog/figure/source/2021-04-04-socialsamp/p_meetagain_log.png">log-x
+axis version</a>.</p>
+<p><img src="/blog/figure/source/2021-04-04-socialsamp/plot_p_meetagain-1.png" style="display: block; margin: auto;" /></p>
+<p>Why are the curves not decreasing monotonically?<a href="#fn3"
+class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>
+This is due to the minimum size <span class="math inline">\(m\)</span>
+restriction on the group size. If <span
+class="math inline">\(m=6\)</span> and you have <span
+class="math inline">\(n=12\)</span> people then there are two groups.
+But if <span class="math inline">\(n=17\)</span> while <span
+class="math inline">\(m\)</span> is still 6, then we will still only
+have two groups as one would need 18 people for 3 groups. However, there
+are now 8 and 9 people in the two groups instead of 6 and 6 so the
+probability of reunion increases. Altogether, the probability increases
+from 12 and 17 until it decreases again at <span
+class="math inline">\(n=18\)</span>. Consequently, for <span
+class="math inline">\(m=2\)</span> the peaks would be at the even <span
+class="math inline">\(n\)</span> and the troughs would be the odd <span
+class="math inline">\(n\)</span>.</p>
+<p>Given our <span class="math inline">\(n=47\)</span> and <span
+class="math inline">\(m=4\)</span> we also note the high probability of
+22% for a reunion, which confirms our empirical experience. Thus there
+seems to be a need to impose some additional constraints on the grouping
+in order to optimize social diversity. For a translation of <span
+class="math inline">\(m\)</span> into the number of breakout rooms used
+in Zoom, see Appendix A.</p>
+<h3 id="grouping-with-avoidance">Grouping with avoidance</h3>
+<p>Let <code>pairs</code> be a tibble with columns <code>id1</code> and
+<code>id2</code> denoting all pairs of individuals who were placed in
+the same group the last time. We now want to enhance our group
+allocation algorithm to only assign people into groups, if they were not
+in the same group the last time. We do this by a simple rejection
+sampling algorithm, where we draw a configuration with
+<code>sample_groups</code>, check if it has overlaps with the last
+allocation, and if so, draw again. This method is not very efficient and
+might take a while. Even worse: it might not finish at all, if no
+configuration satisfying the constraint exist. An example is, if 9
+individuals are to be divided into groups of at least 4 two times
+without any reunions. The corresponding code of such a
+<code>sample_groups_avoid</code> function is available in the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2021-04-04-socialsamp.Rmd">R
+code</a> from GitHub. This can then be used to generate the desired
+grouping without reunions:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sampling in round1 and round2</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>groups_r1 <span class="ot">&lt;-</span> <span class="fu">sample_groups</span>(people, <span class="at">m=</span>m)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>groups_r2 <span class="ot">&lt;-</span> <span class="fu">sample_groups_avoid</span>(people, <span class="at">m=</span>m, <span class="at">avoid_pairs =</span> <span class="fu">make_pairs</span>(groups_r1))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Check if there are any re-unions. Note: There should be none.</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">inner_join</span>( <span class="fu">make_pairs</span>(groups_r1) <span class="sc">%&gt;%</span> <span class="fu">select</span>(hash), <span class="fu">make_pairs</span>(groups_r2) <span class="sc">%&gt;%</span> <span class="fu">select</span>(hash), <span class="at">by=</span><span class="st">&quot;hash&quot;</span>)</span></code></pre></div>
+<pre><code>## # A tibble: 0 x 1
+## # … with 1 variable: hash &lt;chr&gt;</code></pre>
+<p>In other words: No reunions, just as we wanted.</p>
+<h2 id="discussion">Discussion</h2>
+<p>We considered random groupings used, e.g., in lunch roulette or when
+distributing students into breakout rooms. Depending on the number of
+people to group and the anticipated group size the probability for a
+reunion with somebody from last weeks grouping is surprisingly high.
+Hence, we use rejection sampling to propose a configuration, where no
+reunion occurs. The resulting grouping can easily be exported to a CSV
+file for import when making <a
+href="https://support.zoom.us/hc/en-us/articles/360032752671-Pre-assigning-Participants-to-Breakout-Rooms">pre-assigned
+Zoom breakout rooms</a> (example in the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2021-04-04-socialsamp.Rmd">R
+code</a> on GitHub). Even better allocations might be possible as part
+of solving the maximally diverse grouping problem. For further
+combinatorics posts, see also my work on the <a
+href="https://staff.math.su.se/hoehle/blog/2017/02/13/bday.html">birthday
+problem with unequal probabilities</a>.</p>
+<h4 id="acknowledgments">Acknowledgments</h4>
+<p>Thanks to Dirk, Titus and Filip for the challenge.</p>
+<h2 id="appendix-a">Appendix A</h2>
+<p>Since the Zoom grouping does not work by specifying the number of
+individuals in each group, but instead the number of groups, we show an
+equivalent representation of the reunion probability graph as a function
+of the number of groups, i.e. <span class="math inline">\(\lfloor
+n/m\rfloor\)</span>. Since we did the math in <span
+class="math inline">\(m\)</span>, not every breakout room size is found.
+This also means that the shown graph is only an approximation, because
+the Zoom allocation algorithm is likely to work slightly different to
+our proposed <code>sample_groups</code> algorithm.</p>
+<p><img src="/blog/figure/source/2021-04-04-socialsamp/plot_p_breakout_rooms-1.png" style="display: block; margin: auto;" /></p>
+<h2 id="appendix-b">Appendix B</h2>
+<p>As a consequence from the calculation and functions from this post we
+can now answer the following question from our <a
+href="https://www.math.su.se/english/research/research-groups/research-group-in-mathematical-statistics-1.330441">SU
+Mathematical Statistics</a> Zoom Christmas Party announcement:</p>
+<div class="framedbox">
+<em>At 15:00 We will use the breakout room Zoom function that randomly
+divides the participants into smaller groups (5 persons). At 15:15 and
+15:30 we will randomize to form new groups. The natural question that
+arises is: what is the probability that you and some other colleague
+spend the entire 45 minutes together?</em>
+</div>
+<p>
+<p>Through simulations (details in the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2021-04-04-socialsamp.Rmd">code</a>)
+built on top of the <code>sample_groups</code> function we determine
+that the requested probability when <span
+class="math inline">\(n=30\)</span> participate in the X-mas party is
+7.6%.</p>
+<h2 id="literature">Literature</h2>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>As an example consider the case <span
+class="math inline">\(n=7\)</span> and <span
+class="math inline">\(m=4\)</span>, where we according to our
+specification would form 1 group with 7 members.<a href="#fnref1"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>We will assume that the <span
+class="math inline">\(l\)</span> individuals you met last week all
+participate again this week.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Thanks to <a
+href="https://www.reddit.com/r/math/comments/mjy7nx/probability_to_meet_someone_again_when_assigning/gtd33xi?utm_source=share&amp;utm_medium=web2x&amp;context=3">u/antichain</a>
+for the question and to <a
+href="https://www.reddit.com/r/math/comments/mjy7nx/probability_to_meet_someone_again_when_assigning/gtd4c8t?utm_source=share&amp;utm_medium=web2x&amp;context=3">u/assiraN</a>
+for the nice answer with examples, which I’ve integrated into the
+post.<a href="#fnref3" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2021/04/04/socialsamp.html";
+      this.page.identifier = "/2021/04/04/socialsamp";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

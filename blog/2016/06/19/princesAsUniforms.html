@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Princes Disguised in Uniforms</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2016/06/19/princesAsUniforms.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Princes Disguised in Uniforms</h1>
+    <p class="post-meta"><time datetime="2016-06-19T00:00:00+02:00" itemprop="datePublished">Jun 19, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>We revisit the <strong>secretary problem</strong> as a mathematical
+fairy tale: Princes wooing a princess sequentially arrive each having a
+qualification score originating from a known parametric distribution
+with all parameters known, e.g., the standard uniform distribution or
+the normal distribution with known mean and variance. For this so called
+<strong>full information game</strong> the question of interest is: How
+does the optimal strategy look, which maximizes the expected score of
+the selected candidate? As a further twist: How does the strategy
+change, if we sequentially have to estimate the parameters of the
+distribution alongside? The later variant is called the <strong>partial
+information game</strong> and is nicely addressed using sequential
+Bayesian updating.</p>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h1 id="introduction">Introduction</h1>
+<p>In the last blog post <a href="../12/optimalChoice.html"><em>Optimal
+Choice - Mathematical Advice for Real Life</em></a> our interest was in
+determining a strategy to select the overall best candidate from a
+sequence of <span class="math inline">\(n\)</span> candidates
+(e.g. princes, job candidates, houses, bids or tinder profiles) arriving
+sequentially. It was shown that the optimal strategy is to screen a
+number of candidates <span class="math inline">\(r-1\)</span> in order
+to form a baseline and then, starting from the <span
+class="math inline">\(r\)</span>’th candidate, select the first
+candidate better than the baseline. If no candidate was chosen before
+the <span class="math inline">\(n\)</span>’th candidate this last
+candidate has to be selected no matter what. The natural phenomena of
+getting <em>desperate towards the end</em> was observed, if the
+objective of finding <em>the</em> best is changed to maximizing the
+expected rank of the selected candidate.</p>
+<p>In this blog post we study the situation, where additional
+information about the absolute score of the candidates (instead of just
+their relative ranks) is available. In particular we assume that the
+candidate scores are known to originate from a known <strong>underlying
+distribution</strong>, e.g. the uniform or the standard normal. This
+means that not only the underlying parametric family of the scores are
+known, but also the parameters of the distribution. In what follows we
+use the work of <span class="citation" data-cites="guttman1960">Guttman
+(1960)</span> to describe the problem in mathematical notation and
+discuss solution strategies. Then we move on to the work of <span
+class="citation" data-cites="stewart1978">Stewart (1978)</span> in order
+to investigate how the strategy changes, if we also have to
+simultaneously estimate the parameters of the distribution alongside. <a
+href="https://www.r-project.org/"><strong>R code</strong></a>
+implementing the optimal strategies is provided for both situations in
+order to enable prudent decision support for real-life problems.</p>
+<h1 id="methods">Methods</h1>
+<p>Let the <strong>score</strong> of a candidate be represented by a
+random variable <span class="math inline">\(X\)</span> with continuous
+probability density function <span class="math inline">\(f\)</span>
+having support on <span class="math inline">\((a,b)\)</span>, where
+<span class="math inline">\(a&lt;b\)</span>. Note that <span
+class="math inline">\(a\)</span> and <span
+class="math inline">\(b\)</span> are allowed to be <span
+class="math inline">\(\pm \infty\)</span>, respectively. Let <span
+class="math inline">\(F\)</span> be the corresponding cumulative
+distribution of the score. Furthermore, let <span
+class="math inline">\(\mu=E(X)=\int_{a}^b x \cdot f(x) dx\)</span> be
+the expectation of <span class="math inline">\(X\)</span>. In what
+follows we will assume that the distribution is such that the
+expectation exists. Assuming a total of <span
+class="math inline">\(n\)</span> candidates, we ascertain that their
+abilities/scores are independently and identically sampled from this
+distribution, i.e.</p>
+<p><span class="math display">\[
+X_1,\ldots,X_n \stackrel{\text{iid}}{\sim} F.
+\]</span></p>
+<p>The <span class="math inline">\(n\)</span> candidates arrive
+sequentially and for each candidate one has to decide whether to select
+this candidate or to keep looking at further candidates. Once a
+candidate is rejected there is no opportunity to regret this choice
+later.</p>
+<p>Now we denote by <span class="math inline">\(E_{n}\)</span> the
+expected score of the chosen candidate when one has to choose among
+<span class="math inline">\(n\)</span> candidates according to some
+pre-described strategy. It is immediately obvious that <span
+class="math inline">\(E_1=\mu\)</span>. If there are <span
+class="math inline">\(n\)</span> candidates we would like to find the
+optimal stopping rule maximizing <span
+class="math inline">\(E_n\)</span>. The standard stopping rule based on
+the expectation implies that we would already stop at the first
+candidate, if the observed value <span class="math inline">\(x\)</span>
+is such that <span class="math inline">\(x &gt; E_{n-1}\)</span>. As a
+consequence,</p>
+<p><span class="math display">\[
+\begin{align*}
+E_{n+1} &amp;= P(X &gt; E_n) \cdot E(X\&gt;|\&gt;X \geq E_n)  +
+P(X \leq E_n) \cdot E_n \\
+%&amp;= \int_{E_n}^b x \cdot f(x) dx + E_n \int_{a}^{E_n} f(x) dx \\
+&amp;= \int_{E_n}^b x \cdot f(x) dx + E_n \cdot (1-F(E_n)).
+\end{align*}
+\]</span></p>
+<p>A function to perform these computations in R handling either general
+densities using numeric integration or analytic derivations would
+be:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">######################################################################</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="do">##Compute E vector using either numerical integration, a function for</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="do">##the computation of E[n+1] or using the analytic solution of</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="do">##\int_{E_n}^b x df(x) dx.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="do">##</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Parameters:</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="do">##  n - number of candidates</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="do">##  df - density function of the score distribution (i.e. f)</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="do">##  pf - cumulative density function of the score distribution (i.e. F)</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="do">##  intE_fun - function g(E_n) = \int_{E_n}^b x*f(x)dx (if available)</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="do">##  Enp1_fun - function h(n,E_n) directly computing E_{n+1} from E_{n}</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="do">##</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="do">## Returns a vector of length (n+1) containing (E_0,...,E_n)&#39;.</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="do">######################################################################</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>compute_E <span class="ot">&lt;-</span> <span class="cf">function</span>(n,df,pf,<span class="at">intE_fun=</span><span class="cn">NULL</span>,<span class="at">Enp1_fun=</span><span class="cn">NULL</span>,...) {</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  E <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">NA</span>,n<span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  E[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  target <span class="ot">&lt;-</span> <span class="cf">function</span>(x) x<span class="sc">*</span><span class="fu">df</span>(x,...)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (n <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">length</span>(E)<span class="sc">-</span><span class="dv">1</span>)) {</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.null</span>(Enp1_fun)) {</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">is.null</span>(intE_fun)) {</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        E[n<span class="sc">+</span><span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">integrate</span>(target,E[n],<span class="cn">Inf</span>)<span class="sc">$</span>value <span class="sc">+</span> E[n] <span class="sc">*</span> <span class="fu">pf</span>(E[n],...)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>      } <span class="cf">else</span> {</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        E[n<span class="sc">+</span><span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">intE_fun</span>(<span class="at">En=</span>E[n]) <span class="sc">+</span> E[n] <span class="sc">*</span> <span class="fu">pf</span>(E[n],...)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>      E[n<span class="sc">+</span><span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">Enp1_fun</span>(<span class="at">n=</span>n,<span class="at">En=</span>E[n],...)</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(E)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Altogether, the optimal stopping time is thus</p>
+<p><span class="math display">\[
+T_{\text{stop}} = \min_{1\leq i \leq n} \left\{x_i &gt; E_{n-i}\right\}.
+\]</span></p>
+<p>The sequential comparisons can be given in the same strategy vector
+format as for the <a href="../12/optimalChoice.html">secretary problem
+post</a>, i.e. one selects the candidate <span
+class="math inline">\(i\)</span> if <span
+class="math inline">\(x_i&gt;s_i\)</span>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="do">######################################################################</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Strategy of full information variant of the secretary problem</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="do">##</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Parameters:</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="do">##  n - number of candidates</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="do">######################################################################</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>strategy_fip <span class="ot">&lt;-</span> <span class="cf">function</span>(n,df,pf,<span class="at">intE_fun=</span><span class="cn">NULL</span>,<span class="at">Enp1_fun=</span><span class="cn">NULL</span>,...) {</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  E <span class="ot">&lt;-</span> <span class="fu">compute_E</span>(<span class="at">n=</span>n,<span class="at">df=</span>df,<span class="at">pf=</span>pf,<span class="at">intE_fun=</span>intE_fun,<span class="at">Enp1_fun=</span>Enp1_fun,...)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> E[(n<span class="dv">-1</span><span class="sc">:</span>n)<span class="sc">+</span><span class="dv">1</span>]</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(s)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h4 id="example-u01">Example: U(0,1)</h4>
+<p>Example: In the case of <span class="math inline">\(X\sim
+U(0,1)\)</span> we can analytically compute <span
+class="math display">\[
+E_{n+1}=\frac{1}{2}(1-E_n^2) + E_n^2 =\frac{1}{2}(1+E_n^2).
+\]</span></p>
+<p>Given this setup, an R implementation of the strategy with, say,
+<span class="math inline">\(n=11\)</span> looks as follows.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>strategy_unif <span class="ot">&lt;-</span> <span class="cf">function</span>(n) {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">strategy_fip</span>(n,<span class="at">Enp1_fun=</span><span class="cf">function</span>(n,En) {<span class="dv">1</span><span class="sc">/</span><span class="dv">2</span><span class="sc">*</span>(<span class="dv">1</span><span class="sc">+</span>En<span class="sc">^</span><span class="dv">2</span>)})</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>(s_unif <span class="ot">&lt;-</span> <span class="fu">strategy_unif</span>(<span class="at">n=</span><span class="dv">11</span>))</span></code></pre></div>
+<pre><code>##  [1] 0.861 0.850 0.836 0.820 0.800 0.775 0.742 0.695 0.625 0.500 0.000</code></pre>
+<p>We can thus compare the computed expectations by simulation:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Simulate selection from n candidates if following the strategy s.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>simulate <span class="ot">&lt;-</span> <span class="cf">function</span>(n,s) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">runif</span>(n)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  select_idx <span class="ot">&lt;-</span> <span class="fu">which.max</span>(x <span class="sc">&gt;</span> s)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">score=</span>x[select_idx],<span class="at">select_idx=</span>select_idx,<span class="at">isOverallBest=</span>(<span class="fu">rank</span>(x)[select_idx] <span class="sc">==</span> n))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Small simulation study to get expected score of the selected candidate</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">replicate</span>(<span class="fl">1e5</span>,<span class="fu">simulate</span>(<span class="at">n=</span><span class="fu">length</span>(s_unif),<span class="at">s=</span>s_unif))</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="fu">apply</span>(res,<span class="dv">1</span>,mean)</span></code></pre></div>
+<pre><code>##         score    select_idx isOverallBest 
+##         0.871         4.953         0.530</code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span>(<span class="fu">compute_E</span>(<span class="at">n=</span><span class="dv">11</span>,<span class="at">Enp1_fun=</span><span class="cf">function</span>(n,En) {<span class="dv">1</span><span class="sc">/</span><span class="dv">2</span><span class="sc">*</span>(<span class="dv">1</span><span class="sc">+</span>En<span class="sc">^</span><span class="dv">2</span>)}),<span class="at">n=</span><span class="dv">1</span>)</span></code></pre></div>
+<pre><code>## [1] 0.871</code></pre>
+<p>As always, an animation says more than 1000 words and a few
+equations:</p>
+<p><img
+src="/blog/figure/source/2016-06-19-princesAsUniforms/animation.gif" /></p>
+<p>Finally, we can see how the expected score develops with increasing
+<span class="math inline">\(n\)</span>.</p>
+<center>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">100</th>
+<th style="text-align: right;">1000</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">score</td>
+<td style="text-align: right;">0.862</td>
+<td style="text-align: right;">0.981</td>
+<td style="text-align: right;">0.998</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">select_idx</td>
+<td style="text-align: right;">4.589</td>
+<td style="text-align: right;">34.943</td>
+<td style="text-align: right;">333.724</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">isOverallBest</td>
+<td style="text-align: right;">0.544</td>
+<td style="text-align: right;">0.426</td>
+<td style="text-align: right;">0.409</td>
+</tr>
+</tbody>
+</table>
+</center>
+<p><span class="citation" data-cites="gilbert_mosteller1966">Gilbert and
+Mosteller (1966)</span> provide an approximation for the
+expectation:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>E_optE <span class="ot">&lt;-</span> <span class="cf">function</span>(n) { <span class="dv">1-2</span><span class="sc">/</span>(n<span class="sc">+</span><span class="fu">log</span>(n<span class="sc">+</span><span class="dv">1</span>)<span class="sc">+</span><span class="fl">1.767</span>) }</span></code></pre></div>
+<p>which we can compare the <code>score</code>column of the above
+simulation results:</p>
+<center>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">100</th>
+<th style="text-align: right;">1000</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0.859</td>
+<td style="text-align: right;">0.981</td>
+<td style="text-align: right;">0.998</td>
+</tr>
+</tbody>
+</table>
+</center>
+<p>Altogether, this shows a pretty good agreement between the
+approximation and simulation results.</p>
+<h4 id="example-n01">Example N(0,1)</h4>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Compare results for the normal distribution (with and without</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="do">## analytic solution for 1st integral of the E[n+1] formula</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">strategy_fip</span>(<span class="at">n=</span><span class="dv">11</span>,<span class="at">df=</span>dnorm,<span class="at">pf=</span>pnorm)</span></code></pre></div>
+<pre><code>##  [1] 1.324 1.276 1.223 1.162 1.092 1.011 0.913 0.790 0.630 0.399 0.000</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>(s_norm <span class="ot">&lt;-</span> <span class="fu">strategy_fip</span>(<span class="at">n=</span><span class="dv">11</span>,<span class="at">df=</span>dnorm,<span class="at">pf=</span>pnorm,<span class="at">intE_fun=</span><span class="cf">function</span>(En,...) {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span><span class="sc">/</span><span class="dv">2</span><span class="sc">*</span><span class="fu">sqrt</span>(<span class="dv">2</span>)<span class="sc">*</span><span class="fu">exp</span>(<span class="sc">-</span><span class="dv">1</span><span class="sc">/</span><span class="dv">2</span><span class="sc">*</span>En<span class="sc">^</span><span class="dv">2</span>)<span class="sc">/</span><span class="fu">sqrt</span>(pi)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>}))</span></code></pre></div>
+<pre><code>##  [1] 1.324 1.276 1.223 1.162 1.092 1.011 0.913 0.790 0.630 0.399 0.000</code></pre>
+<p>Note that by transforming the observations by the CDF <span
+class="math inline">\(F\)</span>, i.e. <span
+class="math inline">\(Y_i=F(X_i)\)</span> we for any continuous
+distribution obtain <span class="math inline">\(Y_i
+\stackrel{\text{iid}}{\sim} U(0,1)\)</span>. Hence, the result of
+comparing the <span class="math inline">\(X_i\)</span> against
+<code>s_norm</code> is the same as comparing <span
+class="math inline">\(F(X_i)\)</span> against <code>s_unif</code>.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="at">n=</span><span class="dv">11</span>) ; y <span class="ot">&lt;-</span> <span class="fu">pnorm</span>(x)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="fu">which.max</span>(x <span class="sc">&gt;</span> s_norm), <span class="fu">which.max</span>(y <span class="sc">&gt;</span> s_unif))</span></code></pre></div>
+<pre><code>## [1] 4 4</code></pre>
+<p>It is thus not necessary to derive the optimal strategy for each
+possible continuous distribution. Instead one can transform the score to
+the uniform score as illustrated above and then use the corresponding
+strategy for the uniform to determine the stopping time.</p>
+<h1 id="the-partial-information-game">The Partial Information Game</h1>
+<p>To summarise the previous section’s findings: knowing the candidate’s
+score distribution means that no training sample is needed to form a
+baseline. Hence, in the full information game, one immediately is
+<em>ready for action</em>: if a candidate with an excellent score is met
+early you do not hesitate! However, in a real word applications the
+parameters of the parametric distribution are likely to be unknown. This
+is known as the <strong>partial information game</strong> and here
+statistical inference actually for the first time plays a role, because
+one needs to learn about the parameters of the distribution while
+candidates arrive and while simultaneously deciding to select the
+current candidate or keep looking.</p>
+<p><span class="citation" data-cites="stewart1978">Stewart (1978)</span>
+discusses a Bayesian approach to sequential learning the upper and lower
+limits of the underlying but unknown <span
+class="math inline">\(U(\alpha,\beta)\)</span> distribution. Inspired by
+<span class="citation" data-cites="degroot1970">DeGroot (1970)</span>, a
+conjugate bilateral bivariate Pareto distribution on <span
+class="math inline">\((\alpha,\beta)\)</span> is used. In what follows
+we describe this approach and the resulting selection strategy.</p>
+<p>We will assume a bilateral bivariate Pareto distribution as joint
+prior distribution for <span class="math inline">\(\alpha\)</span> and
+<span class="math inline">\(\beta\)</span>, i.e. the hierarchical
+Bayesian model is</p>
+<p><span class="math display">\[
+\begin{align*}
+(\alpha,\beta)                                &amp; \sim
+\text{bPar}(k,l,u) \\
+X_i \&gt;|\&gt; \alpha,\beta &amp;
+\stackrel{\text{iid}}{\sim}   U(\alpha,\beta), &amp; i=1,\ldots,n,
+\end{align*}
+\]</span></p>
+<p>where the density of the <span
+class="math inline">\(\text{bPar}(k,l,u)\)</span> distribution is <span
+class="math display">\[
+f(\alpha,\beta) = \frac{k(k+1)(u-l)^k}{(\beta-\alpha)^{k+2}} \cdot
+I(\alpha&lt;l \text{ and } \beta &gt; u).
+\]</span></p>
+<p>Here, <span class="math inline">\(k&gt;0\)</span> is a shape
+parameter and <span class="math inline">\(I(\&gt;)\)</span> denotes the
+indicator function. In other words, the parameter <span
+class="math inline">\(l\)</span> is an upper bound for the lower limit
+of the uniform (i.e. <span class="math inline">\(\alpha\)</span>), and
+the parameter <span class="math inline">\(u\)</span> is a lower limit
+for the upper limit of the uniform (i.e. <span
+class="math inline">\(\beta\)</span>). We can think of <span
+class="math inline">\((-\infty,l)\)</span> as our prior interval for the
+worst possible candidate applying and <span
+class="math inline">\((u,\infty)\)</span> as our prior interval for the
+best possible candidate. The shape parameter <span
+class="math inline">\(k\)</span> denotes how concentrated the prior
+density is near the limits <span class="math inline">\(l\)</span> and
+<span class="math inline">\(u\)</span>, respectively.</p>
+<p>In the example: the princess may think entitlements and the cool
+future title (king) ensures that the worst possible prince up for wooing
+her would at least be a five. Similarly, the lower bound on the upper
+limit means that the princess initially thinks that due to her stingy
+dad (the current king) the best overall applicant might, in worst case,
+just be about a seven. Finally, the parameter <span
+class="math inline">\(k\)</span> quantifies the strength in her prior
+belief - the higher <span class="math inline">\(k\)</span> the closer
+the true limits are to the values of <span
+class="math inline">\(l\)</span> and <span
+class="math inline">\(u\)</span>. Since the princess is unsure how well
+her prior is suited, she assumes a low value of <span
+class="math inline">\(k\)</span>, say, <span
+class="math inline">\(k=0.1\)</span>.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="do">#################################################</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint bilateral Pareto prior</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters:</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">#  theta - vector length two containing (alpha,beta)</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">#  k     - parameter</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co">#  l     - upper bound for alpha (i.e. an upper bound for the true lower bound)</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co">#  u     - lower for beta (i.e. a lower bound for the true upper bound)</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="do">################################################</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>f_pareto <span class="ot">&lt;-</span> <span class="cf">function</span>(theta,k,l,u) {</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.matrix</span>(theta)) {</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    alpha <span class="ot">&lt;-</span> theta[,<span class="dv">1</span>] ; beta <span class="ot">&lt;-</span> theta[,<span class="dv">2</span>]</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    alpha <span class="ot">&lt;-</span> theta[<span class="dv">1</span>]  ; beta <span class="ot">&lt;-</span> theta[<span class="dv">2</span>]</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Compute PDF</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a> <span class="fu">ifelse</span>(alpha <span class="sc">&lt;</span> l <span class="sc">&amp;</span> beta <span class="sc">&gt;</span> u,</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>        k<span class="sc">*</span>(k<span class="sc">+</span><span class="dv">1</span>)<span class="sc">*</span>(u <span class="sc">-</span> l)<span class="sc">^</span>k <span class="sc">/</span> (beta<span class="sc">-</span>alpha)<span class="sc">^</span>(k<span class="sc">+</span><span class="dv">2</span>), <span class="dv">0</span>)</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>We illustrate the prior setting consisting of <span
+class="math inline">\(l=5\)</span> and <span
+class="math inline">\(u=7\)</span> and the two values <span
+class="math inline">\(k=0.1\)</span> and <span
+class="math inline">\(k=1\)</span>:</p>
+<pre><code>## Warning: stat_contour(): Zero contours were generated</code></pre>
+<pre><code>## Warning in min(x): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(x): no non-missing arguments to max; returning -Inf</code></pre>
+<p><img
+src="/blog/figure/source/2016-06-19-princesAsUniforms/PARETO_PDF-1.png" /></p>
+<p>And the marginal density for two slices of the above joint density
+is:</p>
+<p><img
+src="/blog/figure/source/2016-06-19-princesAsUniforms/PDF_PARETO_MARGINAL-1.png" /></p>
+<p>An important feature of this bivariate Pareto prior is that it is the
+conjugate prior to uniform sampling <span class="citation"
+data-cites="degroot1970">(DeGroot 1970)</span>. In other words, if <span
+class="math inline">\((\alpha,\beta) \sim
+\text{bPar}(k,l_0,u_0)\)</span> and observations <span
+class="math inline">\(X_1,\ldots,X_i \stackrel{\text{iid}}{\sim}
+U(\alpha,\beta)\)</span> become available, then the posterior
+distribution of interest is</p>
+<p><span class="math display">\[
+(\alpha,\beta)&#39; \&gt;|\&gt; X_1,\ldots,X_i \sim
+\text{bPar}(k+i,l_i,u_i),
+\]</span> where <span class="math display">\[
+\begin{align*}
+l_i &amp;= \min(l_0,x_1,\ldots,x_i), \\
+u_i &amp;= \max(u_0,x_1,\ldots,x_i).
+\end{align*}
+\]</span> In other words, the posterior depends only on <span
+class="math inline">\(l_i\)</span> and <span
+class="math inline">\(u_i\)</span> and not the individual <span
+class="math inline">\(x_i\)</span>’s. Let <span
+class="math inline">\(\gamma_i\)</span> be the obtained score, if we at
+stage <span class="math inline">\(i\)</span> select the <span
+class="math inline">\(i\)</span>’th candidate. Furthermore, using the
+same expectation definition as in the previous section, let <span
+class="math inline">\(E_i\)</span> be the expected score obtained by
+following a particular strategy from the <span
+class="math inline">\(i\)</span>’th candidate to the <span
+class="math inline">\(n\)</span>’th candidate.</p>
+<p><span class="math display">\[
+\begin{align*}
+\gamma_n &amp;= x_n \\
+E_i      &amp;= E(\gamma_i | x_1,\ldots, x_{i-1}), &amp; i \leq n, \\
+\gamma_i &amp;= \max(x_i, E_{i+1}),                  &amp; i &lt; n.
+\end{align*}
+\]</span></p>
+<p><span class="citation" data-cites="stewart1978">Stewart (1978)</span>
+then shows that the optimal strategy is found by the following approach,
+which we here for simplicity shall program directly in R:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Small helper function to convert between index 0 and R&#39;s index 1 storing</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>idx <span class="ot">&lt;-</span> <span class="cf">function</span>(i) i<span class="sc">+</span><span class="dv">1</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Compute delta vector, which is a helper-vector in the solution of Stewart (1978)</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>compute_delta <span class="ot">&lt;-</span> <span class="cf">function</span>(n, k) {</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Define delta&#39;s</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  delta <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">NA</span>,n<span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  delta[<span class="fu">idx</span>(n<span class="dv">-1</span>)] <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">rev</span>(<span class="fu">seq_len</span>(n<span class="dv">-1</span>))) {</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (delta[<span class="fu">idx</span>(i)]<span class="sc">&gt;</span><span class="dv">1</span>) {</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>      delta[<span class="fu">idx</span>(i<span class="dv">-1</span>)] <span class="ot">&lt;-</span> delta[<span class="fu">idx</span>(i)]</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>      delta[<span class="fu">idx</span>(i<span class="dv">-1</span>)] <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">2</span><span class="sc">*</span>(<span class="dv">1</span><span class="sc">+</span>(k<span class="sc">+</span>i<span class="dv">-1</span>)<span class="sc">/</span>(k<span class="sc">+</span>i<span class="sc">+</span><span class="dv">1</span>)<span class="sc">*</span>delta[<span class="fu">idx</span>(i)]<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> (k<span class="sc">+</span>i<span class="dv">-1</span>)<span class="sc">*</span>delta[<span class="fu">idx</span>(i)]<span class="sc">/</span>(k<span class="sc">+</span>i<span class="sc">+</span><span class="dv">1</span>)<span class="sc">/</span>(k<span class="sc">+</span>i<span class="dv">-2</span>)</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(delta)</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="do">###############################################################</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a><span class="do">## Bayesian sequential learning for a sequence of scores using the</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a><span class="do">## procedure described in Stewart (1978)</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a><span class="do">##</span></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a><span class="do">## Parameters:</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a><span class="do">##  x - vector of candidate scores (scores are only revealed sequentially)</span></span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a><span class="do">##  prior - list containing prior values for k, l and u</span></span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a><span class="do">###############################################################</span></span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>strategy_pig <span class="ot">&lt;-</span> <span class="cf">function</span>(x, prior) {</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Extract and precompute</span></span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(x)</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>  delta <span class="ot">&lt;-</span> <span class="fu">compute_delta</span>(n,<span class="at">k=</span>prior<span class="sc">$</span>k)</span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Generate data_frame to work on</span></span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>  seq <span class="ot">&lt;-</span> <span class="fu">data_frame</span>(<span class="at">i=</span><span class="fu">c</span>(<span class="dv">0</span>,<span class="fu">seq_len</span>(n<span class="sc">+</span><span class="dv">1</span>)),<span class="at">x=</span><span class="fu">c</span>(<span class="cn">NA</span>,x,<span class="cn">NA</span>), <span class="at">delta=</span><span class="fu">c</span>(delta,<span class="cn">NA</span>))</span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Sequential updating of l and u from the data</span></span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>  l <span class="ot">&lt;-</span> <span class="fu">cummin</span>(<span class="fu">c</span>(prior<span class="sc">$</span>l,x))</span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>  u <span class="ot">&lt;-</span> <span class="fu">cummax</span>(<span class="fu">c</span>(prior<span class="sc">$</span>u,x))</span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>  seq <span class="ot">&lt;-</span> seq <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">l=</span><span class="fu">c</span>(l,l[n]),<span class="at">u=</span><span class="fu">c</span>(u,u[n]),<span class="at">im1div2=</span>i<span class="fl">-0.5</span>)</span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Compute expectation</span></span>
+<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>  seq <span class="ot">&lt;-</span> seq <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">E=</span><span class="fu">lag</span>(delta)<span class="sc">*</span><span class="fu">lag</span>(u) <span class="sc">+</span> (<span class="dv">1</span><span class="sc">-</span><span class="fu">lag</span>(delta))<span class="sc">*</span><span class="fu">lag</span>(l))</span>
+<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Decision boundary</span></span>
+<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>  seq <span class="ot">&lt;-</span> seq <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">threshold=</span>delta<span class="sc">*</span>u <span class="sc">+</span> (<span class="dv">1</span><span class="sc">-</span>delta)<span class="sc">*</span>l, <span class="at">rank=</span><span class="fu">rank</span>(x),<span class="at">isOverallBest=</span>(rank <span class="sc">==</span> n))</span>
+<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Ensure that last candidate is always taken</span></span>
+<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>  seq[n<span class="sc">+</span><span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,<span class="st">&quot;threshold&quot;</span>] <span class="ot">&lt;-</span> <span class="fu">min</span>(x)</span>
+<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Find r_1 and return there characteristics</span></span>
+<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a>  r1 <span class="ot">&lt;-</span> seq <span class="sc">%&gt;%</span> <span class="fu">filter</span>(delta <span class="sc">&lt;=</span> <span class="dv">1</span> <span class="sc">&amp;</span> i <span class="sc">&lt;</span> n <span class="sc">&amp;</span> i <span class="sc">&gt;</span> <span class="fu">max</span>(<span class="dv">0</span>,<span class="dv">2</span><span class="sc">-</span>prior<span class="sc">$</span>k)) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(i) <span class="sc">%&gt;%</span> as.numeric</span>
+<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>  select <span class="ot">&lt;-</span> seq <span class="sc">%&gt;%</span> <span class="fu">filter</span>(i <span class="sc">&gt;=</span> r1) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(x <span class="sc">&gt;=</span> threshold) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span>)</span>
+<span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">list</span>(<span class="at">seq=</span>seq,<span class="at">select=</span>select))</span>
+<span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>We now simulate a particular scenario consisting of 11 princes wooing
+a princess and apply the optimal selection strategy applying the
+princess’ prior:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Prior info</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>prior <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">k=</span><span class="fl">0.1</span>,<span class="at">l=</span><span class="dv">5</span>,<span class="at">u=</span><span class="dv">7</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Reverse engineering a happy end! :-)</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co"># which(sapply(1:100, function(i) {</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   set.seed(i); x &lt;- runif(n=11,0,10)</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   s &lt;- strategy_pig(x, prior=prior)</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   as.numeric(s$select[,&quot;isOverallBest&quot;])</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="co"># })==1)</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="do">##Sample princes from an uniform with unknown limits -- here X_i \sim U(0,10)</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">8</span>)</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">runif</span>(<span class="at">n=</span><span class="dv">11</span>,<span class="dv">0</span>,<span class="dv">10</span>)</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>s <span class="ot">&lt;-</span> <span class="fu">strategy_pig</span>(x, <span class="at">prior=</span>prior)</span></code></pre></div>
+<pre><code>## Warning: `data_frame()` was deprecated in tibble 1.1.0.
+## Please use `tibble()` instead.
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.</code></pre>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>s<span class="sc">$</span>select</span></code></pre></div>
+<pre><code>## # A tibble: 1 × 10
+##       i     x delta     l     u im1div2     E threshold  rank isOverallBest
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;        
+## 1     8  9.32 0.745  2.08  9.32     7.5  6.88      7.47    11 TRUE</code></pre>
+<p><img
+src="/blog/figure/source/2016-06-19-princesAsUniforms/animation-pig.gif" /></p>
+<p>The animation provides interesting insights: Firstly, the upper bound
+on the lower limit is updated along the way, because some seriously
+unfit candidates dare to woo. Secondly, the decision boundary is
+initially slightly above our lower bound on the upper limit. However,
+the first candidate (candidate no. 3) above this prior bound is not
+accepted, since it is still early in the sequence and thus little is
+known about the support of the uniform, i.e. the range of candidates
+applying. Hence, the princess hopes to get an even better candidate.
+However, as time passes by and no such candidate appears, the limit is
+slowly adjusted downwards. Luckily, the 8’th candidate not only brings a
+score better than imagined (and is thus selected), he also (seen through
+the omnipotent eyes of somebody knowing all the candidates) actually is
+the best prince among <strong>all</strong> the candidates,
+i.e. <code>isOverallBest=TRUE</code>. In other words: our mathematical
+fairy tale even has a happy end!</p>
+<center>
+<img
+src="/blog/figure/source/2016-06-19-princesAsUniforms/Fairytale-Fantasy-Castle-Landscape-300px.png"
+title="Source: https://openclipart.org/detail/231006/fairytale-fantasy-castle-landscape" />
+</center>
+<h1 id="discussion">Discussion</h1>
+<p>The full information game provides a good baseline to see the
+difference between having no information but the rank of candidates and
+knowing the distribution of the candidate’s score. More references and
+variants of the secretary problem can be found in <span class="citation"
+data-cites="freeman1983">Freeman (1983)</span>.</p>
+<h1 class="unnumbered" id="references">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-degroot1970" class="csl-entry" role="listitem">
+DeGroot, Morris. 1970. <em>Optimal Statistical Decisions</em>.
+McGraw-Hill. New York.
+</div>
+<div id="ref-freeman1983" class="csl-entry" role="listitem">
+Freeman, P. R. 1983. <span>“The Secretary Problem and Its Extensions: A
+Review.”</span> <em>International Statistical Review / Revue
+Internationale de Statistique</em> 51 (2): 189–206. <a
+href="http://www.jstor.org/stable/1402748">http://www.jstor.org/stable/1402748</a>.
+</div>
+<div id="ref-gilbert_mosteller1966" class="csl-entry" role="listitem">
+Gilbert, J. P., and F. Mosteller. 1966. <span>“Recognizing the Maximum
+of a Sequence.”</span> <em>Journal of the American Statistical
+Association</em> 61 (313): 35–73. <a
+href="http://www.jstor.org/stable/2283044">http://www.jstor.org/stable/2283044</a>.
+</div>
+<div id="ref-guttman1960" class="csl-entry" role="listitem">
+Guttman, I. 1960. <span>“On a Problem of l. Moser.”</span> <em>Canadian
+Mathematical Bulletin</em> 3: 35–39.
+</div>
+<div id="ref-stewart1978" class="csl-entry" role="listitem">
+Stewart, T. J. 1978. <span>“Optimal Selection from a Random Sequence
+with Learning of the Underlying Distribution.”</span> <em>Journal of the
+American Statistical Association</em> 73 (364): 775–80. <a
+href="http://www.jstor.org/stable/2286279">http://www.jstor.org/stable/2286279</a>.
+</div>
+</div>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2016/06/19/princesAsUniforms.html";
+      this.page.identifier = "/2016/06/19/princesAsUniforms";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

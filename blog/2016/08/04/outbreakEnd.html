@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>No Sleep During the Reproducibility Session</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2016/08/04/outbreakEnd.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">No Sleep During the Reproducibility Session</h1>
+    <p class="post-meta"><time datetime="2016-08-04T00:00:00+02:00" itemprop="datePublished">Aug 4, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>R code is provided for implementing a statistical method by <span
+class="citation" data-cites="nishiura_etal2016">Nishiura, Miyamatsu, and
+Mizumoto (2016)</span> to assess when to declare the end of an outbreak
+of a person-to-person transmitted disease. The motivating example is the
+MERS-CoV outbreak in Korea, 2015. From a greater perspective, the blog
+entry is an attempt to advocate for spicing up statistical conferences
+by a <strong>reproducibility session</strong>.</p>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h1 id="introduction">Introduction</h1>
+<p>A few weeks ago I went to the <a
+href="https://biometricconference.org/">International Biometric
+Conference (IBC)</a> in Victoria. Conferences are good for meeting
+people, but with respect to scientific content, there is typically no
+more than 2-3 talks in a week, which you really remember. Partly, this
+is due to the format of statistics conferences not developing much in
+recent decades: it is plenary talks, invited sessions, contributed
+sessions, showcase sessions and poster sessions all over. However, some
+developments have occurred, e.g. </p>
+<ul>
+<li>the German joint statistical meeting introduced the concept of a <a
+href="http://www.uni-goettingen.de/de/501387.html">stats bazaar</a>
+talk.</li>
+<li>the <a href="http://user2016.org/">R User Conference</a> has added
+some interesting additional formats, e.g. lightning talks, in order to
+make life at a conference more interesting. Thomas Leeper has written an
+inspiring <a
+href="http://thomasleeper.com/2015/07/user2015-lessons/">blog post</a>
+about this issue.</li>
+</ul>
+<p>Not all science is ‘fun’, but when balancing between adding
+yet-another-table-from-a-simulation-study against 95% of the audience
+dozing off, I urge you to aim for an awake audience.</p>
+<p>So here is an additional session format in the spirit of
+<strong>reproducible science</strong>, which might help make statistics
+conference more alive again: Take the contents of a talk, find the
+corresponding paper/technical report/slides, download the data (of
+course these are available) and start implementing. After all, hacking a
+statistical method is the best way to understand it and reproducing the
+results of an analysis is a form of peer-review we should do much more
+as statisticians. The important <a
+href="The%20Importance%20of%20Reproducible%20Research%20in%20High-Throughput%20Biology:%20Case%20Studies%20in%20Forensic%20Bioinformatics">talk</a>
+by <a href="http://odin.mdacc.tmc.edu/~kabaggerly/">Keith A.
+Baggerly</a> about reproducibility in bioinformatics more than
+underlines this.</p>
+<p>As a consequence, this blog entry is my attempt of a
+<strong>repro-session</strong> in connection with the IBC: The talk
+entitled <em><a
+href="https://biometricconference.org/contributed-sessions/oral/detail/?sessionID=CS.15">Determining
+the end of an epidemic with human-to-human transmission</a></em> by <a
+href="http://plaza.umin.ac.jp/~infepi/hnishiura.htm">Hiroshi
+Nishiura</a> was both interesting, from a field I’m interested in
+(infectious disease epidemiology) and the method looked like it could be
+re-implemented in finite time. The question the method tries to answer
+is the following: at which time point can one declare an outbreak of a
+person-to-person transmitted disease as having ended? Answering this
+question can be important in order to calm the population, attract
+tourists again, export goods or reduce alertness status. The current WHO
+method for answering the question requires that a period of two times
+the longest possible incubation time needs to have passed since the last
+cases before an outbreak can be declared as being over. However, as
+stated in their paper (<span class="citation"
+data-cites="nishiura_etal2016">Nishiura, Miyamatsu, and Mizumoto
+(2016)</span>), the criterion clearly lacks a statistical motivation. As
+an improvement Nishiura and co-workers formulate a statistical criterion
+based on the serial interval distribution and the offspring
+distribution.</p>
+<p>In what follows we shall quickly describe their method and apply it
+to their motivating example, which was the 2015 MERS-CoV outbreak in
+Korea. As a small outlook, we shall implement some own thoughts on how
+to answer the posed questions using a hierarchical model.</p>
+<h1 id="method">Method</h1>
+<p>Let <span class="math inline">\(Y_t\)</span> be a count variable
+representing the number of symptom onset in cases we observe on a given
+day <span class="math inline">\(t\)</span> during the outbreak. The
+sequence of the <span class="math inline">\(Y_t\)</span> is also called
+the <a
+href="http://www.cdc.gov/foodsafety/outbreaks/investigating-outbreaks/epi-curves.html"><strong>epidemic
+cuve</strong></a> of the outbreak. Furthermore, let <span
+class="math inline">\(D=\{t_i; i=1,\ldots,n\}\)</span>, be the currently
+available outbreak data containing the time of symptom onset in in each
+of the <span class="math inline">\(n\)</span> cases of the outbreak. In
+what follows we will be interested in what happens with <span
+class="math inline">\(Y_t\)</span> for future time points, i.e. time
+points after the last currently observed onset time. In particular we
+will be interested in, whether we will observe zero cases or more than
+zero cases.</p>
+<p>The important result of <span class="citation"
+data-cites="nishiura_etal2016">Nishiura, Miyamatsu, and Mizumoto
+(2016)</span> is that the probability <span class="math inline">\(\pi_t
+= P(Y_t &gt; 0\&gt;|\&gt;D)\)</span> can be computed as follows: <span
+class="math display">\[
+\begin{align*}
+\pi_t = 1 - \prod_{i=1}^n \sum_{o=0}^{\infty} f_{\text{offspring}}(o;
+R_0, k) \cdot \left[ F_{\text{serial}}(t-t_i) \right]^{o},
+\end{align*}
+\]</span> where <span
+class="math inline">\(f_{\text{offspring}}\)</span> denotes the PMF for
+the number of secondary cases one primary case induces. It is assumed
+that this distribution is negative binomial with expectation <span
+class="math inline">\(R_0&gt;0\)</span> and clumping parameter <span
+class="math inline">\(k&gt;0\)</span>. In other words, <span
+class="math inline">\(\operatorname{E}(O)=R_0\)</span> and <span
+class="math inline">\(\operatorname{Var}(O)=R_0 + R_0^2/k\)</span>.
+Furthermore, <span class="math inline">\(F_{\text{serial}}\)</span>
+denotes the CDF of the serial interval distribution of the disease of
+interest. The serial interval is the time period between the onset of
+symptoms in the primary and onset of symptoms in the secondary case, see
+<span class="citation" data-cites="svensson2007">Svensson
+(2007)</span>.</p>
+<p>Once <span class="math inline">\(\pi_t\)</span> is below some
+pre-defined threshold <span class="math inline">\(c\)</span>, say <span
+class="math inline">\(c=0.05\)</span>, one would declare the outbreak to
+be over, if no new cases have been observed by time <span
+class="math inline">\(t\)</span>. In other words: <span
+class="math display">\[
+T_{\text{end}} = \min_{t&gt;t^*} \{ \pi_t &lt; c \}.
+\]</span> where <span class="math inline">\(t^* = \max_{i=1,\ldots,n}
+t_i\)</span>, i.e. the onset time in the last observed case.</p>
+<p>Note that the formulated approach is conservative, because every
+available case is treated as having the potential to generate new
+secondary cases according to the entire offspring distribution. In
+practice, however, observed cases towards the end will be secondary
+cases of some of the earlier cases. Hence, these primary cases will be
+attributed as having the ability to generate more secondary cases than
+they actually have in practice. Another important assumption of the
+method is that all cases are observed: no asymptomatic cases nor
+under-reporting is taken into account.</p>
+<h2 id="data-from-the-mers-cov-oubtreak-in-korea-2015">Data from the
+MERS-Cov Oubtreak in Korea, 2015</h2>
+<p>The data basis for our analysis is the WHO data set on the <a
+href="http://www.who.int/csr/don/21-july-2015-mers-korea/en/">MERS-Cov
+outbreak in Korea</a>, which occurred during May-July 2015. It contains
+the information about 185 cases of the MERS-CoV outbreak in Korea, 2015.
+These were already analysed in a previous <a
+href="./2016-07-19-nowCast.Rmd">blog entry</a> for the purpose of
+nowcasting. However, we shall now be interested in answering the
+following question: Given the observations of symptoms on the last
+(known) case on 2015-07-02. How many days without new infections would
+have to pass, before we would declare the outbreak as having
+<strong>ended</strong>?</p>
+<h2 id="results">Results</h2>
+<p>In what follows we shall distinguish results between model parameters
+to be estimated from data and the computation of the probability <span
+class="math inline">\(\pi_t\)</span>. Focus of this blog entry is on the
+later part. Details on the first part is available in the code.</p>
+<h2 id="parameter-estimation">Parameter Estimation</h2>
+<p>The parameters to estimate are the following:</p>
+<ul>
+<li>parameters of the parametric distributional family governing the
+serial interval distribution (in <span class="citation"
+data-cites="nishiura_etal2016">Nishiura, Miyamatsu, and Mizumoto
+(2016)</span> this is assumed to be a gamma distribution)</li>
+<li>parameters of the offspring distribution, which here is assumed to
+be negative binomial with mean <span class="math inline">\(R_0\)</span>
+and clumping parameter <span class="math inline">\(k\)</span></li>
+</ul>
+<p>The first step is easily accomplished in <span class="citation"
+data-cites="nishiura_etal2015">Nishiura et al. (2015)</span> by solving
+for given mean and standard deviation for the serial interval
+distribution observed in secondary data - see the paper for details. The
+solution can be found analytically given the values.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>E <span class="ot">&lt;-</span> <span class="fl">12.6</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>SD <span class="ot">&lt;-</span> <span class="fl">2.8</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>(theta_serial <span class="ot">&lt;-</span> <span class="fu">c</span>(E<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span>SD<span class="sc">^</span><span class="dv">2</span>,E<span class="sc">/</span>SD<span class="sc">^</span><span class="dv">2</span>))</span></code></pre></div>
+<pre><code>## [1] 20.25  1.61</code></pre>
+<p>The second part is addressed in <span class="citation"
+data-cites="nishiura_etal2015">Nishiura et al. (2015)</span> by
+analysing final-size and generation data using a maximum likelihood
+approach. We will here only implement the methods using the data
+presented in Figure 1 and Table 1 of the paper. Unfortunately, one
+cluster size is not immediately reconstructable from the data in the
+paper, but guesstimating from the table on p.4 of the <a
+href="http://ecdc.europa.eu/en/publications/Publications/RRA-Middle-East-respiratory-syndrome-coronavirus-Korea.pdf">ECDC
+Rapid Risk Assessment</a> it appears to be the outbreak in Jordan with a
+size of 19. The likelihood is then maximized for <span
+class="math inline">\(\mathbf{\theta}=(\log(R_0),\log(k))&#39;\)</span>
+using <code>optim</code>. Based on the Hessian, a numeric approximation
+of the variance-covariance matrix of <span
+class="math inline">\(\hat{\mathbf{\theta}}\)</span> can be
+obtained.</p>
+<p>Altogether, we maximize the combined likelihood consisting of 36 as
+well as the corresponding number of generations by:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>theta_mle <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="fu">log</span>(<span class="dv">1</span>),<span class="fu">log</span>(<span class="dv">1</span>)),ll_combine, <span class="at">outbreaks=</span>outbreaks, <span class="at">control=</span><span class="fu">list</span>(<span class="at">fnscale=</span><span class="sc">-</span><span class="dv">1</span>),<span class="at">hessian=</span><span class="cn">TRUE</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(theta_mle<span class="sc">$</span>par)</span></code></pre></div>
+<pre><code>## [1] 0.826 0.128</code></pre>
+<p>These numbers deviate slightly from the values of <span
+class="math inline">\(\hat{R}_0=0.75\)</span> and <span
+class="math inline">\(\hat{k}=0.14\)</span> reported by <span
+class="citation" data-cites="nishiura_etal2015">Nishiura et al.
+(2015)</span>. One explanation might be the unclear cluster size of the
+Jordan outbreak, here it would have been helpful to have had all data
+directly available in electronic form.</p>
+<h2 id="outbreak-end">Outbreak End</h2>
+<p>The above <span class="math inline">\(\pi_t\)</span> equation is
+implemented below as function <code>p_oneormore</code>. It requires the
+use of the PMF of the offspring distribution (<code>doffspring</code>),
+which here is the negative binomial offspring distribution.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Offspring distribution, this is just the negative binomial PMF.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>doffspring <span class="ot">&lt;-</span> <span class="cf">function</span>(y, R_0, k, <span class="at">log=</span><span class="cn">FALSE</span>) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dnbinom</span>(y, <span class="at">mu=</span>R_0, <span class="at">size=</span>k, <span class="at">log=</span>log)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="do">##Probability for one or more cases at time t.</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>p_oneormore <span class="ot">&lt;-</span> <span class="fu">Vectorize</span>(<span class="cf">function</span>(t,R_0,k,theta_serial,<span class="at">yMax=</span><span class="fl">1e4</span>,<span class="at">verbose=</span><span class="cn">FALSE</span>) {</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (verbose) <span class="fu">cat</span>(<span class="fu">paste0</span>(t,<span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Loop over all cases as in eqn (1) of the suppl. of Nishiura (2016).</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Setup process bar for this action.</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (verbose) {</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    pb <span class="ot">&lt;-</span> <span class="fu">startpb</span>(<span class="dv">1</span>, <span class="fu">nrow</span>(linelist))</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">on.exit</span>(<span class="fu">closepb</span>(pb))</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(linelist))) {</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (verbose) { <span class="fu">setpb</span>(pb, i) }</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    serial_time <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(t <span class="sc">-</span> linelist<span class="sc">$</span>Date.of.symptoms.onset[i])</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    cdf <span class="ot">&lt;-</span> <span class="fu">pgamma</span>(serial_time, theta_serial[<span class="dv">1</span>], theta_serial[<span class="dv">2</span>])</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">&lt;-</span> 0L<span class="sc">:</span>yMax</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    ysum <span class="ot">&lt;-</span> <span class="fu">sum</span>( <span class="fu">doffspring</span>(<span class="at">y=</span>y,<span class="at">R_0=</span>R_0,<span class="at">k=</span>k)<span class="sc">*</span>cdf<span class="sc">^</span>y)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    res <span class="ot">&lt;-</span> res <span class="sc">*</span> ysum</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="dv">1</span><span class="sc">-</span>res)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>},<span class="at">vectorize.args=</span><span class="fu">c</span>(<span class="st">&quot;t&quot;</span>,<span class="st">&quot;R_0&quot;</span>,<span class="st">&quot;k&quot;</span>))</span></code></pre></div>
+<p>The function allows us to re-calculate the results of <span
+class="citation" data-cites="nishiura_etal2016">Nishiura, Miyamatsu, and
+Mizumoto (2016)</span>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Results from the Nishiura et al. (2015) paper</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="do">##R_0_hat &lt;- 0.75 ; k_hat &lt;- 0.14</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="do">##Use MLE found with the data we were able to extract.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>R_0_hat <span class="ot">&lt;-</span> <span class="fu">exp</span>(theta_mle<span class="sc">$</span>par[<span class="dv">1</span>])</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>k_hat   <span class="ot">&lt;-</span> <span class="fu">exp</span>(theta_mle<span class="sc">$</span>par[<span class="dv">2</span>])</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Compute prob for one or more cases on a grid of dates</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data_frame</span>(<span class="at">t=</span><span class="fu">seq</span>(<span class="fu">as.Date</span>(<span class="st">&quot;2015-07-15&quot;</span>),<span class="fu">as.Date</span>(<span class="st">&quot;2015-08-05&quot;</span>),<span class="at">by=</span><span class="st">&quot;1 day&quot;</span>))</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">pi =</span>  <span class="fu">p_oneormore</span>(t,<span class="at">R_0=</span>R_0_hat, <span class="at">k=</span>k_hat, <span class="at">theta_serial=</span>theta_serial, <span class="at">yMax=</span><span class="dv">250</span>,<span class="at">verbose=</span><span class="cn">FALSE</span>))</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df, <span class="at">n=</span><span class="dv">3</span>)</span></code></pre></div>
+<pre><code>## Source: local data frame [3 x 2]
+## 
+##            t    pi
+##       (date) (dbl)
+## 1 2015-07-15 0.366
+## 2 2015-07-16 0.297
+## 3 2015-07-17 0.226</code></pre>
+<p>We can embed estimation uncertainty originating from the estimation
+of <span class="math inline">\(R_0\)</span> and <span
+class="math inline">\(k\)</span> by adding an additional bootstrap step
+with values of <span class="math inline">\((\log R_0, \log
+k)&#39;\)</span> sampled from the asymptotic normal distribution. This
+distribution has expectation equal to the MLE and variance-covariance
+matrix equal to the observed Fisher information. Pointwise
+percentile-based 95% confidence intervals are then easily computed. The
+figure below shows this 95% CI (shaded area) together with the <span
+class="math inline">\(\pi_t\)</span> curve.</p>
+<p><img
+src="/blog/figure/source/2016-08-04-outbreakEnd/unnamed-chunk-8-1.png" /></p>
+<p>Altogether, the date where we would declare the outbreak to be over
+is found as:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>c_threshold <span class="ot">&lt;-</span> <span class="fl">0.05</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>(tEnd <span class="ot">&lt;-</span> df2 <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">quantile.97.5%</span><span class="st">`</span> <span class="sc">&lt;</span> c_threshold) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(1L))</span></code></pre></div>
+<pre><code>## # A tibble: 1 x 4
+##   t              pi `quantile.2.5%` `quantile.97.5%`
+##   &lt;date&gt;      &lt;dbl&gt;           &lt;dbl&gt;            &lt;dbl&gt;
+## 1 2015-07-21 0.0345          0.0253           0.0454</code></pre>
+<p>In other words, given the assumptions of the model and the chosen
+threshold, we would declare the outbreak to be over, if no new cases are
+observed by 2015-07-21. The adequate choice of <span
+class="math inline">\(c\)</span> as cut-off in the procedure in general
+depends on what is at stake. Hence, choosing <span
+class="math inline">\(c=0.05\)</span> without additional thought is more
+than arbitrary, but a more careful discussion is beyond the scope of
+this blog note.</p>
+<h2 id="hierarchical-model">Hierarchical model</h2>
+<p>Commenting on the derivations done in <span class="citation"
+data-cites="nishiura_etal2016">Nishiura, Miyamatsu, and Mizumoto
+(2016)</span> from a Bayesian viewpoint, it appears more natural to
+formulate the model directly in hierarchical terms:</p>
+<p><span class="math display">\[
+\begin{align*}
+N_i                  &amp;\sim
+\operatorname{NegBin}(R_0,k),                    &amp;
+i&amp;=1,\ldots,n,\\
+\mathbf{O}_i\&gt;|\&gt;N_i &amp;\sim
+\operatorname{M}(N_i,\mathbf{p}_{\text{serial}}),&amp;
+i&amp;=1,\ldots,n,\\
+Y_t\&gt;|\&gt; \mathbf{O}  &amp;= \sum_{i=1}^n O_{i,t_i-t}, &amp;
+t&amp;=t^*+1,t^*+2,\ldots,\\
+\end{align*}
+\]</span> where <span
+class="math inline">\(\mathbf{p}_{\text{serial}}\)</span> is the PMF of
+the discretized serial interval distribution for exampling obtained by
+computing <span class="math inline">\(p_{y} = F_{\text{serial}}(y) -
+F_{\text{serial}}(y-1)\)</span> for <span
+class="math inline">\(0&lt;y\leq S\)</span>, where <span
+class="math inline">\(S\)</span> is the largest possible/relevant serial
+interval to consider, and letting <span class="math inline">\(p_{0} =
+0\)</span>. Furthermore, <span
+class="math inline">\(O_{i,t_i-t}=0\)</span> if <span
+class="math inline">\(t_i-t&lt;0\)</span> or <span
+class="math inline">\(t_i-t&gt;S\)</span> and corresponds to the value
+obtained from <span
+class="math inline">\(M(N_i,\mathbf{p}_{\text{serial}})\)</span>
+otherwise. Finally, <span
+class="math inline">\(\mathbf{O}=(\mathbf{O}_1,\ldots,\mathbf{O}_n)\)</span>.</p>
+<p>Given <span class="math inline">\(R_0\)</span> and <span
+class="math inline">\(k\)</span> it is easy to use Monte Carlo
+simulation to obtain instances of <span
+class="math inline">\(Y_t\)</span> for a selected time-range from the
+above model. The code for this function <code>simulation</code> is
+available as part of this R-markdown document (again, see the underlying
+source on the github repository for details). Similarly to the previous
+model the hierarchical model is also slightly conservative, because it
+does not take existing secondary cases in the data into account and
+samples <span class="math inline">\(N_i\)</span> new secondary cases for
+each observed case.</p>
+<p>Since we for this model will be using simulations it is easy to
+modify the criterion for fade-out slightly to the more natural
+probability <span class="math inline">\(\pi_t^*\)</span> that no case at
+<span class="math inline">\(t\)</span> <em>nor beyond <span
+class="math inline">\(t\)</span></em> will occur, i.e. <span
+class="math display">\[
+\pi_t^* = P\left( \bigwedge_{i=t}^\infty \{Y_t = 0\} \right).
+\]</span></p>
+<p>We perform a study with 10000 different simulations each evaluated on
+a grid from 2015-07-03 to 2015-07-27. The resulting values are stored in
+the <span class="math inline">\(25 \times 10000\)</span> matrix
+<code>Y</code> from which we can compute:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">apply</span>(Y,<span class="dv">1</span>,mean)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>pi[pi <span class="sc">&lt;</span> c_threshold]</span></code></pre></div>
+<pre><code>## 2015-07-21 2015-07-22 2015-07-23 2015-07-24 2015-07-25 2015-07-26 2015-07-27 
+##     0.0341     0.0197     0.0095     0.0037     0.0021     0.0013     0.0004</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Better way to calc extinction prob.</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>pi_star <span class="ot">&lt;-</span> <span class="fu">rev</span>(<span class="fu">apply</span>(<span class="fu">apply</span>(Y,<span class="dv">2</span>,<span class="cf">function</span>(x) <span class="fu">cumsum</span>(<span class="fu">rev</span>(x))<span class="sc">&gt;</span><span class="dv">0</span>),<span class="dv">1</span>,mean))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>pi_star[pi_star <span class="sc">&lt;</span> c_threshold]</span></code></pre></div>
+<pre><code>## 2015-07-22 2015-07-23 2015-07-24 2015-07-25 2015-07-26 2015-07-27 
+##     0.0343     0.0168     0.0075     0.0038     0.0017     0.0004</code></pre>
+<p>We note that the result, when using <span
+class="math inline">\(\pi_t^*\)</span> instead of <span
+class="math inline">\(\pi_t\)</span>, leads to the outbreak being
+declared over one day later. Additional uncertainty handling is
+performed as before by obtaining bootstrap samples for <span
+class="math inline">\((\log R_0, \log k)&#39;\)</span> from the
+asymptotic normal distribution. For each such sample the above Monte
+Carlo procedure is executed allowing us to determine point-wise
+confidence intervals for the probability by the percentile method.</p>
+<p><img
+src="http://staff.math.su.se/hoehle/blog/figure/source/2016-08-04-outbreakEnd/Y_UNCERTAINTY-1.png" /></p>
+<h1 id="discussion">Discussion</h1>
+<p>The present note introduced the statistical model based approach of
+<span class="citation" data-cites="nishiura_etal2016">Nishiura,
+Miyamatsu, and Mizumoto (2016)</span> for declaring the end of a
+person-to-person transmitted disease outbreak such as MERS-Cov, Ebola,
+etc. If the considered outbreak has a different mode of transmission,
+e.g. foodborne or originates from a point-source, then different
+formulas apply, see e.g. <span class="citation"
+data-cites="brookmeyer_you2006">Brookmeyer and You (2006)</span>.
+Interestingly enough, there appears to be some methodological overlap
+between declaring the end of an outbreak and declaring a software
+product to be free of errors.</p>
+<p>To summarise: The results of the <span class="citation"
+data-cites="nishiura_etal2016">Nishiura, Miyamatsu, and Mizumoto
+(2016)</span> paper could - with some fiddling to guesstimate the data -
+be approximately reproduced. A hierarchical model with simulation based
+inference was able to produce similar results. Availability of the full
+data in electronic form would have been helpful. Altoghether, it was fun
+to implement the method and hope is that the avaibility of the present
+analysis and R code might be helpful to someone at some point. You are
+certainly invited to <strong>reprofy</strong> the present analysis.</p>
+<center>
+<img
+src="https://openclipart.org/image/300px/svg_to_png/169987/copy.png&amp;disposition=attachment" />
+</center>
+<p>
+<h3 id="acknowledgements">Acknowledgements</h3>
+<p>I thank Hiroshi Nishiura for answering questions about their
+paper.</p>
+<h1 class="unnumbered" id="references">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-brookmeyer_you2006" class="csl-entry" role="listitem">
+Brookmeyer, R., and X. You. 2006. <span>“<span
+class="nocase"><span>A</span> hypothesis test for the end of a common
+source outbreak</span>.”</span> <em>Biometrics</em> 62 (1): 61–65. <a
+href="https://doi.org/10.1111/j.1541-0420.2005.00421.x">https://doi.org/10.1111/j.1541-0420.2005.00421.x</a>.
+</div>
+<div id="ref-nishiura_etal2015" class="csl-entry" role="listitem">
+Nishiura, H., Y. Miyamatsu, G. Chowell, and M. Saitoh. 2015.
+<span>“<span class="nocase"><span>A</span>ssessing the risk of observing
+multiple generations of <span>M</span>iddle <span>E</span>ast
+respiratory syndrome
+(<span>M</span><span>E</span><span>R</span><span>S</span>) cases given
+an imported case</span>.”</span> <em>Euro Surveill.</em> 20 (27). <a
+href="https://doi.org/10.2807/1560-7917.ES2015.20.27.21181 ">https://doi.org/10.2807/1560-7917.ES2015.20.27.21181
+</a>.
+</div>
+<div id="ref-nishiura_etal2016" class="csl-entry" role="listitem">
+Nishiura, H., Y. Miyamatsu, and K. Mizumoto. 2016. <span>“<span
+class="nocase"><span>O</span>bjective <span>D</span>etermination of
+<span>E</span>nd of
+<span>M</span><span>E</span><span>R</span><span>S</span>
+<span>O</span>utbreak, <span>S</span>outh <span>K</span>orea,
+2015</span>.”</span> <em>Emerging Infect. Dis.</em> 22 (1): 146–48. <a
+href="https://doi.org/10.3201/eid2201.151383">https://doi.org/10.3201/eid2201.151383</a>.
+</div>
+<div id="ref-svensson2007" class="csl-entry" role="listitem">
+Svensson, Å. 2007. <span>“<span class="nocase"><span>A</span> note on
+generation times in epidemic models</span>.”</span> <em>Math Biosci</em>
+208 (1): 300–311. <a
+href="https://doi.org/10.1016/j.mbs.2006.10.010">https://doi.org/10.1016/j.mbs.2006.10.010</a>.
+</div>
+</div>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2016/08/04/outbreakEnd.html";
+      this.page.identifier = "/2016/08/04/outbreakEnd";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

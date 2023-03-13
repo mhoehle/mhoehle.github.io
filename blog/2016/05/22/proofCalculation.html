@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Right or Wrong? - Validate Numbers Like a Boss</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2016/05/22/proofCalculation.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Right or Wrong? - Validate Numbers Like a Boss</h1>
+    <p class="post-meta"><time datetime="2016-05-22T00:00:00+02:00" itemprop="datePublished">May 22, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>How does a statistician ensure that an analysis that comprises of
+outputting <span class="math inline">\(N\)</span> results is correct?
+Can this be done without manually checking each of the results? Some
+statistical approaches for this task of
+<strong>proof-calculation</strong> are described -
+e.g. capture-recapture estimation and sequential decision making.</p>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h1 id="introduction">Introduction</h1>
+<p>One activity the public associates with <strong>statistics</strong>
+is the generation of large tables containing a multitude of numbers on a
+phenomena of interest. Below an example containing the summary of <a
+href="https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/uklabourmarket/april2016">UK
+labour market statistics</a> for the 3 months to February 2016 from the
+Office for National Statistics:</p>
+<p><img
+src="/blog/figure/source/2016-05-22-proofCalculation/unemployment-apr2016.png"
+title="Source: https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/uklabourmarket/april2016" /></p>
+<p>Another example is The German Federal Government’s <a
+href="http://www.bmas.de/DE/Service/Medien/Publikationen/a334-4-armuts-reichtumsbericht-2013.html">4th
+Report on Poverty and Wealth</a>. The report consists of a total of 549
+pages with the pure table appendix fun starting on p. 518 including,
+e.g., age-adjusted ORs obtained from logistic regression modelling
+(p.523).</p>
+<p>Even though dynamic &amp; web-based reporting coupled with graphical
+&amp; interactive visualizations have developed to a point making such
+tables obsolete, this does not change the fact that the results still
+need to be <strong>correct</strong>. As a consequence, the results need
+to be validated to ensure their correctness, occasionally even beyond
+any doubt! In what follow we will use the term <strong>result</strong>
+to describe an output element of the statistical analysis. In most cases
+results are numbers, but we shall use the term number and result
+interchangeably. However, results could also denote higher level output
+elements, e.g., complete tables, a specific line in a graph or the
+complete output of a particular query.</p>
+<p>Surprisingly, statistics students are taught very little about
+addressing such a task using what we do best: statistics. We teach about
+the median, censoring &amp; truncation, complex modelling and computer
+intensive inference methods. Maybe we even tell them about
+<code>knitr</code> as way to get the same results twice (a minimum
+requirement to ensure correctness). However, spraying out numbers (even
+from the most beautiful model) is <strong>not cool</strong> if the
+initial data-munging went wrong or if your quotient is obtained by
+dividing with the wrong denominator.</p>
+<p>The on-going discussion of <strong>reproducible research</strong>
+aims at the core of this problem: How to ensure that your analysis
+re-producible and correct? As modern statistics becomes more and more
+programming oriented it appears natural to seek inspiration from the
+discipline of <strong>software testing</strong>. Another entertaining
+source of inspiration is the concept of optimal
+<strong>proofreading</strong>. This dates back to the 1970-1980s, where
+the problem is formulated as the search for an optimal stopping rules
+for the process of checking a text consisting of <span
+class="math inline">\(M\)</span> words - see for example Yang et
+al. (1982). Periodically, the software development community re-visits
+these works - see for example Hayes (2010). Singpurwalla and Wilson
+(1999) give a thorough exposition of treating uncertainty in the context
+of software engineering by interfacing between statistics and software
+engineering.</p>
+<h1 id="proofcalculation">Proofcalculation</h1>
+<p>The scientific method of choice to address validity is <strong>peer
+review</strong>. This can go as far as having the reviewer implement the
+analysis as a completely separate and independent process in order to
+check that results agree. Reporting the results of clinical trials have
+such independent implementations as part of the protocol. Such a
+co-pilot approach fits nicely to the fact that real-life statistical
+analysis rarely is a one-person activity anymore. In practice, there
+might neither be a need nor the resources to rebuild entire analyses,
+but critical parts need to be <strong>double-checked</strong>. Pair
+programming is one technique from the agile programming world to
+accomodate this. However, single programmers coding independently and
+then compare results appears a better way to quality-control critical
+code &amp; analysis segments.</p>
+<p>Formalizing the validation task into mathematical notation, let’s
+assume the report of interest consists of a total of <span
+class="math inline">\(N\)</span> numbers. These numbers have a
+hierarchical structure, e.g., they relate to various parts of the
+analysis or are part of individual tables. Error search is performed
+along this hierarchical structure. Good proofcalculation strategies
+follow the principles of software testing - for example it may be
+worthwhile to remember <strong>Pareto’s law</strong>: 80 percent of the
+error are found in 20 percent of the modules to test. In other words:
+keep looking for errors at places where you already found some. Further
+hints on a well structured debugging process can be found in Zeller
+(2009) where the quote on Pareto’s law is also from.</p>
+<p>One crucial question is what exactly we mean by an
+<strong>error</strong>? A result can be wrong, because of a bug in the
+code line computing it. Strictly speaking <strong>wrong</strong> is just
+the (mathematical) black-and-white version of the complex phenomena
+describing a misalignment between what is perceived and what is desired
+by somebody. A more in-depth debate of what’s <em>wrong</em> is beyond
+the scope of this note, but certainly there are situations when a result
+is agreeably wrong, e.g., due to erroneous counting of the number of
+distinct elements in the denominator set. More complicated cases could
+be the use of a wrong regression model compared to what was described in
+the methodology section, e.g., use of an extra unintended covariate.
+Even worse are problems in the data-prepossessing step resulting in a
+wrong data foundation and, hence, invalidating a large part of the
+results. Altogether, a result be wrong in more than one way and one
+error can invalidate several results: the <span
+class="math inline">\(M\)</span> results are just the final output -
+what matters is what happens along your <strong>analysis
+pipeline</strong>. Detecting a wrong result is thus merely a symptom of
+a flawed pipeline. This also means that fixing the bug causing a number
+to be wrong does not necessarily ensure that the number is correct
+afterwards.</p>
+<p>We summarise the above discussion by making the following simplifying
+abstractions:</p>
+<ul>
+<li><p>The number of results which is wrong is a function of the number
+of errors <span class="math inline">\(M\)</span>. One error invalidates
+at least one result, but it can invalidate several jointly and errors
+can overlap thus invalidating the same number.</p></li>
+<li><p>We deliberately keep the definition of an error vague, but mean a
+mechanism which causes a result to be wrong. The simplest form of a
+result is a number. The simplest error is a number which is
+wrong.</p></li>
+<li><p>The hierarchical structure of the numbers and the intertwined
+code generating them is ignored. Instead, we simply assume there are
+<span class="math inline">\(M\)</span> errors and assume that these
+errors are independent of each other.</p></li>
+</ul>
+<p>We shall now describe an estimation approach a decision theoretic
+approach for the problem.</p>
+<h1 id="team-based-validation">Team Based Validation</h1>
+<p>Consider the situation where a team of two statisticians together
+validate the same report. Say the team use a fixed amount of time
+(e.g. one day) trying to find as many errors in the numbers as possible.
+During the test period no errors are fixed - this happens only after the
+end of the period. Let’s assume that during the test period the two
+statistician found <span class="math inline">\(n_1\)</span> and <span
+class="math inline">\(n_2\)</span> wrong numbers, respectively. Let
+<span class="math inline">\(0 \leq n_{12} \leq \min(n_1,n_2)\)</span> be
+the number of wrong numbers which were found by both statisticians.</p>
+<p>The data in alternative representation: Denote by <span
+class="math inline">\(f_i, i=1,2\)</span> the number of wrong numbers
+found by <span class="math inline">\(i\)</span> of the testers, i.e.</p>
+<p><span class="math display">\[
+\begin{aligned}
+f_1 &amp;=(n_1-n_{12})+(n_2-n_{12})\\
+f_2 &amp;= n_{12}.
+\end{aligned}
+\]</span></p>
+<p>These are the wrong numbers found by only one of the testers and by
+both testers, respectively. Let <span
+class="math inline">\(S=f_1+f_2=n_1+n_2-n_{12}\)</span> be the total
+number of erroneous numbers found in the test phase. Assuming that we in
+the subsequent debugging phase are able to remove all these <span
+class="math inline">\(S\)</span> errors, we are interested in estimating
+the number of remaining errors, i.e. <span
+class="math inline">\(f_0\)</span> or, alternatively, the total number
+of errors <span class="math inline">\(M=S+f_0\)</span>.</p>
+<p>Assume that after the first day of proofcalculation the two
+statisticians obtain the following results:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>testP <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">t</span>(<span class="fu">c</span>(<span class="dv">9</span>,<span class="dv">12</span>,<span class="dv">6</span>)))</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(testP) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;01&quot;</span>,<span class="st">&quot;10&quot;</span>,<span class="st">&quot;11&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>testP</span></code></pre></div>
+<pre><code>##   01 10 11
+## 1  9 12  6</code></pre>
+<p>i.e. <span class="math inline">\(n_1=9\)</span>, <span
+class="math inline">\(n_2=12\)</span> and <span
+class="math inline">\(n_{12}=6\)</span>. The total number of errors
+found so far is <span class="math inline">\(S=27\)</span>. In the above
+code we use index <code>01</code>, <code>10</code> and <code>11</code>
+specifying the results in two binary variable bit-notation - this is
+necessary for the <code>CARE1</code> package used in the next
+section.</p>
+<h2 id="estimating-the-total-number-of-wrong-numbers">Estimating the
+total number of wrong numbers</h2>
+<p>Estimating the total number of errors from the above data is a
+capture-recapture problem with two time points (=sampling
+occasions).</p>
+<h3 id="lincoln-petersen-estimator">Lincoln-Petersen estimator</h3>
+<p>Under the simple assumption that the two statisticians are equally
+good at finding errors and that the possible errors have the same
+probability to be found (unrealistic?) a simple capture-recapture
+estimate for the total number of errors is the so called <a
+href="https://en.wikipedia.org/wiki/Mark_and_recapture#Lincoln.E2.80.93Petersen_estimator">Lincoln-Petersen
+estimator</a>):</p>
+<p><span class="math display">\[
+\hat{M} = \frac{n_1 \cdot n_2}{n_{12}}.
+\]</span></p>
+<p>Note that this estimator puts no upper-bound on <span
+class="math inline">\(N\)</span>. The estimator can be computed using,
+e.g., the <a
+href="https://cran.r-project.org/web/packages/CARE1/index.html"><code>CARE1</code></a>
+package:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>(M.hat <span class="ot">&lt;-</span> CARE1<span class="sc">::</span><span class="fu">estN.pair</span>(testP))</span></code></pre></div>
+<pre><code>##  Petersen   Chapman        se       cil       ciu 
+## 45.000000 42.428571  9.151781 32.259669 72.257758</code></pre>
+<p>In other words, the estimated total number of errors is 45. A 95%
+confidence interval (CI) for <span class="math inline">\(M\)</span> is
+32-72 - see the package documentation for details on the method for
+computing the (CI). To verify the computations one could alternatively
+compute the Lincoln-Petersen estimator manually:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>(Nhat <span class="ot">&lt;-</span> (testP[<span class="st">&quot;01&quot;</span>]<span class="sc">+</span>testP[<span class="st">&quot;11&quot;</span>]) <span class="sc">*</span> (testP[<span class="st">&quot;10&quot;</span>]<span class="sc">+</span>testP[<span class="st">&quot;11&quot;</span>]) <span class="sc">/</span> testP[<span class="st">&quot;11&quot;</span>])</span></code></pre></div>
+<pre><code>##   01
+## 1 45</code></pre>
+<p>Finally, an estimate on the number of errors left to find is <span
+class="math inline">\(\hat{M}-S=18.0\)</span>.</p>
+<h2 id="heterogeneous-sampling-probabilities">Heterogeneous Sampling
+Probabilities</h2>
+<p>If one does not want to assume the equal catch-probabilities of the
+errors, a range of alternatives exists. One of them is the procedure by
+Chao (1984, 1987). Here, a non-parametric estimate of the total number
+of errors is given as:</p>
+<p><span class="math display">\[
+\hat{M} = S + \frac{f_1^2}{2 f_2}.
+\]</span></p>
+<p>The above estimator is based on the assumption that the two
+statisticians are equally good at spotting errors, but unlike for the
+Petersen-Lincoln estimator, errors can have heterogeneous detection
+probabilities. No specific parametric model for the detection is
+although required. An R implementation of the estimator is readily
+available as part of the <a
+href="https://cran.r-project.org/web/packages/SPECIES/index.html"><code>SPECIES</code></a>
+package. For this, data first need to be stored as a
+<code>data.frame</code> containing <span class="math inline">\(f_1,
+f_2\)</span>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>testPaggr <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">j=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,<span class="at">f_j=</span><span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">sum</span>(testP[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>]),testP[<span class="dv">3</span>])))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>testPaggr</span></code></pre></div>
+<pre><code>##   j f_j
+## 1 1  21
+## 2 2   6</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>(M_est <span class="ot">&lt;-</span> SPECIES<span class="sc">::</span><span class="fu">chao1984</span>(testPaggr, <span class="at">conf=</span><span class="fl">0.95</span>))</span></code></pre></div>
+<pre><code>## $Nhat
+## [1] 64
+## 
+## $SE
+## [1] 22.78363
+## 
+## $CI
+##      lb  ub
+## [1,] 39 139</code></pre>
+<p>In this case the estimator for the total number of errors is <span
+class="math inline">\(\hat{M}\)</span>=64 (95% CI: 39-139). Again see
+the package documentation for methodological details.</p>
+<!-- ### Manual computation -->
+<!-- Again, if the computation can of course also be done manually: -->
+<!-- ```{r} -->
+<!-- f <- testPaggr$n_j -->
+<!-- S <- sum(f) -->
+<!-- ceiling(S + f[1]^2/(2*f[2])) -->
+<!-- ``` -->
+<h1 id="knowing-when-to-stop">Knowing when to Stop</h1>
+<p>Whereas the above estimates are nice to know, they give little
+guidance on how, after the first day of testing, to decide between the
+following two alternatives: continue validating numbers for another day
+or stop the testing process and ship the report. We address this
+sequential decision making problem by casting it into a decision
+theoretic framework. Following the work of Ferguson and Hardwick (1989):
+let’s assume that each futher round of proofcalculation costs an amount
+of <span class="math inline">\(C_p&gt;0\)</span> units and that each
+error undetected after additional <span class="math inline">\(n\)</span>
+rounds of proofcalculation costs <span
+class="math inline">\(c_n&gt;0\)</span> units. Treating the total number
+of wrong results <span class="math inline">\(M\)</span> as a random
+variable and letting <span
+class="math inline">\(X_1,\ldots,X_n\)</span>, be the number of wrong
+results found in each of the additional proofcalculation rounds <span
+class="math inline">\(1,\ldots,n\)</span>, we know that <span
+class="math inline">\(X_i\in \mathbb{N}_0\)</span> and <span
+class="math inline">\(\sum_{j=1}^n X_j \leq N\)</span>. One then
+formulates the conditional expected loss after <span
+class="math inline">\(n, n=0, 1, 2, \ldots,\)</span> additional rounds
+of proofcalculation:</p>
+<p><span class="math display">\[
+Y_n = n C_p + c_n E(M_n|X_1,\ldots,X_n),
+\]</span></p>
+<p>where <span class="math inline">\(M_n = M -(\sum_{j=1}^n
+X_j)\)</span>. If we further assume that in the <span
+class="math inline">\((n+1)\)</span>’th proofcalculation round errors
+are detected independently of each other with probability <span
+class="math inline">\(p_n, 0 \leq p_n \leq 1\)</span> and <span
+class="math inline">\(p_n\)</span> being a known number we obtain
+that</p>
+<p><span class="math display">\[
+X_{n+1} \&gt;|\&gt; M, X_1,\ldots,X_n \sim \text{Bin}(M_n, p_n), \quad
+n=0,1,2,\ldots.
+\]</span></p>
+<p>Under the further assumption that <span class="math inline">\(M\sim
+\text{Po}(\lambda)\)</span> with <span
+class="math inline">\(\lambda&gt;0\)</span> being known, one can show
+that the loss function is independent of the observations (Ferguson and
+Hardwick, 1989), i.e.</p>
+<p><span class="math display">\[
+Y_n = n C_p + c_n \lambda \prod_{j=0}^{n-1} (1-p_j), \quad
+n=0,1,2,\ldots.
+\]</span></p>
+<p>The above Poisson assumption seems to be an acceptable approximation
+if the total number of results <span class="math inline">\(M\)</span> is
+large and the probability of a result being wrong is low. In this case
+the optimal stopping rule is given by:</p>
+<p><span class="math display">\[
+n_{\text{stop}} = \min_{n\geq 0} Y_n.
+\]</span></p>
+<p>One limitation of the above approach is that we have used a
+<strong>guesstimate</strong> on how the detection probability <span
+class="math inline">\(p_n\)</span> evolves over time. An extension would
+be to sequentially estimate this parameter from the obtained results.
+This goes along the lines of Dalal and Mallows (1988) which discuss when
+to stop testing your software - see the following <a
+href="/blog/2016/05/06/when2stop.html">blog entry</a> for a short
+statistical treatment of their approach.</p>
+<h3 id="numerical-example">Numerical example</h3>
+<p>We consider a setup where the costly errors have substantial
+ramifications and thus are easy to detect early on. As time passes on
+the errors become more difficult to detect. This is reflected by the
+subsequent choices of <span class="math inline">\(p_n\)</span> and <span
+class="math inline">\(c_n\)</span> - see below. Furthermore, the
+expected number of bugs is taken to be the non-homogeneous
+capture-recapture estimate of the remaining errors. This coupling of the
+two procedures is somewhat pragmatic: it does not include the first
+round of proofcalculation in the decision making as this is used to
+estimate <span class="math inline">\(\lambda\)</span>. Furthermore, no
+estimation uncertainty in <span class="math inline">\(\lambda\)</span>
+from this stage is transferred to the subsequent stages.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Cost of one round of proofcalculation (say in number of working days)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>Cp <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#Cost of finding errors after n round of proofcalculation</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>cn <span class="ot">&lt;-</span> <span class="cf">function</span>(n) <span class="dv">10</span><span class="sc">*</span><span class="fl">0.9</span><span class="sc">^</span>(<span class="dv">2</span><span class="sc">*</span>(n<span class="sc">+</span><span class="dv">1</span>))</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Expected number of errors</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>(lambda <span class="ot">&lt;-</span> M_est<span class="sc">$</span>Nhat <span class="sc">-</span> <span class="fu">sum</span>(testP))</span></code></pre></div>
+<pre><code>## [1] 37</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Probabilty of detecting an error in round j+1</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>pj <span class="ot">&lt;-</span> <span class="cf">function</span>(j) {</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fl">0.8</span><span class="sc">^</span>(j<span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Expected conditional loss as defined above</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>Yn <span class="ot">&lt;-</span> <span class="fu">Vectorize</span>(<span class="cf">function</span>(n) {</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  n<span class="sc">*</span>Cp <span class="sc">+</span> <span class="fu">cn</span>(n) <span class="sc">*</span> lambda <span class="sc">*</span> <span class="fu">prod</span>(<span class="dv">1</span><span class="sc">-</span><span class="fu">pj</span>(<span class="dv">0</span><span class="sc">:</span>(n<span class="dv">-1</span>)))</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">#Make a data.frame with the results.</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">n=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">Yn=</span><span class="fu">Yn</span>(n),<span class="at">cn=</span><span class="fu">cn</span>(n),<span class="at">pn=</span><span class="fu">pj</span>(n<span class="dv">-1</span>))</span></code></pre></div>
+<p>The above choice of parameters leads to the following functional
+forms:</p>
+<p><img
+src="http://staff.math.su.se/hoehle/blog/figure/source/2016-05-22-proofCalculation/unnamed-chunk-7-1.png" /></p>
+<p>The optimal strategy is thus found as:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">rank</span>(Yn) <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(n,Yn)</span></code></pre></div>
+<pre><code>##   n       Yn
+## 1 5 6.457426</code></pre>
+<p>In other words, one should test after <span
+class="math inline">\(n_{\text{stop}}=5\)</span> additional rounds.</p>
+<h1 id="discussion">Discussion</h1>
+<p>Is any of the above <strong>useful</strong>? Well, I have not heard
+about such approaches being used seriously in software engineering. The
+presented methods narrow down a complex problem down using assumptions
+in order to make the problem mathematically tractable. You may not agree
+with the assumptions as, e.g., Bolton (2010) - yet, such assumptions are
+a good way to get started. The point is that statisticians appear to be
+very good at enlightening others about the <strong>virtues of
+statistics</strong> (repeat your measurements, have a sampling plan,
+pantomimic acts visualizing the horror of p-values). However, when it
+comes to our own analyses, we are surprisingly statistics-illiterate at
+times.</p>
+<p><img
+src="/blog/figure/source/2016-05-22-proofCalculation/look_for_the_pattern-300px.png"
+title="Source: https://openclipart.org/detail/248382/dropping-numbers" /></p>
+<h1 id="literature">Literature</h1>
+<ul>
+<li><p>Bolton, M (2010). <a
+href="http://www.developsense.com/blog/2010/07/another-silly-quantitative-model/">Another
+Silly Quantitative Model</a>, Blog post, July 2010.</p></li>
+<li><p>Cook, JD (2010). <a
+href="http://www.johndcook.com/blog/2010/07/13/lincoln-index/">How many
+errors are left to find?</a>, Blog post, July 2010.</p></li>
+<li><p>Dalal, S. R. and C. L. Mallows. “<a
+href="http://www.jstor.org/stable/2289319">When Should One Stop Testing
+Software?</a>”. Journal of the American Statistical Association (1988),
+83(403):872–879.</p></li>
+<li><p>Ferguson, TS and Hardwick JP (1989). <a
+href="http://www.jstor.org/stable/3214037">Stopping Rules For
+Proofreading</a>, J. Appl. Prob. 26:304-313.</p></li>
+<li><p>Hayes, B (2010). <a
+href="http://bit-player.org/2010/the-thrill-of-the-chase">The thrill of
+the chase</a>, Blog post, July 2010.</p></li>
+<li><p>Singpurwalla ND, Wilson SP (1999). <a
+href="http://www.springer.com/us/book/9780387988238">Statistical Methods
+in Software Engineering</a>, Springer.</p></li>
+<li><p>Yang MCK, Wackerly DD, Rosalsky A (1982). <a
+href="http://www.jstor.org/stable/3213535">Optimal Stopping Rules in
+Proofreading</a>, Journal of Applied Probability 19(3),
+pp. 723-729</p></li>
+<li><p>Zeller, A (2009). <a href="http://www.whyprogramsfail.com/">Why
+programs fail</a>, Elsevier, 2009, 423 pages.</p></li>
+</ul>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2016/05/22/proofCalculation.html";
+      this.page.identifier = "/2016/05/22/proofCalculation";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

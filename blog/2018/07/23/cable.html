@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Amazon&#39;s Hanging Cable Problem (Golden Gate Edition)</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2018/07/23/cable.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Amazon's Hanging Cable Problem (Golden Gate Edition)</h1>
+    <p class="post-meta"><time datetime="2018-07-23T00:00:00+02:00" itemprop="datePublished">Jul 23, 2018</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>In this post we use R’s capabilities to solve nonlinear equation
+systems in order to answer an extension of the hanging cable problem to
+suspension bridges. We then use R and ggplot to overlay the solution to
+an image of the Golden Gate Bridge in order to bring together theory and
+practice.</p>
+<center>
+<img src="/blog/figure/source/2018-07-23-cable/GOLDENGATE-1.png" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p>The so called <a
+href="https://mindyourdecisions.com/blog/2018/07/12/can-you-solve-amazons-hanging-cable-interview-question/">Amazon’s
+hanging cable problem</a> explained in this <a
+href="https://youtu.be/l_ffdarcJiQ">youtube video</a> (watched 2.4 mio
+times!<a href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a>) goes as follows:</p>
+<p><em>A cable of 80 meters (m) is hanging from the top of two poles
+that are both 50 m from the ground. What is the distance between the two
+poles, to one decimal place, if the center of the cable is</em>:</p>
+<ol type="a">
+<li><em>20 m above the ground?</em><br></li>
+<li><em>10 m above the ground?</em><br></li>
+</ol>
+Allegedly, (b) has been used as an Amazon interview question, however,
+the problem is much older and has otherwise nothing to do with Amazon.
+Can you solve (b)? Or even (a)? The problem can be illustrated as
+follows:
+<p>
+<center>
+<img src="/blog/figure/source/2018-07-23-cable/cableproblem.png" />
+</center>
+<FONT COLOR="bbbbbb">Screenshot from <a
+href="https://mindyourdecisions.com/blog/2018/07/12/can-you-solve-amazons-hanging-cable-interview-question/">Presh
+Talwalkar’s</a> website.</FONT>
+<p>
+<p>Hint: The <a
+href="https://mindyourdecisions.com/blog/2018/07/12/can-you-solve-amazons-hanging-cable-interview-question/">solution
+to (a)</a> is concisely described in <span class="citation"
+data-cites="chatterjee_nita2010">Chatterjee and Nita (2010)</span> and
+for (b) you need to do little more than just think. So instead of
+applying at Amazon, let’s take the question to the next level: Apply for
+the <span style="color:orange">orange</span> belt in R: How you
+<em>wouldn’t</em> solve the hanging cable problem by instead solving the
+hanging cable problem <strong>suspension bridge style</strong>!</p>
+<p>As explained in the video the <a
+href="https://en.wikipedia.org/wiki/Catenary">catenary curve</a> is the
+<a
+href="https://www.youtube.com/watch?v=npt6IkyL_f4&amp;pbjreload=10">geometric
+shape</a>, a cable assumes under its own weight when supported only at
+its ends. If instead the cable supports a uniformly distributed vertical
+load, the cable has the shape of a <a
+href="https://en.wikipedia.org/wiki/Parabola">parabolic curve</a>. This
+would for example be the case for a <strong><a
+href="https://en.wikipedia.org/wiki/Suspension_bridge">suspension
+bridge</a></strong> with a horizontal suspended deck, if the cable
+itself is not too heavy compared to the road sections. A prominent
+example of a suspension bridges is the <a
+href="https://en.wikipedia.org/wiki/Golden_Gate_Bridge">Golden Gate
+Bridge</a>, which we will use as motivating example for this post.</p>
+<h2 id="solving-the-cable-problem">Solving the Cable Problem</h2>
+<h3 id="parabola-shape">Parabola Shape</h3>
+<p>Rephrasing the cable problem as the ‘<em>suspension bridge
+problem</em>’ we need to solve a two-component non-linear equation
+system:</p>
+<ol type="1">
+<li><p>the first component ensures that the parabolic curve with vertex
+at <span class="math inline">\((0,0)\)</span> goes through the poles at
+the x-values <span class="math inline">\(-x\)</span> and <span
+class="math inline">\(x\)</span>. In other words: the distance between
+the two poles is <span class="math inline">\(2x\)</span>. Note that the
+coordinate system is aligned such that the lowest point of the cable is
+at the origo.</p></li>
+<li><p>the second component ensures that the arc-length of the parabola
+is as given by the problem. Since the parabola is symmetric it is
+sufficient to study the positive x-axis</p></li>
+</ol>
+<p>The two criteria are converted into an equation system as follows:
+<span class="math display">\[
+\begin{align*} a x^2 &amp;= 50 - \text{height above ground} \\
+\int_0^x \sqrt{1 + \left(\frac{d}{du} a u^2\right)^2} du &amp;= 40.
+\end{align*}
+\]</span></p>
+<p>Here, the general equation for <a
+href="https://en.wikipedia.org/wiki/Arc_length">arc-length</a> of a
+function <span class="math inline">\(y=f(u)\)</span> has been used.
+Solving the arc-length integral for a parabola can either be done by
+numerical integration or by <a
+href="http://www.math.drexel.edu/~tolya/arc_length_x%5e2.pdf">solving
+the integral analytically</a> or just look up the resulting analytic
+expression as eqn 4.25 in <span class="citation"
+data-cites="spiegel1968">Spiegel (1968)</span>. Subtracting the RHS from
+each LHS gives us a non-linear equation system with unknowns <span
+class="math inline">\(a\)</span> and <span
+class="math inline">\(x\)</span> of the form</p>
+<p><span class="math display">\[
+\left[
+\begin{array}{c}
+y_1(a,x) \\
+y_2(a,x)
+\end{array}
+\right]
+=
+\left[
+\begin{array}{c}
+0 \\
+0
+\end{array}
+\right].
+\]</span></p>
+<p>Writing this in R code:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Height of function at the location x from center is (pole_height - height_above_ground)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>y1_parabola <span class="ot">&lt;-</span> <span class="cf">function</span>(a, x, <span class="at">pole_height=</span><span class="dv">50</span>, <span class="at">above_ground=</span><span class="dv">20</span>) {</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  a<span class="sc">*</span>x<span class="sc">^</span><span class="dv">2</span> <span class="sc">-</span> (pole_height <span class="sc">-</span> above_ground)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Arc-length of the parabola between [-x,x] is given as cable_length</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>y2_parabola <span class="ot">&lt;-</span> <span class="cf">function</span>(a,x, <span class="at">cable_length=</span><span class="dv">80</span>, <span class="at">arc_method=</span><span class="fu">c</span>(<span class="st">&quot;analytic&quot;</span>,<span class="st">&quot;numeric&quot;</span>)) {</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Arc-length of a parabola a*u^2 within interval [0,x]</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(arc_method <span class="sc">==</span> <span class="st">&quot;numeric&quot;</span>) {</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    f <span class="ot">&lt;-</span> <span class="cf">function</span>(u) <span class="fu">return</span>( <span class="fu">sqrt</span>(<span class="dv">1</span> <span class="sc">+</span> (<span class="dv">2</span><span class="sc">*</span>a<span class="sc">*</span>u)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    half_arclength <span class="ot">&lt;-</span> <span class="fu">integrate</span>(f, <span class="at">lower=</span><span class="dv">0</span>, <span class="at">upper=</span>x)<span class="sc">$</span>value</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (arc_method<span class="sc">==</span><span class="st">&quot;analytic&quot;</span>) {</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    half_arclength <span class="ot">&lt;-</span>  <span class="dv">1</span><span class="sc">/</span>(<span class="dv">4</span><span class="sc">*</span>a)<span class="sc">*</span>(<span class="dv">2</span><span class="sc">*</span>a<span class="sc">*</span>x<span class="sc">*</span><span class="fu">sqrt</span>(<span class="dv">4</span><span class="sc">*</span>a<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>x<span class="sc">^</span><span class="dv">2</span><span class="sc">+</span><span class="dv">1</span>) <span class="sc">+</span> <span class="fu">asinh</span>(<span class="dv">2</span><span class="sc">*</span>a<span class="sc">*</span>x))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="do">##The equation: s = cable_length/2</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  half_arclength <span class="sc">-</span> cable_length<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="do">## The non-linear equation system \bm{y}(\theta) = \bm{0}, where the LHS</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="do">## is given by a list with two components containing y_1(\theta) and y_2(\theta)</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>f_sys <span class="ot">&lt;-</span> <span class="cf">function</span>(theta, y, <span class="at">pole_height=</span><span class="dv">50</span>, <span class="at">above_ground=</span><span class="dv">20</span>, <span class="at">cable_length=</span><span class="dv">80</span>, ...) {</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Parameters</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> theta[<span class="dv">1</span>]</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">exp</span>(theta[<span class="dv">2</span>]) <span class="do">##ensure x is positive</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(y[[<span class="dv">1</span>]](a,x, <span class="at">pole_height=</span>pole_height, <span class="at">above_ground=</span>above_ground),</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    y[[<span class="dv">2</span>]](a,x, <span class="at">cable_length=</span>cable_length, ...))</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="do">##Helper function to transform theta parameter vector to (a,x)&#39;</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>theta2ax <span class="ot">&lt;-</span> <span class="cf">function</span>(theta) {</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">a=</span>theta[<span class="dv">1</span>], <span class="at">x=</span><span class="fu">exp</span>(theta[<span class="dv">2</span>]))</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>To ensure <span class="math inline">\(x&gt;0\)</span> we
+re-parametrized the equations with <span class="math inline">\(\theta_2
+= \log(x)\)</span> and provide the function <code>theta2ax</code> to
+backtransform the result. We can now use the <a
+href="https://cran.r-project.org/web/packages/nleqslv/index.html"><code>nleqslv</code></a>
+package to solve the non-linear equation system using a one-liner:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>y_parabola <span class="ot">&lt;-</span> <span class="fu">list</span>(y1_parabola, y2_parabola)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sol_parabola <span class="ot">&lt;-</span> <span class="fu">nleqslv</span>(<span class="at">x=</span><span class="fu">c</span>(<span class="fl">0.1</span>,<span class="fl">0.1</span>),f_sys, <span class="at">y=</span>y_parabola,  <span class="at">arc_method=</span><span class="st">&quot;analytic&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">theta2ax</span>(sol_parabola<span class="sc">$</span>x)</span></code></pre></div>
+<pre><code>##           a           x 
+##  0.05355207 23.66859605</code></pre>
+<p>In other words, for a cable of length 80m the pole of a suspension
+bridge will be located 23.7m from the origo, which means the two poles
+of the bridge will be 47.3m apart, which is also the span of the
+bridge.</p>
+<p>Using <code>arc_method="numeric"</code> instead of the analytic
+solution gives</p>
+<pre><code>##           a           x 
+##  0.05355207 23.66859605</code></pre>
+<p>It is re-assuring to see that the numerical integration method yields
+the same result as the analytic method. The analytic method has
+mathematical beauty, the numerical method allows the data scientist to
+solve the problem without diving into formula compendiums or
+geometry.</p>
+<h3 id="catenary-shape">Catenary Shape</h3>
+<p>Using the same code, but with the y-functions formulated for the
+catenary case we obtain</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Value of y=f(u) evaluated at u=x</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>y1_catenary <span class="ot">&lt;-</span> <span class="cf">function</span>(a,x, <span class="at">pole_height=</span><span class="dv">50</span>, <span class="at">above_ground=</span><span class="dv">20</span>) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  a <span class="sc">*</span> <span class="fu">cosh</span>(x<span class="sc">/</span>a) <span class="sc">-</span> a <span class="sc">-</span> (pole_height<span class="sc">-</span> above_ground)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="do">## Arc-length condition</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>y2_catenary <span class="ot">&lt;-</span> <span class="cf">function</span>(a,x, <span class="at">cable_length=</span><span class="dv">80</span>) {</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  a <span class="sc">*</span> <span class="fu">sinh</span>(x<span class="sc">/</span>a) <span class="sc">-</span> cable_length<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="do">## Solve equation system</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>y_catenary <span class="ot">&lt;-</span> <span class="fu">list</span>(y1_catenary, y2_catenary)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>sol_catenary <span class="ot">&lt;-</span> <span class="fu">nleqslv</span>(<span class="at">x=</span><span class="fu">c</span>(<span class="fl">0.1</span>,<span class="fl">0.1</span>),f_sys, <span class="at">y=</span>y_catenary, <span class="at">method=</span><span class="st">&quot;Newton&quot;</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="fu">theta2ax</span>(sol_catenary<span class="sc">$</span>x)</span></code></pre></div>
+<pre><code>##        a        x 
+## 11.66667 22.70229</code></pre>
+<p>In other words the solution to the original cable problem is <span
+class="math inline">\(x=22.7 m\)</span> whereas the answer to the
+suspension bridge version is <span
+class="math inline">\(x=23.7m\)</span>. The difference to the parabolic
+form can be seen from the following graph:</p>
+<p><img src="/blog/figure/source/2018-07-23-cable/PARABOLACATENARYPLOT-1.png" style="display: block; margin: auto;" /></p>
+<h2 id="testing-the-theory">Testing the theory</h2>
+<p>We test our theory by studying the cable of the Golden Gate
+suspension bridge. Shown below is a photograph by <a
+href="https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_Dec_15_2015_by_D_Ramey_Logan.jpg">D
+Ramey Logan</a> available under a <a
+href="https://creativecommons.org/licenses/by/4.0/deed.en">CC BY 4.0</a>
+license. For presentation in this post the image was tilted by -0.75
+degrees (around the camera’s view axis) with the <a
+href="https://dahtah.github.io/imager/imager.html"><code>imager</code></a>
+package to make the sea level approximately horizontal. Parabolic and
+catenary overlays (no real difference between the two) were done using
+the theory described above.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Preprocess image</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>img <span class="ot">&lt;-</span> imager<span class="sc">::</span><span class="fu">load.image</span>(<span class="fu">file.path</span>(fullFigPath, <span class="st">&quot;Golden_Gate_Bridge.png&quot;</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>img <span class="ot">&lt;-</span> imager<span class="sc">::</span><span class="fu">imrotate</span>(img, <span class="at">angle=</span><span class="sc">-</span><span class="fl">0.75</span>, <span class="at">interpolation=</span><span class="dv">1</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>img <span class="ot">&lt;-</span> imager<span class="sc">::</span><span class="fu">resize</span>(img,<span class="sc">-</span><span class="dv">50</span>,<span class="sc">-</span><span class="dv">50</span>, <span class="at">interpolation_type=</span><span class="dv">5</span>)</span></code></pre></div>
+<p>We manually identify center, sea level and poles from the image and
+use <a
+href="https://ggplot2.tidyverse.org/reference/annotation_raster.html"><code>annotation_raster</code></a>
+to overlay the image on the <code>ggplot</code> of the corresponding
+parabola and catenary. See the <a
+href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2018-07-23-cable.Rmd">code</a>
+on github for details.</p>
+<p><img src="/blog/figure/source/2018-07-23-cable/GOLDENGATE-1.png" style="display: block; margin: auto;" /></p>
+<p>The fit is not perfect, which is due to the camera’s direction not
+being orthogonal to the plane spanned by the bridge - for example the
+right pole appears to be closer to the camera than the left pole<a
+href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a>. We scaled and ‘offsetted’ the image
+so the left pole is at distance 640m from origo, but did not correct for
+the tilting around the <span class="math inline">\(y\)</span>-axis.
+Furthermore, distances are being distorted by the lens, which might
+explain the poles being too small. <a
+href="https://en.wikipedia.org/wiki/Image_rectification">Rectification</a>
+and <a
+href="https://en.wikipedia.org/wiki/Perspective_control">perspective
+control</a> of such images is a <strong><a
+href="https://en.wikipedia.org/wiki/Photogrammetry">photogrammetric</a></strong>
+method beyond the scope of this post!</p>
+<h2 id="discussion">Discussion</h2>
+<p>This post may not to impress a Matlab coding engineer, but it shows
+how R has developed into a versatile tool going way beyond statistics:
+We used its optimization and image analysis capabilities. Furthermore,
+given an analytic form of <span
+class="math inline">\(y(\theta)\)</span>, R can symbolically determine
+the Jacobian and, hence, implement the required Newton-Raphson solving
+of the non-linear equation system directly - see the Appendix. In other
+words: R is also a full stack mathematical problem solving tool!</p>
+<p>As a <strong>challenge</strong> to the interested reader: Can you
+write R code, for example using <code>imager</code>, which automatically
+identifies poles and cable in the image and based on the known
+specification of these parameters of the Golden Gate Bridge (pole
+height: 230m, span 1280m, clearance above sea level: 67.1m), and perform
+a rectification of the image? If yes, Stockholm University’s Math
+Department <a
+href="https://www.math.su.se/english/education/phd-studies/admission-and-vacant-positions">hires</a>
+for Ph.D. positions every April! The challenge could work well as
+pre-interview project. 😉</p>
+<h2 id="appendix---newton-raphson-algorithm">Appendix - Newton-Raphson
+Algorithm</h2>
+<p>Because the <code>y_1(a,x)</code> and <code>y_2(a,x)</code> are both
+available in closed analytic form, one can form the Jacobian of
+non-linear equations system by combining the two gradients. This can be
+achieved symbolically using the <code>deriv</code> or <a
+href="https://cran.r-project.org/web/packages/Deriv/index.html"><code>Deriv::Deriv</code></a>
+functions in R.</p>
+<p>Given starting value <span class="math inline">\(\theta\)</span> the
+iterative procedure to find the root of the non-linear equation system
+<span class="math inline">\(y(\theta) = 0\)</span> is given by <span
+class="citation" data-cites="nocedal_wright2006">(Nocedal and Wright
+2006, Sect. 11.1)</span></p>
+<p><span class="math display">\[
+\theta^{(k+1)} = \theta^k - J(\theta^k)^{-1} y(\theta),
+\]</span></p>
+<p>where <span class="math inline">\(J\)</span> is the <a
+href="https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant">Jacobian</a>
+of the system, which in this case is a 2x2 matrix.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>gradient_y1 <span class="ot">&lt;-</span> Deriv<span class="sc">::</span><span class="fu">Deriv</span>(y1_parabola, <span class="at">x=</span><span class="fu">c</span>(<span class="st">&quot;a&quot;</span>,<span class="st">&quot;x&quot;</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>y2_parabola_analytic <span class="ot">&lt;-</span> <span class="cf">function</span>(a,x, <span class="at">cable_length=</span><span class="dv">80</span>) {</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span><span class="sc">/</span>(<span class="dv">4</span><span class="sc">*</span>a)<span class="sc">*</span>(<span class="dv">2</span><span class="sc">*</span>a<span class="sc">*</span>x<span class="sc">*</span><span class="fu">sqrt</span>(<span class="dv">4</span><span class="sc">*</span>a<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>x<span class="sc">^</span><span class="dv">2</span><span class="sc">+</span><span class="dv">1</span>) <span class="sc">+</span> <span class="fu">asinh</span>(<span class="dv">2</span><span class="sc">*</span>a<span class="sc">*</span>x)) <span class="sc">-</span> cable_length<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>gradient_y2 <span class="ot">&lt;-</span> Deriv<span class="sc">::</span><span class="fu">Deriv</span>(y2_parabola_analytic, <span class="at">x=</span><span class="fu">c</span>(<span class="st">&quot;a&quot;</span>,<span class="st">&quot;x&quot;</span>))</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="do">##Jacobian</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>J <span class="ot">&lt;-</span> <span class="cf">function</span>(theta, <span class="at">pole_height=</span><span class="dv">50</span>, <span class="at">above_ground=</span><span class="dv">20</span>, <span class="at">cable_length=</span><span class="dv">80</span>, ...) {</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> theta[<span class="dv">1</span>]</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">exp</span>(theta[<span class="dv">2</span>]) <span class="co">#  x &lt;- exp(theta[2])</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Since we use x = exp(theta[2])=g(theta[2]) we need the chain rule to find the gradient in theta</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="do">##this is g&#39;(theta[2]) = exp(theta[2]) = x</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rbind</span>(<span class="fu">gradient_y1</span>(a,x, <span class="at">pole_height=</span>pole_height, <span class="at">above_ground=</span>above_ground)<span class="sc">*</span> <span class="fu">c</span>(<span class="dv">1</span>, x),</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">gradient_y2</span>(a,x, <span class="at">cable_length=</span>cable_length)  <span class="sc">*</span> <span class="fu">c</span>(<span class="dv">1</span>, x))</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>By iterating Newton-Raphson steps we can find the solution of the
+equation system manually:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Start values</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>theta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.1</span>,<span class="fu">log</span>(<span class="dv">10</span>))</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>thetanew <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.1</span>,<span class="fu">log</span>(<span class="dv">20</span>))</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Log with the values</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>log <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">theta2ax</span>(theta))</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="do">##Iterate Newton-Raphson steps until convergence</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> ( (<span class="fu">sum</span>(thetanew <span class="sc">-</span> theta)<span class="sc">^</span><span class="dv">2</span> <span class="sc">/</span> <span class="fu">sum</span>(theta<span class="sc">^</span><span class="dv">2</span>)) <span class="sc">&gt;</span> <span class="fl">1e-15</span>) {</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  theta <span class="ot">&lt;-</span> thetanew</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Update step</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  thetanew <span class="ot">&lt;-</span> theta <span class="sc">-</span> <span class="fu">solve</span>(<span class="fu">J</span>(<span class="at">theta=</span>theta)) <span class="sc">%*%</span> <span class="fu">f_sys</span>(theta, <span class="at">y=</span>y_parabola, <span class="at">arc_method=</span><span class="st">&quot;analytic&quot;</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Add to log</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  log <span class="ot">&lt;-</span> <span class="fu">rbind</span>(log, <span class="fu">theta2ax</span>(thetanew))</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="do">##Look at the steps taken</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>log</span></code></pre></div>
+<pre><code>##               a        x
+## [1,] 0.10000000 10.00000
+## [2,] 0.02667392 25.46647
+## [3,] 0.04632177 25.43589
+## [4,] 0.05270610 23.75416
+## [5,] 0.05354318 23.66953
+## [6,] 0.05355207 23.66860
+## [7,] 0.05355207 23.66860</code></pre>
+<p>We show the moves of the algorithm in a 2D contour plot for <span
+class="math inline">\(r(a,x) = \sqrt{y_1(a,x)^2 + y_2(a,x)^2}\)</span>.
+The solution to the system has <span
+class="math inline">\(r(a,x)=0\)</span>. See the <a
+href="%60r%20paste0(%22https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/%22,current_input())%60">code</a>
+on github for details.</p>
+<p><img src="/blog/figure/source/2018-07-23-cable/NRSTEPSPLOT-1.png" style="display: block; margin: auto;" /></p>
+<h2 class="unnumbered" id="literature">Literature</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-chatterjee_nita2010" class="csl-entry" role="listitem">
+Chatterjee, N., and B. G. Nita. 2010. <span>“The Hanging Cable Problem
+for Practical Applications.”</span> <em>Atlantic Electronic Journal of
+Mathematics</em> 4 (1): 70–77. <a
+href="http://euclid.trentu.ca/aejm/V4N1/Chatterjee.V4N1.pdf">http://euclid.trentu.ca/aejm/V4N1/Chatterjee.V4N1.pdf</a>.
+</div>
+<div id="ref-nocedal_wright2006" class="csl-entry" role="listitem">
+Nocedal, J., and S. J. Wright. 2006. <em>Numerical Optimization</em>.
+2nd ed. Springer-Verlag.
+</div>
+<div id="ref-spiegel1968" class="csl-entry" role="listitem">
+Spiegel, M. R. 1968. <em>Mathematical Handbook of Formulas and
+Tables</em>. Schaum’s Outline Series. McGraw-Hill Book Company. <a
+href="https://ia800703.us.archive.org/23/items/MathematicalHandbookOfFormulasAndTables/Spiegel-MathematicalHandbook_text.pdf">https://ia800703.us.archive.org/23/items/MathematicalHandbookOfFormulasAndTables/Spiegel-MathematicalHandbook_text.pdf</a>.
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>As of 2018-07-23.<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>A manual investigation using the “Map | Map Object”
+Filter in Gimp showed that the angle of tilting around the y-axis is
+about 20 degrees.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2018/07/23/cable.html";
+      this.page.identifier = "/2018/07/23/cable";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

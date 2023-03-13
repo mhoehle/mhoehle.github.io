@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>When Should One Stop Testing Software?</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2016/05/06/when2stop.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">When Should One Stop Testing Software?</h1>
+    <p class="post-meta"><time datetime="2016-05-06T00:00:00+02:00" itemprop="datePublished">May 6, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h1 id="abstract">Abstract</h1>
+<p>This is a small note rediscovering a gem published by S. R. Dalal and
+C. L. Mallows on treating the test of software in a statistical context
+(Dalal and Mallows, 1988). In their paper they answer the question on
+how long to continue testing your software before shipping. The problem
+is translated into a sequential decision problem, where an optimal
+stopping rule has to be found minimizing expected loss. We sketch the
+main result of their paper and apply their stopping rule to an example
+using R code.</p>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h1 id="introduction">Introduction</h1>
+<p>Imagine that a team of developers of a new R package needs to
+structure a test plan before the release of the package to CRAN. Let
+<span class="math inline">\(N\)</span> be the (unknown) number of bugs
+in the package. The team starts their testing at time zero and
+subsequently find an increasing number of bugs as the test period passes
+by. The figure below shows such a testing process mimicking the example
+of Dalal and Mallows (1988) from the testing of a large software system
+at a telecommunications research company.</p>
+<p><img src="http://staff.math.su.se/hoehle/blog/figure/source/2016-05-06-when2stop/unnamed-chunk-1-1.png" style="display: block; margin: auto;" /></p>
+<p>We see that the number of bugs appears to level off. The question is
+now <em>how long should we continue testing before releasing</em>? Dalal
+and Mallows (1988) give an intriguing statistical answer to this
+problem.</p>
+<h1 id="methodology">Methodology</h1>
+<p>In order to answer the above question the following notation and
+assumptions are introduced:</p>
+<ul>
+<li><p>The total number of bugs is assumed to be Poisson distributed
+<span class="math display">\[N \sim \text{Po}(\lambda).\]</span>
+However, practice shows that the number of bugs in different modules has
+more variation that given by the Poisson distribution. Hence, let <span
+class="math inline">\(\lambda \sim \text{Ga}(\alpha,\beta)\)</span> and
+thus the marginal distribution of <span class="math inline">\(N\)</span>
+is negative binomial.</p></li>
+<li><p>The amount of time until discovery of each bug during the testing
+period is distributed according to the known distribution <span
+class="math inline">\(G\)</span> with density <span
+class="math inline">\(g\)</span>. Furthermore, it can be assumed that
+the discoveries times are independent of each other. Example : The
+simplest example is to assume that the discovery distribution is
+exponential, i.e. <span class="math inline">\(g(t)=\mu\exp(-\mu
+t)\)</span>, where we measure time in number of person-days spent on the
+testing. Thus, <span class="math inline">\(1/\mu\)</span> is the
+expected time until discovery of a bug.</p></li>
+<li><p>Let <span class="math inline">\(K(t)\)</span> be the total number
+of bugs found up to time <span class="math inline">\(t\)</span>. In
+other words, if <span class="math inline">\(t_1,\ldots,t_N\)</span>
+denote the discovery times of the <span class="math inline">\(N\)</span>
+bugs then</p>
+<p><span class="math display">\[K(t)=\sum_{i=1}^N I(t_i \leq
+t),\]</span></p></li>
+</ul>
+<p>where <span class="math inline">\(I(\cdot)\)</span> is the indicator
+function. However, note that at time point <span
+class="math inline">\(t\)</span>, only bugs with a discovery time
+smaller or equal to <span class="math inline">\(t\)</span> would already
+have been observed and, hence, would be known to exist
+(right-truncation). Thus, even though <span
+class="math inline">\(K(t)\)</span> is proportional to the empirical
+cumulative distribution function of the discovery distribution <span
+class="math inline">\(\hat{G}(t)\)</span>, the factor of proportionality
+is <span class="math inline">\(N\)</span>, which is unknown at the time
+<span class="math inline">\(t\)</span>.</p>
+<p>Note: The paper actually showns that the Poisson-Gamma distribution
+assumption for <span class="math inline">\(N\)</span> is not crucial. An
+asymptotic argument is given that as long as the process does not
+terminate quickly (i.e. the number of bugs is relatively large) the
+results hold for more general distributions of <span
+class="math inline">\(N\)</span>. Hence, in the analysis that follows,
+the parameter <span class="math inline">\(\lambda\)</span> is not needed
+as we only proceed with the asymptotic approach of the paper.</p>
+<h3 id="loss-function">Loss function</h3>
+<p>In order to make a decision about when to stop testing based on
+expected loss/gain we need two further assumptions:</p>
+<ul>
+<li><p>Let <span class="math inline">\(c\)</span> be the net cost of
+fixing a bug <em>after</em> release of the software instead of
+<em>before</em> the release. Hence, <span
+class="math inline">\(c\)</span> is the price of fixing a bug after
+release minus the price of fixing a bug before release. The practice of
+software development tells us that <span
+class="math inline">\(c&gt;0\)</span>.</p></li>
+<li><p>Let <span class="math inline">\(f(t)\)</span> be a known
+non-negative and monotone increasing function reflecting the cost of
+testing plus the opportunity cost of not releasing the software up to
+time <span class="math inline">\(t\)</span>. Note that the cost of
+testing does not contain the costs of fixing bugs, once they are found.
+A simple example for <span class="math inline">\(f\)</span> is the
+linear loss function, i.e. <span class="math inline">\(f(t) = f \cdot
+t\)</span>, where <span class="math inline">\(f&gt;0\)</span> is a known
+constant.</p></li>
+</ul>
+<p>The above assumptions in summary imply the analysis of the following
+loss function:</p>
+<p><span class="math display">\[L(t,K(t),N) = f(t) - c K(t) + b\cdot
+N.\]</span></p>
+<p>As time passes, one obtains information about the number of bugs
+found through <span class="math inline">\(K(t)\)</span>. At each time
+point the following decision has to be made: stop testing &amp; ship the
+package or continue to test. Seen in a statistical context this can be
+rephrased into formulating a stopping rule such that the above loss
+function is minimized.</p>
+<h3 id="optimal-stopping-time">Optimal Stopping Time</h3>
+<p>In the simple model with exponential discovery times having rate
+<span class="math inline">\(\mu\)</span>, the stopping rule stated as
+equation (4.6) of Dalal and Mallows (1988) is to stop as soon as the
+number, <span class="math inline">\(k\)</span>, of bugs found at time
+<span class="math inline">\(t\)</span>, i.e. <span
+class="math inline">\(K(t)=k\)</span>, is such that:</p>
+<p><span class="math display">\[
+\frac{f}{c}\cdot \frac{\exp(\mu t) -1}{\mu} \geq k.
+\]</span></p>
+<p>At this time point, the estimated number of bugs left is Poisson with
+mean <span class="math inline">\(f/(c\mu)\)</span>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">##########################################################################</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Function describing the LHS of (4.6) in the Delal and Mallows article</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#  fdivc - the quotient f/c</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#  mu    - the value of mu, this typically needs to be estimated from data</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#  testProcess - a data_frame containing the decision time points and the</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#               observed number of events</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="do">##########################################################################</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>lhs <span class="ot">&lt;-</span> <span class="cf">function</span>(fdivc,mu,testProcess) {</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  fdivc<span class="sc">*</span>(<span class="fu">exp</span>(mu<span class="sc">*</span>testProcess<span class="sc">$</span>t)<span class="sc">-</span><span class="dv">1</span>)<span class="sc">/</span>mu</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>In the above, the quantity <span class="math inline">\(c/f\)</span>
+measures the amount saved by finding a bug (and hence fixing it before
+release) measured in units of testing days. As an example: if <span
+class="math inline">\(c/f=0.2 \Leftrightarrow f/c=5\)</span> then the
+gain in detecting a bug before release corresponds to 0.2 testing days.
+Throughout the subsequent example we shall work with both <span
+class="math inline">\(c/f=0.2\)</span> (ship early and fix later is
+acceptable) and <span class="math inline">\(c/f=1\)</span> (high costs
+of fixing bugs afte r the release).</p>
+<h1 id="example">Example</h1>
+<p>Taking the testing data from the above figure, the first step
+consists of estimating <span class="math inline">\(\mu\)</span> from the
+available data. It is important to realize that the available data are a
+right-truncated sample, because only errors with a discovery time
+smaller than the current observation time are observed. Furthermore, if
+only data on the daily number of bug discoveries are available, then the
+data are also interval censored. We set up the loglikelihood function
+accordingly.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="do">#######################################################</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#Log-likelihood function to maximize, which handles the</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#right truncation and interval censoring.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Paramers:</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">#  theta - \log(\mu).</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">#  testProcess - data_frame containing the observed data</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#  tC - the right-censoring time.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="do">########################################################</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>ll <span class="ot">&lt;-</span> <span class="cf">function</span>(theta, testProcess, <span class="at">tC=</span><span class="fu">max</span>(testProcess<span class="sc">$</span>t)) {</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  mu <span class="ot">&lt;-</span> <span class="fu">exp</span>(theta)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Daily number of *new* bug discoveries. .</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  DeltaK <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="fu">diff</span>(testProcess<span class="sc">$</span>K))</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">#CDF function taking the right-truncation into account</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  CDF <span class="ot">&lt;-</span> <span class="cf">function</span>(x) <span class="fu">pexp</span>(x,<span class="at">rate=</span>mu)<span class="sc">/</span><span class="fu">pexp</span>(tC,<span class="at">rate=</span>mu)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Log-likelihood is equivalent to multinomial sampling with p being a func of mu.</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">CDF</span>(<span class="dv">1</span><span class="sc">:</span>(<span class="fu">max</span>(testProcess<span class="sc">$</span>t)<span class="sc">+</span><span class="dv">1</span>)) <span class="sc">-</span> <span class="fu">CDF</span>(testProcess<span class="sc">$</span>t)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">sum</span>(DeltaK <span class="sc">*</span> <span class="fu">log</span>(p)))</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">#Find MLE</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>mle <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">log</span>(<span class="fl">0.01</span>),ll, <span class="at">testProcess=</span>testProcess, <span class="at">control=</span><span class="fu">list</span>(<span class="at">fnscale=</span><span class="sc">-</span><span class="dv">1</span>),<span class="at">method=</span><span class="st">&quot;BFGS&quot;</span>)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>mu.hat <span class="ot">&lt;-</span> <span class="fu">exp</span>(mle<span class="sc">$</span>par)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">mu=</span>mu, <span class="at">mu.hat=</span>mu.hat)</span></code></pre></div>
+<pre><code>##         mu     mu.hat 
+## 0.02000000 0.01916257</code></pre>
+<p>Note that we in the above used all data obtained over the entire
+testing period. In practice, one would instead sequentially update the
+<span class="math inline">\(\mu\)</span> estimate each day as the
+information arrives – see the animated sequential procedure in the next
+section.</p>
+<p><img src="http://staff.math.su.se/hoehle/blog/figure/source/2016-05-06-when2stop/unnamed-chunk-4-1.png" style="display: block; margin: auto;" /></p>
+<pre><code>## Source: local data frame [1 x 5]
+## 
+##       t     K K_estimate     sol5     sol1
+##   (int) (dbl)      (dbl)    (dbl)    (dbl)
+## 1    82   989   990.8676 994.9211 198.9842</code></pre>
+<p>The optimal stopping time in the example, in the case of <span
+class="math inline">\(f/c=5\)</span>, is to stop the testing after 82
+testing days. An estimate of the expected number of remaining bugs at
+this stopping time would be 260.9, which appears to agree quite well
+with the empirical data – actually, they were simulated with <span
+class="math inline">\(N=1250\)</span>.</p>
+<h1 id="animation">Animation</h1>
+<p>The animation belows shows the above computations in sequential
+fashion:</p>
+<ul>
+<li>At a given time <span class="math inline">\(t\)</span> of the
+testing process, <span class="math inline">\(\hat{\mu}\)</span> is
+determined from the curve of cumulative bugs found up to time <span
+class="math inline">\(t\)</span>.</li>
+<li>This <span class="math inline">\(\hat{\mu}\)</span> estimate is then
+use to determine the intersecting curves as described above.</li>
+<li>Once the <span class="math inline">\(K(t)\)</span> curve and the
+curve for a given <span class="math inline">\(f/c\)</span> ratio
+intersect, we would stop the testing.</li>
+</ul>
+<p><img src="/blog/downloads/animation.gif" /></p>
+<h1 id="discussion">Discussion</h1>
+<ul>
+<li><p>Assuming that the time periods until discovery of the bugs are
+independently distributed appears convenient, butnot so realistic. The
+paper has a section about analysing the situation in case of different
+classes of bugs. However, fixing a bug often spawns new bugs. Hence, the
+bug-process could instead be more realistically modelled by a
+self-exiciting process such as the Hawkes’ process (Hawkes,
+1971).</p></li>
+<li><p>For Open Source Software and in particular R packages, which
+nobody might ever use, is <span class="math inline">\(c\)</span> really
+bigger than zero? Ship and fix might be a good way to test, if a package
+actually addresses any kind of need?</p></li>
+<li><p>How to extract the daily number of bugs found from your bug
+tracking ticket system?</p></li>
+</ul>
+<h1 id="literature">Literature</h1>
+<ul>
+<li><p>Dalal, S. R. and C. L. Mallows. “<a
+href="http://www.jstor.org/stable/2289319">When Should One Stop Testing
+Software?</a>”. Journal of the American Statistical Association (1988),
+83(403):872–879.</p></li>
+<li><p>Hawkes, A. G. “<a
+href="http://biomet.oxfordjournals.org/content/58/1/83.abstract">Spectra
+of some self-exciting and mutually exciting point processes</a>”.
+Biometrika (1971), 58(1):83-90.</p></li>
+</ul>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2016/05/06/when2stop.html";
+      this.page.identifier = "/2016/05/06/when2stop";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

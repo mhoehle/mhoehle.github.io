@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Inkognito - Sequential Bayesian Identity Disclosure</title>
+  <meta name="description" content="Abstract">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="http://mhoehle.github.io/blog/2018/04/03/inkognito.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="http://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Inkognito - Sequential Bayesian Identity Disclosure</h1>
+    <p class="post-meta"><time datetime="2018-04-03T00:00:00+02:00" itemprop="datePublished">Apr 3, 2018</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract</h2>
+<p>We provide Bayesian decision support for revealing the identity of
+opponents in the board game <em>Inkognito</em>. This includes the use of
+combinatorics to deduce the likelihood of observing a particular
+configuration and a sequential Bayesian belief updating scheme to infer
+opponent’s identity. From a R point of view we use base R where it’s
+best: manipulating matrices and supplement this with modern
+<code>dplyr</code> style manipulation of data frames and
+<code>magrittr</code> pipes for sequential belief updating.</p>
+<center>
+<img
+src="https://cf.geekdo-images.com/medium/img/8XRGQbD_bCDKdA_ToSA8BKSnKN4=/fit-in/500x500/filters:no_upscale()/pic696789.jpg" />
+</center>
+<p><FONT COLOR="bbbbbb">Image from <a
+href="https://www.boardgamegeek.com/image/696789/inkognito">boardgamegeek.com</a>
+by <a href="https://www.boardgamegeek.com/user/yzemaze">yzemaze</a>
+available under a CC BY-NC-SA 3.0 license.</FONT></p>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The
+markdown+Rknitr source code of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from github.</p>
+<h2 id="introduction">Introduction</h2>
+<p><a href="https://en.wikipedia.org/wiki/Inkognito">Inkognito</a> is a
+board game for four players first published in 1988. Each player has a
+secret <strong>identity</strong> (either Lord Fiddlebottom, Madame Zsa
+Zsa, Col. Bubble or Agent X) and moves four figures around the game
+board (a tall, a short, a fat, and a thin figure). However, only one of
+the figures (the player’s so called <strong>build</strong> type) is the
+player, the other three are smokescreen, i.e. friendly spies serving to
+confuse the other players. As part of the game one has to learn the
+identity and build of the other players in order to solve a mission
+goal. To this end the players move on the board, whenever one of the
+four figures meets one of the figures of an opponent, the opponent has
+to reveal information about their identity and build. There is a further
+neutral character, the so called <strong>ambassador</strong>, which can
+be moved by all players. There are two types of revelations depending on
+which figures meet:</p>
+<ol type="1">
+<li><strong>Player question</strong>: The player can decide to ask the
+opponent about either identity or build. If the question is about the
+<em>identity</em> the player has to state two (of the four) identities
+and one (of the four) builds. At least one of the three statements has
+to be correct, for example, if the opponent is Agent X and has the thin
+figure, then the statement could be: I’m Lord Fiddlebottom or Madame Zsa
+Zsa and have the thin figure. Conversely, if the question is
+<em>build</em> then two builds and one identity is stated – again at
+least one of the statements has to be true.</li>
+<li><strong>Ambassador question</strong> about either identity or build:
+If about identity the opponent has to state two identities, one of them
+has to be correct. Similarly if the question is about build.</li>
+</ol>
+<p>The information arising from each question is logged on a so called
+<strong>worksheet</strong> as shown below. The picture shows the logged
+information a game where the player asked one opponent (the red figure)
+a total of three questions (two player questions and one ambassador
+question).</p>
+<center>
+<img src="/blog/figure/source/2018-04-03-inkognito/worksheet.jpg" />
+</center>
+<p>The idea is to sequentially guide your questioning in order to reveal
+the identity of the other players and their build. For a more detailed
+description of the game see this <a
+href="http://www.theboardgamefamily.com/2015/03/inkognito-deduction-game-review/">review</a>
+or this <a
+href="http://islaythedragon.com/featured/carnival-of-spies-a-review-of-inkognito/">even
+longer review</a>. In what follows, we shall be less interested in all
+the particularities of the game and focus on the sequential belief
+update of identity and build from the questions, which is central part
+of the game.</p>
+<h2 id="statistical-approach-to-the-belief-updating">Statistical
+Approach to the Belief Updating</h2>
+<p>We cast the questioning into mathematical notation as follows. Let
+<span class="math inline">\(I\in \{1,2,3,4\}\)</span> be the opponent’s
+identity and <span class="math inline">\(B=\{1,2,3,4\}\)</span> the
+opponent’s build. Let</p>
+<p><span class="math display">\[
+D_k=(I_{k,1},I_{k,2},I_{k,3},I_{k,4},B_{k,1},B_{k,2},B_{k,3},B_{k,4})&#39;
+\]</span></p>
+<p>be the information the opponent offers the <span
+class="math inline">\(k\)</span>’th time the person is asked about the
+identity. Here, <span class="math inline">\(I_{k,j}\)</span> is an
+indicator variable showing whether in the <span
+class="math inline">\(k\)</span>’th question the opponent claims to have
+identity <span class="math inline">\(j\)</span>. Furthermore, <span
+class="math inline">\(B_{k,j}\)</span> is an indicator variable showing
+whether the opponent in the <span class="math inline">\(k\)</span>’th
+question claims to have aspect <span class="math inline">\(j\)</span>.
+Altogether <span class="math inline">\(D_k\)</span> corresponds to one
+row of information in the worksheet. In what follows we address the two
+types of questions, the resulting likelihoods and how a Bayesian
+framework can be used to update the belief about the opponent’s identity
+and build.</p>
+<h3 id="player-question-about-identity-or-aspect">Player question about
+identity or aspect</h3>
+<p>A player question consists of asking the opponent about either their
+identity or build. In response the opponent has to provide 3 pieces of
+information: if asked about the identity two of the statements have to
+concern the identity and one the build. Similarly, if asked about the
+build, one identity and two build statements have to be given. In other
+words, if the question is about identity, the vector <span
+class="math inline">\(D_k\)</span> has to be such that <span
+class="math inline">\(\sum_{j=1}^4 I_{k,j} = 2\)</span> and <span
+class="math inline">\(\sum_{c=1}^4 B_{k,c} = 1\)</span>. Furthermore, at
+least one of the three statements provided needs to be true, i.e. if the
+opponent has identity <span class="math inline">\(i\)</span> and build
+<span class="math inline">\(b\)</span>, then the provided information
+has to be such that</p>
+<p><span class="math display">\[
+\begin{align*}
+\sum_{j=1}^4 I(I=i) I_{k,j} + \sum_{c=1}^4 I(B=b) B_{k,c}
+\geq 1 &amp;\Leftrightarrow I_{k,i} + B_{k,b} \geq 1.
+\end{align*}
+\]</span></p>
+<h3 id="ambassador-question">Ambassador question</h3>
+<p>If instead a player moves the ambassador on the same location as
+another player’s figure, then one can – as before – inquire about the
+other player’s identity or build. However, when the ambassador asks one
+has to provide two statements about the inquired aspect – of which one
+has to be true. In other words, the answer to an ambassador question
+<span class="math inline">\(D_k\)</span> will be such that the sum over
+either the identity indicators or the builds equal 2. Furthermore, again
+assuming that the opponent’s true identity is <span
+class="math inline">\(i\)</span> and true build is <span
+class="math inline">\(b\)</span> we must have</p>
+<p><span class="math display">\[
+I_{k,i} + B_{k,b} =  1,
+\]</span></p>
+<p>because the answer will either be to identity or build.</p>
+<h2 id="implementation-in-r">Implementation in R</h2>
+<p>We implement the possible configurations <span
+class="math inline">\(D_k\)</span> on the worksheet as a matrix. Base R
+code does this very effectively:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Factor levels of identities and builds</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>identities <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;I&quot;</span>,<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>builds <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;B&quot;</span>,<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Make a matrix containing all levels</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>M <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(<span class="at">identity=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,<span class="at">build=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">I1=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>,<span class="at">I2=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>,<span class="at">I3=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>,<span class="at">I4=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>,<span class="at">B1=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>,<span class="at">B2=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>,<span class="at">B3=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>,<span class="at">B4=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>     as.matrix</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(M,<span class="dv">2</span>)</span></code></pre></div>
+<pre><code>##      identity build I1 I2 I3 I4 B1 B2 B3 B4
+## [1,]        1     1  0  0  0  0  0  0  0  0
+## [2,]        2     1  0  0  0  0  0  0  0  0</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Subset only to valid configurations</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>iRows <span class="ot">&lt;-</span> <span class="dv">3</span><span class="sc">:</span><span class="dv">6</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>bRows <span class="ot">&lt;-</span> <span class="dv">7</span><span class="sc">:</span><span class="dv">10</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="do">##Player questions about identity or build</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>pqI <span class="ot">&lt;-</span> (<span class="fu">rowSums</span>(M[,iRows]) <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">&amp;</span> (<span class="fu">rowSums</span>(M[,bRows]) <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>pqB <span class="ot">&lt;-</span> (<span class="fu">rowSums</span>(M[,iRows]) <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">&amp;</span> (<span class="fu">rowSums</span>(M[,bRows]) <span class="sc">==</span> <span class="dv">2</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="do">##Ambassafor questions about identity or build</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>aqI <span class="ot">&lt;-</span> (<span class="fu">rowSums</span>(M[,iRows]) <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">&amp;</span> (<span class="fu">rowSums</span>(M[,bRows]) <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>aqB <span class="ot">&lt;-</span> (<span class="fu">rowSums</span>(M[,iRows]) <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">&amp;</span> (<span class="fu">rowSums</span>(M[,bRows]) <span class="sc">==</span> <span class="dv">2</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="do">##At least one of the provided information has to be correct,</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="do">##i.e. I_{k,i_true} or A_{k,b_true} has to be one.</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>atleast1  <span class="ot">&lt;-</span> (M[<span class="fu">cbind</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(M),M[,<span class="dv">1</span>]<span class="sc">+</span><span class="dv">2</span>)] <span class="sc">+</span> M[<span class="fu">cbind</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(M),M[,<span class="dv">2</span>]<span class="sc">+</span><span class="dv">6</span>)]) <span class="sc">&gt;=</span> <span class="dv">1</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="do">##Restrict matrix to all valid answers</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>Mprime <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(M, <span class="at">atleast1=</span>atleast1, <span class="at">pqI=</span>pqI, <span class="at">pqB=</span>pqB, <span class="at">aqI=</span>aqI, <span class="at">aqB=</span>aqB) <span class="sc">%&gt;%</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(pqI <span class="sc">|</span> pqB <span class="sc">|</span> aqI <span class="sc">|</span> aqB)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="do">##Additional column containing the identity build combination</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>Mprime <span class="sc">%&lt;&gt;%</span> <span class="fu">mutate</span>(<span class="at">ib=</span><span class="fu">paste0</span>(<span class="st">&quot;I&quot;</span>,identity,<span class="st">&quot;/B&quot;</span>,build)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(ib, <span class="fu">everything</span>())</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="do">##Show 3 random rows to get an impression</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>Mprime[<span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(Mprime), <span class="at">size=</span><span class="dv">3</span>), ]</span></code></pre></div>
+<pre><code>##        ib identity build I1 I2 I3 I4 B1 B2 B3 B4 atleast1   pqI  pqB   aqI   aqB
+## 783 I3/B4        3     4  0  0  1  0  1  0  0  1     TRUE FALSE TRUE FALSE FALSE
+## 769 I1/B1        1     1  0  0  1  0  1  0  0  1     TRUE FALSE TRUE FALSE FALSE
+## 308 I4/B1        4     1  1  0  0  0  1  1  0  0     TRUE FALSE TRUE FALSE FALSE</code></pre>
+<h4 id="likelihood">Likelihood</h4>
+<p>Considering the possible answers to a player question and assuming
+that the true opponent values are <span
+class="math inline">\((i,b)\)</span>, then the opponent for a player
+question can choose between one of a total of 15 valid combinations:</p>
+<ul>
+<li>Assuming the identity will be correct in the revealed
+information,the opponent has to choose one of three remaining identities
+for the second information about identity and needs to pick between one
+of four builds to report (3*4=12 possible combinations).</li>
+<li>Assuming the build of the revealed information is correct, <em>but
+not the identity</em>, then the opponent has to choose 2 of the 3
+remaining identities for the identity part of the revealed information
+(<code>choose(3,2)</code>=3 combinations).</li>
+</ul>
+<p>Hence, the total number of possible valid combinations is 15, that is
+the likelihood for each valid combination is 1/15. For a given provided
+combination <span class="math inline">\(D_k\)</span> and <span
+class="math inline">\((i,b)\)</span> we thus need to check if <span
+class="math inline">\(D_k\)</span> is valid given <span
+class="math inline">\((i,b)\)</span>. If not the likelihood is zero, if
+valid, then the likelihood is 1/15.</p>
+<p>For an ambassador question about identity, the opponent has to choose
+their true identity and one of the three other identities, i.e. the
+likelihood is easily found to be <span
+class="math inline">\(1/3\)</span>, if the opponent is indifferent about
+which of the three identities to report back. Altogether, given our own
+identity <span class="math inline">\((i,b)\)</span> we thus need to
+check if <span class="math inline">\(D_k\)</span> is possible given
+<span class="math inline">\((i,b)\)</span>. If this is not the case then
+likelihood is zero, otherwise the likelihood is 1/15.</p>
+<h2 id="likelihood-implementation-in-r">Likelihood Implementation in
+R</h2>
+<p>This is conveniently done using either an <code>apply</code> to the
+rows or – allowing for a more readable way using the column names –
+using a <code>dplyr</code> mutate statement:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Compute likelihood for each valid answer (assuming indifference between choices)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>Mprime <span class="sc">%&lt;&gt;%</span> <span class="fu">mutate</span>(<span class="at">prob =</span> <span class="fu">if_else</span>(<span class="sc">!</span>atleast1, <span class="dv">0</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                                  <span class="fu">if_else</span>(aqI <span class="sc">|</span> aqB, <span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>, <span class="dv">1</span><span class="sc">/</span><span class="dv">15</span>)))</span></code></pre></div>
+<h3 id="prior">Prior</h3>
+<p>The prior distribution consists of the joint prior <span
+class="math inline">\(P(I=i, B=b)\)</span> for all 4*4=16 combinations
+of identity and build. For easier vector multiplication we flatten the
+table into a vector. In the particular game, from which the above
+worksheet originates, the player with the worksheet was <span
+class="math inline">\(I=4\)</span> and <span
+class="math inline">\(B=2\)</span>, hence, we assign these states the
+probability zero.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Factor levels of identities and builds</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>identities <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;I&quot;</span>,<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>builds <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;B&quot;</span>,<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="do">##Generate levels of joint table of identity and build</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>ib_combs <span class="ot">&lt;-</span> <span class="fu">as.character</span>(<span class="fu">outer</span>(identities, builds, paste, <span class="at">sep=</span><span class="st">&quot;/&quot;</span>))</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="do">##Generate joint table based on player&#39;s identity</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>prior <span class="ot">&lt;-</span> <span class="fu">structure</span>(<span class="fu">as.numeric</span>(<span class="fu">outer</span>(<span class="fu">c</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>,<span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>,<span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>,<span class="dv">0</span>), <span class="fu">c</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>,<span class="dv">0</span>,<span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>,<span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>))),<span class="at">names=</span>ib_combs)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>prior</span></code></pre></div>
+<pre><code>##     I1/B1     I2/B1     I3/B1     I4/B1     I1/B2     I2/B2     I3/B2     I4/B2     I1/B3 
+## 0.1111111 0.1111111 0.1111111 0.0000000 0.0000000 0.0000000 0.0000000 0.0000000 0.1111111 
+##     I2/B3     I3/B3     I4/B3     I1/B4     I2/B4     I3/B4     I4/B4 
+## 0.1111111 0.1111111 0.0000000 0.1111111 0.1111111 0.1111111 0.0000000</code></pre>
+<p>Furthermore, we create a small helper function
+<code>p_marginal</code> allowing us to compute the marginal
+distributions of identity and build, respectively, from the joint
+distribution. That is <span class="math inline">\(P(I=i)=\sum_{b=1}^4
+P(i,b)\)</span> and <span class="math inline">\(P(B=b)=\sum_{i=1}^4
+P(i,b)\)</span>.</p>
+<p>This allows us to compute:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">p_marginal</span>(prior, <span class="at">what=</span><span class="st">&quot;I&quot;</span>)</span></code></pre></div>
+<pre><code>##        I1        I2        I3        I4 
+## 0.3333333 0.3333333 0.3333333 0.0000000</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">p_marginal</span>(prior, <span class="at">what=</span><span class="st">&quot;B&quot;</span>)</span></code></pre></div>
+<pre><code>##        B1        B2        B3        B4 
+## 0.3333333 0.0000000 0.3333333 0.3333333</code></pre>
+<h3 id="posterior">Posterior</h3>
+<p>For <span class="math inline">\(i=1,\ldots, 4\)</span> and <span
+class="math inline">\(b=1,...,4\)</span> we can compute the posterior
+distribution using Bayes’ theorem: <span class="math display">\[
+\begin{align*}
+P(I=i,B=b\&gt;|\&gt;D_k) &amp;=
+\frac{P(D_k|\&gt;I=i,B=b)P(I=i,B=b)}{P(D_k)} \\
+&amp;=
+\frac{P(D_k|\&gt; I=i,B=b)P(I=i,B=b)}{\sum_{j=1}^4 \sum_{c=1}^4
+P(D_k|\&gt;
+I=j,B=c)P(I=j,B=c)}.
+\end{align*}
+\]</span> In code:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="do">#############################################################</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Function for sequentially updating the state information</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="do">############################################################</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>update <span class="ot">&lt;-</span> <span class="cf">function</span>(prior, Dk) {</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Sanity check</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="fu">names</span>(prior) <span class="sc">==</span> ib_combs)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Configurations matching the observed data Dk</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">apply</span>(Mprime[, <span class="fu">grep</span>(<span class="st">&quot;I+|B+&quot;</span>, <span class="fu">names</span>(Mprime))], <span class="dv">1</span>, <span class="cf">function</span>(x) <span class="fu">all</span>(x<span class="sc">==</span>Dk))</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Extract likelihood and put it in same order as the ib_combs vector</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="do">##for prior and likelihood vectors to match in order of the entries</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  vector_idx <span class="ot">&lt;-</span> <span class="fu">pmatch</span>(ib_combs, Mprime[idx,]<span class="sc">$</span>ib)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  lik <span class="ot">&lt;-</span> (Mprime[idx,]<span class="sc">$</span><span class="st">&quot;prob&quot;</span>)[vector_idx]</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Compute P(I=i,B=b|D_k), i.e. our updated belief</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  belief <span class="ot">&lt;-</span> lik <span class="sc">*</span> prior <span class="sc">/</span> <span class="fu">sum</span>(lik <span class="sc">*</span> prior)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(belief)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>We use the data from the above shown worksheet, combine it with our
+prior and thus update our belief of which identity and build the
+opponent has.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="do">##The three data lines of the worksheet</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>D <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(<span class="fu">data.frame</span>(<span class="at">I1=</span><span class="dv">1</span>,<span class="at">I2=</span><span class="dv">0</span>,<span class="at">I3=</span><span class="dv">0</span>,<span class="at">I4=</span><span class="dv">0</span>,<span class="at">B1=</span><span class="dv">0</span>,<span class="at">B2=</span><span class="dv">1</span>,<span class="at">B3=</span><span class="dv">1</span>,<span class="at">B4=</span><span class="dv">0</span>),</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>               <span class="fu">data.frame</span>(<span class="at">I1=</span><span class="dv">0</span>,<span class="at">I2=</span><span class="dv">0</span>,<span class="at">I3=</span><span class="dv">0</span>,<span class="at">I4=</span><span class="dv">0</span>,<span class="at">B1=</span><span class="dv">0</span>,<span class="at">B2=</span><span class="dv">0</span>,<span class="at">B3=</span><span class="dv">1</span>,<span class="at">B4=</span><span class="dv">1</span>),</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>               <span class="fu">data.frame</span>(<span class="at">I1=</span><span class="dv">1</span>,<span class="at">I2=</span><span class="dv">1</span>,<span class="at">I3=</span><span class="dv">0</span>,<span class="at">I4=</span><span class="dv">0</span>,<span class="at">B1=</span><span class="dv">0</span>,<span class="at">B2=</span><span class="dv">0</span>,<span class="at">B3=</span><span class="dv">1</span>,<span class="at">B4=</span><span class="dv">0</span>))</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="do">##Sequential belief updating (we use a version using pipes)</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>prior <span class="sc">%&gt;%</span> <span class="fu">update</span>(D[<span class="dv">1</span>,]) <span class="sc">%&gt;%</span> <span class="fu">update</span>(D[<span class="dv">2</span>,]) <span class="sc">%&gt;%</span> <span class="fu">update</span>(D[<span class="dv">3</span>,]) <span class="ot">-&gt;</span> belief</span></code></pre></div>
+<p>The above way of piping is a nice way to illustrate the sequential
+aspect of the inference!</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Show results</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">p_marginal</span>(belief, <span class="at">what=</span><span class="st">&quot;I&quot;</span>)</span></code></pre></div>
+<pre><code>##   I1   I2   I3   I4 
+## 0.50 0.25 0.25 0.00</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">p_marginal</span>(belief, <span class="at">what=</span><span class="st">&quot;B&quot;</span>)</span></code></pre></div>
+<pre><code>##   B1   B2   B3   B4 
+## 0.00 0.00 0.75 0.25</code></pre>
+<p>Based on these results we are somewhat certain that the player has
+identity 1, i.e. is Lord Fiddlebottom, and has build 3, i.e. is the fat
+figure. The belief update can also be visualized as shown below for
+identity.</p>
+<p><img src="/blog/figure/source/2018-04-03-inkognito/PLOTBELIEF-1.png" style="display: block; margin: auto;" /></p>
+<h2 id="discussion">Discussion</h2>
+<p>After the end of the particular game the above worksheet is from, it
+turned out that the opponent was <span
+class="math inline">\(I=1\)</span> and <span
+class="math inline">\(B=4\)</span>. Altogether, the opponent was not too
+impressed by the decision support provided by this post: That identity 1
+was most likely appears natural when simply counting the number of
+crosses for this identity on the worksheet. Same goes for the build,
+however, she was deliberately attempting to fool the player by providing
+the impression that she was build 3. As always with statistics,
+heuristics can take you part of the way, however, simply counting
+crosses would for example not reveal that identity 3 still also is an
+option. Furthermore, the slyness of misinformation is not handled by the
+combinatorical approach towards calculating the likelihood, because it
+is assumed that every valid choice is equally likely. To this end, more
+games need to be played in order to learn the opponent’s confusion
+strategy and adapt the probabilities to reflect these strategies.
+Finally, in longer games, one would have answers from several opponents
+and this would be combined in one model, because knowing opponent 1 is
+Lord Fiddlebotom certainly also helps to rule out some options for
+opponent 2.</p>
+<p>So what is next: If time permits, a shiny app allowing the user to
+fill in their worksheet and calculate and visualize the subsequent
+belief about each opponent’s identity and build.</p>
+
+  </div>
+
+</article>
+
+	
+
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     **/
+    /**
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    **/
+    var disqus_config = function () {
+      this.page.url = "http://mhoehle.github.io/blog/2018/04/03/inkognito.html";
+      this.page.identifier = "/2018/04/03/inkognito";
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+
+        s.src = '//hoehle.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
