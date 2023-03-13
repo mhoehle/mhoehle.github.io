@@ -876,17 +876,17 @@ strategy for the <span class="math inline">\(n=2\)</span> player
 situation. It depends on the number of sticks left in the game and the
 number of sticks each player has. In most cases the strategy stops if
 more than 3 pits are occupied – see Appendix 1 for details. This
-dependence on the other player’s hand is likely to carry forward to
-<span class="math inline">\(n&gt;2\)</span> player situation. Analytic
-results for <span class="math inline">\(n&gt;2\)</span> situations will
-be extremely difficult to obtain, but it makes intuitive sense to be
-more aggressive when there are more players, because there are more
+dependence on the other player’s hand is likely to carry forward to the
+<span class="math inline">\(n&gt;2\)</span> player situation. However,
+analytic results for <span class="math inline">\(n&gt;2\)</span> will be
+extremely difficult to obtain, but it makes intuitive sense to be more
+aggressive when there are more players, because there are more
 contestants for the win.</p>
-<p>Did the game developers realized that the start player has such a
-high probability of winning the game? It seems advisable to accompany
-game development by simulations and mathematical calculations at the
-design stage. In practice one should randomize the start player to
-enhance fairness.</p>
+<p>Did the game developers realize that the start player has such a high
+probability of winning the game? It seems advisable to accompany game
+development by simulations and mathematical calculations at the design
+stage. In practice, one should randomize the start player to enhance
+fairness.</p>
 <p><strong>Final note</strong>: This will be the last post of <em>Theory
 Meets Practice</em> Blog in its current form. As of Jan 2023 I am
 working as full professor in Statistics and Data Science at the <a
@@ -1014,7 +1014,7 @@ pits filled situation, if each player has only one stick left
 <p>Finally, we implement a function, which implements Jehn’s optimal
 strategy in a way, which can be used by the simulation function
 <code>simulate_super6()</code>:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; Jehn&#39;s optimal strategy for for two players</span></span>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; Jehn&#39;s optimal strategy for two players</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39;</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param player_idx Index of the player in the state_players variable (see simulate_super6 function)</span></span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param filled_holes Number of pits filled</span></span>
