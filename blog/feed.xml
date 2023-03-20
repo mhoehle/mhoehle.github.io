@@ -6,9 +6,529 @@
 </description>
     <link>http://mhoehle.github.io/blog/</link>
     <atom:link href="http://mhoehle.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 13 Mar 2023 11:58:12 +0100</pubDate>
-    <lastBuildDate>Mon, 13 Mar 2023 11:58:12 +0100</lastBuildDate>
-    <generator>Jekyll v4.3.2</generator>
+    <pubDate>Mon, 20 Mar 2023 15:21:34 +0100</pubDate>
+    <lastBuildDate>Mon, 20 Mar 2023 15:21:34 +0100</lastBuildDate>
+    <generator>Jekyll v4.2.2</generator>
+    
+      <item>
+        <title>Dynamic Programming for Super Six</title>
+        <description>&lt;h2 id=&quot;abstract&quot;&gt;Abstract:&lt;/h2&gt;
+&lt;p&gt;We use dynamic programming to find the optimal strategy for playing
+Super Six when there are 2 players. To test the cross-language
+capabilities of rmarkdown we solve the task by embedding our Python
+implementation of the value iteration algorithm using the reticulate
+R-package.&lt;/p&gt;
+&lt;center&gt;
+&lt;img
+src=&quot;/blog/figure/source/2023-03-20-dynprog/optim_strategy-1.png&quot; /&gt;
+&lt;/center&gt;
+&lt;p&gt;&lt;br&gt;
+&lt;a rel=&quot;license&quot; href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;&lt;img alt=&quot;Creative Commons License&quot; style=&quot;border-width:0&quot; src=&quot;https://i.creativecommons.org/l/by-sa/4.0/88x31.png&quot;/&gt;&lt;/a&gt;
+This work is licensed under a &lt;a rel=&quot;license&quot;
+href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;Creative Commons
+Attribution-ShareAlike 4.0 International License&lt;/a&gt;. The &lt;a
+href=&quot;https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/blog2023-03-20-dynprog.Rmd&quot;&gt;R-markdown
+source code&lt;/a&gt; of this blog is available under a &lt;a
+href=&quot;https://www.gnu.org/licenses/gpl-3.0.html&quot;&gt;GNU General Public
+License (GPL v3)&lt;/a&gt; license from GitHub.&lt;/p&gt;
+&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;The present post finds the optimal game strategy for playing the dice
+game of Super Six with two players using dynamic programming to solve
+the corresponding Markov Decision Process (MDP). We use the
+&lt;code&gt;reticulate&lt;/code&gt; R package to run our Python implementation of
+value iteration within the rmarkdown document.&lt;/p&gt;
+&lt;p&gt;For more details about Super Six, see the previous Blog post &lt;a
+href=&quot;https://mhoehle.github.io/blog/2023/03/13/super6.html&quot;&gt;&lt;em&gt;How to
+Win a Game (or More) of Super Six&lt;/em&gt;&lt;/a&gt; for a description of the
+game. Appendix 1 of the post discussed optimal strategies. The present
+post is a natural sucessor of this post, because it shows the details of
+how to calculate an the optimal strategies for two player games by using
+value iteration &lt;span class=&quot;citation&quot;
+data-cites=&quot;russell_norvig2020&quot;&gt;Sutton and Barto (2020)&lt;/span&gt;. This IMO
+provides a clearer way to get to the strategy than, e.g., &lt;span
+class=&quot;citation&quot; data-cites=&quot;jehn2021&quot;&gt;Jehn (2021)&lt;/span&gt; or the C++
+program by &lt;a
+href=&quot;https://github.com/mhoehle/mhoehle.github.io/blob/main/blog/figure/source/2023-03-13-super6/hultberg2.cpp&quot;&gt;Nuno
+Hulthberg&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;notation&quot;&gt;Notation&lt;/h2&gt;
+&lt;p&gt;In mathematical notation the current state &lt;span
+class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt; corresponds to the &lt;span
+class=&quot;math inline&quot;&gt;\(i/j/k\)&lt;/span&gt; situation, with &lt;span
+class=&quot;math inline&quot;&gt;\(0\leq i\leq 5\)&lt;/span&gt;, &lt;span
+class=&quot;math inline&quot;&gt;\(j\geq 0\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(k\geq 0\)&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;In order to distinguish between the first turn of a player in a round
+(where the dice has to be thrown) and the subsequent turns, where the
+player can decide whether to throw the dice or stop, we add a fourth
+component &lt;span class=&quot;math inline&quot;&gt;\(l\in \{0,1\}\)&lt;/span&gt; to the
+state, which is a binary indicator whether the move is a forced moved
+(1) or not (0). The action space for a state &lt;span
+class=&quot;math inline&quot;&gt;\(i/j/k/l\)&lt;/span&gt; with &lt;span
+class=&quot;math inline&quot;&gt;\(l=1\)&lt;/span&gt; is &lt;span
+class=&quot;math inline&quot;&gt;\(\mathcal{A}(s) = \{\texttt{throw}\}\)&lt;/span&gt;,
+whereas for &lt;span class=&quot;math inline&quot;&gt;\(l=0\)&lt;/span&gt; it is &lt;span
+class=&quot;math inline&quot;&gt;\(\mathcal{A}(s) =
+\{\texttt{throw},\texttt{stop}\}\)&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;If &lt;span class=&quot;math inline&quot;&gt;\(j=0\)&lt;/span&gt; while &lt;span
+class=&quot;math inline&quot;&gt;\(k&amp;gt;0\)&lt;/span&gt; then Player 1 won. If &lt;span
+class=&quot;math inline&quot;&gt;\(k=0\)&lt;/span&gt; while &lt;span
+class=&quot;math inline&quot;&gt;\(i&amp;gt;0\)&lt;/span&gt; then Player 2 won. In order to
+handle this &lt;em&gt;episodic task&lt;/em&gt; &lt;span class=&quot;citation&quot;
+data-cites=&quot;sutton_burto2020&quot;&gt;(Sutton and Barto 2020)&lt;/span&gt; we
+introduce an terminal state, which provides no additional future
+reward.&lt;/p&gt;
+&lt;h3 id=&quot;state-transition&quot;&gt;State Transition&lt;/h3&gt;
+&lt;p&gt;The state transition probabilities of the Markov decision process are
+given as follows. For each throw of the dice from an &lt;span
+class=&quot;math inline&quot;&gt;\(i/j/k/l\)&lt;/span&gt; state there are three cases to
+consider when throwing the dice:&lt;/p&gt;
+&lt;ol type=&quot;1&quot;&gt;
+&lt;li&gt;you roll a six (probability &lt;span
+class=&quot;math inline&quot;&gt;\(\frac{1}{6}\)&lt;/span&gt;) and move to the &lt;span
+class=&quot;math inline&quot;&gt;\(i/(j-1)/k/0\)&lt;/span&gt; state&lt;/li&gt;
+&lt;li&gt;(if &lt;span class=&quot;math inline&quot;&gt;\(0\leq i&amp;lt; 5\)&lt;/span&gt;) you hit a
+free spot (probability &lt;span
+class=&quot;math inline&quot;&gt;\(\frac{5-i}{6}\)&lt;/span&gt;) and move to the &lt;span
+class=&quot;math inline&quot;&gt;\((i+1)/j/k/0\)&lt;/span&gt; state&lt;/li&gt;
+&lt;li&gt;(if &lt;span class=&quot;math inline&quot;&gt;\(0&amp;lt;i\leq 5\)&lt;/span&gt;) you hit an
+already occupied spot (probability &lt;span
+class=&quot;math inline&quot;&gt;\(\frac{i}{6}\)&lt;/span&gt;) and it is your opponents
+turn to play from an &lt;span
+class=&quot;math inline&quot;&gt;\((i-1)/k/(j+1)/1\)&lt;/span&gt; position&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;If you decide to stop throwing (only possible if &lt;span
+class=&quot;math inline&quot;&gt;\(l=0\)&lt;/span&gt;) then it is the opponent’s turn to
+play from an &lt;span class=&quot;math inline&quot;&gt;\(i/k/j/1\)&lt;/span&gt; position.&lt;/p&gt;
+&lt;p&gt;As part of the calculations one needs to know what happens if Player
+1 looses their turn (i.e. either by hitting an occupied spot or by
+voluntarily deciding to stop) This depends on the strategy played by
+Player 2. For simplicity we will assume that Player 2 plays the same
+optimal strategy as Player 1. This also means that rewards in this
+situation are just minus the rewards obtained from the corresponding
+position.&lt;/p&gt;
+&lt;h3 id=&quot;reward&quot;&gt;Reward&lt;/h3&gt;
+&lt;p&gt;Eventually, the game will finish. Let &lt;span
+class=&quot;math inline&quot;&gt;\(R(s,a,s&amp;#39;)\)&lt;/span&gt; be the reward function,
+where action &lt;span class=&quot;math inline&quot;&gt;\(a\)&lt;/span&gt; moves the decision
+maker from state &lt;span class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt; to &lt;span
+class=&quot;math inline&quot;&gt;\(s&amp;#39;\)&lt;/span&gt;. In our problem, the reward will
+only depend on &lt;span class=&quot;math inline&quot;&gt;\(s&amp;#39;\)&lt;/span&gt;. We have
+&lt;span class=&quot;math display&quot;&gt;\[
+R(s&amp;#39;=(i,j,k,l)) = \left\{
+\begin{array}{cl}
+1 &amp;amp; \text{if $j=0$ and $k&amp;gt;0$} \\
+-1 &amp;amp; \text{if $k=0$ and $j&amp;gt;0$} \\
+0 &amp;amp; \text{otherwise}
+\end{array}
+\right.
+\]&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;Side note: Since linear transformations of the reward function leave
+the optimal strategy unchanged &lt;span class=&quot;citation&quot;
+data-cites=&quot;russell_norvig2020&quot;&gt;(Sect. 17.1.3, Russell and Norvig
+2020)&lt;/span&gt;, it is equally possible to work with rewards &lt;span
+class=&quot;math inline&quot;&gt;\(R^*(s&amp;#39;=(i,j,k,l)) =
+\frac{1}{2}R(s&amp;#39;=(i,j,k,l)) + \frac{1}{2}\)&lt;/span&gt;. This would imply
+values 1 for winning and 0 for loosing and translates directly the
+expected reward computations into computing expected probabilities for
+winning, which is what &lt;span class=&quot;citation&quot; data-cites=&quot;jehn2021&quot;&gt;Jehn
+(2021)&lt;/span&gt; computed.&lt;/p&gt;
+&lt;h3 id=&quot;bellman-equations&quot;&gt;Bellman equations&lt;/h3&gt;
+&lt;p&gt;The expected utility obtained from following stragy &lt;span
+class=&quot;math inline&quot;&gt;\(\pi\)&lt;/span&gt; is defined as &lt;span
+class=&quot;math display&quot;&gt;\[
+U^{\pi}(s) = E\left[ \sum_{t=0}^\infty R(S_t, \pi(S_t), S_{t+1})\right]
+\]&lt;/span&gt; The terminal state with future reward 0 ensures that &lt;span
+class=&quot;math inline&quot;&gt;\(U^\pi(s)&amp;lt;\infty\)&lt;/span&gt;. No discounting of the
+rewards is thus used in our approach. Our aim is now to find a strategy
+&lt;span class=&quot;math inline&quot;&gt;\(\pi^*(s)\)&lt;/span&gt;, which optimizes this
+expected utility, i.e. &lt;span class=&quot;math display&quot;&gt;\[
+\pi_s^* = \operatorname{argmax}_{\pi} U^{\pi}(s)
+\]&lt;/span&gt; For state &lt;span class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt; we thus
+choose the action that maximizes the reward for the next step plus the
+expected utility of the subsequent states: &lt;span class=&quot;math display&quot;&gt;\[
+\pi^*(s) = \operatorname{argmax}_{a\in \mathcal{A}(s)}
+\sum_{s&amp;#39;}P(s&amp;#39;| s,a) \left[ R(s,a,s&amp;#39;) +  \max_{a&amp;#39;}
+U(s&amp;#39;) \right]
+\]&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;This expressions for a state &lt;span class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt;
+is also called the &lt;strong&gt;Bellman equation&lt;/strong&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;span class=&quot;math display&quot;&gt;\[\begin{align*}
+U(s)
+&amp;amp;=\max_{a\in \mathcal{A}(s)} \sum_{s&amp;#39;}P(s&amp;#39;| s,a) \left[
+R(s,a,s&amp;#39;) + U(s&amp;#39;)
+\right]
+\end{align*}\]&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;Hence, for a state &lt;span class=&quot;math inline&quot;&gt;\(i/j/k/0\)&lt;/span&gt; the
+action “continue” leads to to the following expansion of the sum term in
+the above equation:&lt;/p&gt;
+&lt;p&gt;&lt;span class=&quot;math display&quot;&gt;\[
+\begin{align*}
+&amp;amp; \underbrace{\frac{1}{6} [R(i/j-1/k/0) +
+U(i/j-1/k/0)]}_{\text{stick into hole}} \\
+&amp;amp;+ \underbrace{\frac{5-i}{6} [R(i+1/j-1/k/0)
++  U(i+1/j-1/k/0)]}_{\text{put stick into lid}}\\
+&amp;amp;- \underbrace{\frac{i}{6} [R(i-1/k/j+1/1)
++  U(i-1/k/j+1/1)]}_{\text{take stick from lid}}
+\end{align*}
+\]&lt;/span&gt; and the action to stop has value &lt;span
+class=&quot;math inline&quot;&gt;\(R(i-1/k/j+1/1) + U(i-1/k/j+1/1)\)&lt;/span&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;value-iteration&quot;&gt;Value Iteration&lt;/h2&gt;
+&lt;p&gt;We use &lt;strong&gt;value iteration&lt;/strong&gt; &lt;span class=&quot;citation&quot;
+data-cites=&quot;russell_norvig2020&quot;&gt;(Sect. 17.2.1, Russell and Norvig
+2020)&lt;/span&gt;, &lt;span class=&quot;citation&quot; data-cites=&quot;sutton_burto2020&quot;&gt;(Sect
+4.4, Sutton and Barto 2020)&lt;/span&gt; to solve the MDP. Let &lt;span
+class=&quot;math inline&quot;&gt;\(U(s)\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(U&amp;#39;\)&lt;/span&gt; be collections, which contain the
+value function for each &lt;span class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt; in the
+state space. We initialize &lt;span
+class=&quot;math inline&quot;&gt;\(U(s)=U&amp;#39;(s)=0\)&lt;/span&gt; for all states and
+proceed by the following algorithm:&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;strong&gt;Algorithm 1&lt;/strong&gt;: Value iteration&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;strong&gt;repeat&lt;/strong&gt;&lt;/p&gt;
+&lt;ol type=&quot;1&quot;&gt;
+&lt;li&gt;&lt;span class=&quot;math inline&quot;&gt;\(U \gets U&amp;#39;; \delta \gets
+0\)&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;For all&lt;/strong&gt; states &lt;span
+class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt; &lt;strong&gt;do&lt;/strong&gt;
+&lt;ol type=&quot;a&quot;&gt;
+&lt;li&gt;&lt;span class=&quot;math inline&quot;&gt;\(U&amp;#39;(s) \gets \max_{a\in
+\mathcal{A}(s)} \sum_{s&amp;#39;}P(s&amp;#39;| s,a) \left[ R(s,a,s&amp;#39;) +
+U(s&amp;#39;) \right]\)&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;if&lt;/strong&gt; &lt;span class=&quot;math inline&quot;&gt;\(|U(s&amp;#39;)-U(s)|
+&amp;gt; \delta\)&lt;/span&gt; &lt;strong&gt;then&lt;/strong&gt; &lt;span
+class=&quot;math inline&quot;&gt;\(\delta \gets |U(s&amp;#39;)-U(s)|\)&lt;/span&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;until&lt;/strong&gt; &lt;span class=&quot;math inline&quot;&gt;\(\delta \leq
+\epsilon\)&lt;/span&gt;;&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;
+&lt;p&gt;The optimal action for state &lt;span class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt;
+is thus the action maximing the sum term in Step 2a, i.e. &lt;span
+class=&quot;math inline&quot;&gt;\(\pi(s) = \operatorname{argmax}_{a\in
+\mathcal{A}(s)} \sum_{s&amp;#39;}P(s&amp;#39;| s,a) \left[ R(s,a,s&amp;#39;) +
+\max_{a&amp;#39;} U(s&amp;#39;) \right]\)&lt;/span&gt;. Either one computes this at
+the end of the algorithm or one adds this book-keeping step as part of
+step 2a in the value iteration algorithm. Technically, &lt;span
+class=&quot;math inline&quot;&gt;\(\pi\approx \pi^*\)&lt;/span&gt;, i.e. we only obtain an
+estimate of the optimal strategy, because of the iterative nature of the
+algorithm. However, one can show that with sufficient iterations we
+converge towards &lt;span class=&quot;math inline&quot;&gt;\(\pi^*\)&lt;/span&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;results&quot;&gt;Results&lt;/h2&gt;
+&lt;p&gt;Applying the value iteration Python code for &lt;span
+class=&quot;math inline&quot;&gt;\(n=7\)&lt;/span&gt; (see code in the Appendix) gives the
+optimal strategy. Furthermore, we also obtain the probabilities to win
+from each state. We show the result for all states with at least 3
+sticks in the lid. With less than 3 sticks the decision is always to
+continue throwing.&lt;/p&gt;
+&lt;p&gt;In the output, the column &lt;code&gt;strategy&lt;/code&gt; shows whether to
+continue throwing the dice (&lt;code&gt;TRUE&lt;/code&gt;) or not
+(&lt;code&gt;FALSE&lt;/code&gt;); the column &lt;code&gt;value&lt;/code&gt; shows the expected
+value &lt;span class=&quot;math inline&quot;&gt;\(U(s)\)&lt;/span&gt; and &lt;code&gt;prob&lt;/code&gt;
+shows the expected probability to win the game given that the opponent
+also follows the same optimal strategy. Note that for states with &lt;span
+class=&quot;math inline&quot;&gt;\(l=1\)&lt;/span&gt;, no choice is possible, i.e. one has
+to continue no matter what. For these states the strategy column is
+always &lt;code&gt;TRUE&lt;/code&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;##    i j k l       value strategy      prob
+## 1  5 1 1 1 -0.09741652     TRUE 0.4512917
+## 2  5 1 1 0  0.09741652    FALSE 0.5487083
+## 3  4 2 1 1 -0.36297663     TRUE 0.3185117
+## 4  4 2 1 0 -0.31689982    FALSE 0.3415501
+## 5  4 1 2 1  0.31689982     TRUE 0.6584499
+## 6  4 1 2 0  0.36297663    FALSE 0.6814883
+## 7  4 1 1 1  0.04845936     TRUE 0.5242297
+## 8  4 1 1 0  0.04845936     TRUE 0.5242297
+## 9  3 3 1 1 -0.52748432     TRUE 0.2362578
+## 10 3 3 1 0 -0.52748432     TRUE 0.2362578
+## 11 3 2 2 1  0.02465027     TRUE 0.5123251
+## 12 3 2 2 0  0.02465027     TRUE 0.5123251
+## 13 3 2 1 1 -0.27737920     TRUE 0.3613104
+## 14 3 2 1 0 -0.27737920     TRUE 0.3613104
+## 15 3 1 3 1  0.58093392     TRUE 0.7904670
+## 16 3 1 3 0  0.58093392     TRUE 0.7904670
+## 17 3 1 2 1  0.42731097     TRUE 0.7136555
+## 18 3 1 2 0  0.42731097     TRUE 0.7136555
+## 19 3 1 1 1  0.22509739     TRUE 0.6125487
+## 20 3 1 1 0  0.22509739     TRUE 0.6125487&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;One can, e.g., compare the results with the numbers in Fig. 4 of
+&lt;span class=&quot;citation&quot; data-cites=&quot;jehn2021&quot;&gt;Jehn (2021)&lt;/span&gt;. The
+optimal strategy for a two player game is thus to continue as long as
+only three pits are filled. If four slots are filled, one would only
+continue, if the situation is 4/1/1. If 5 pits are filled, one should
+always stop (if possible). The figure below illustrates the strategy for
+all &lt;span class=&quot;math inline&quot;&gt;\(l=0\)&lt;/span&gt; states graphically: the
+y-axis gives &lt;span class=&quot;math inline&quot;&gt;\(i\)&lt;/span&gt; whereas the label of
+each box is &lt;span class=&quot;math inline&quot;&gt;\(j/k\)&lt;/span&gt; above the expected
+probability to win from this state (with 2 decimals):&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2023-03-20-dynprog/optim_strategy-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
+&lt;h2 id=&quot;discussion&quot;&gt;Discussion&lt;/h2&gt;
+&lt;p&gt;Dynamic programming is an important foundation for reinforcement
+learning. We can use it to find optimal strategies in fully observable
+stochastic environments. For environments with reasonable sized state
+spaces and with a known stochastic model for the transitions between
+states, dynamic programming is a direct method to get exact solutions.
+No complex approximate solutions, as e.g. discussed in Part 2 of &lt;span
+class=&quot;citation&quot; data-cites=&quot;sutton_burto2020&quot;&gt;Sutton and Barto
+(2020)&lt;/span&gt;, are needed.&lt;/p&gt;
+&lt;h2 id=&quot;appendix-python-code&quot;&gt;Appendix: Python code&lt;/h2&gt;
+&lt;p&gt;The Python code for value iteration can be found as &lt;a
+href=&quot;/Users/hoehle/Sandbox/Blog/figure/source/2023-03-20-dynprog/value_iteration.py&quot;&gt;&lt;code&gt;value_iteration.py&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre
+class=&quot;sourceCode python&quot;&gt;&lt;code class=&quot;sourceCode python&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a href=&quot;#cb2-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Python implementation of value iteration to find the optimal strategy in Super Six  &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-2&quot;&gt;&lt;a href=&quot;#cb2-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-3&quot;&gt;&lt;a href=&quot;#cb2-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Author: Michael Höhle&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-4&quot;&gt;&lt;a href=&quot;#cb2-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Date:   2023-03-16&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-5&quot;&gt;&lt;a href=&quot;#cb2-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-6&quot;&gt;&lt;a href=&quot;#cb2-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Semi-manual translation of the R code in value_iteration.R to python with the &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-7&quot;&gt;&lt;a href=&quot;#cb2-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# help of OpenAI&amp;#39;s text-davinci-003 API playground feature https://platform.openai.com/playground/p/default-text-to-command?model=text-davinci-003.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-8&quot;&gt;&lt;a href=&quot;#cb2-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-9&quot;&gt;&lt;a href=&quot;#cb2-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;im&quot;&gt;import&lt;/span&gt; numpy &lt;span class=&quot;im&quot;&gt;as&lt;/span&gt; np&lt;/span&gt;
+&lt;span id=&quot;cb2-10&quot;&gt;&lt;a href=&quot;#cb2-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;im&quot;&gt;import&lt;/span&gt; pandas &lt;span class=&quot;im&quot;&gt;as&lt;/span&gt; pd&lt;/span&gt;
+&lt;span id=&quot;cb2-11&quot;&gt;&lt;a href=&quot;#cb2-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-12&quot;&gt;&lt;a href=&quot;#cb2-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;def&lt;/span&gt; make_situations(n):&lt;/span&gt;
+&lt;span id=&quot;cb2-13&quot;&gt;&lt;a href=&quot;#cb2-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;&amp;quot;&amp;quot;&amp;quot;Returns all situations in a game with n sticks left&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-14&quot;&gt;&lt;a href=&quot;#cb2-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-15&quot;&gt;&lt;a href=&quot;#cb2-15&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Parameters&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-16&quot;&gt;&lt;a href=&quot;#cb2-16&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    ----------&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-17&quot;&gt;&lt;a href=&quot;#cb2-17&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    n : int&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-18&quot;&gt;&lt;a href=&quot;#cb2-18&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        The number of sticks left in the game&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-19&quot;&gt;&lt;a href=&quot;#cb2-19&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-20&quot;&gt;&lt;a href=&quot;#cb2-20&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Returns&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-21&quot;&gt;&lt;a href=&quot;#cb2-21&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    -------&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-22&quot;&gt;&lt;a href=&quot;#cb2-22&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    list&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-23&quot;&gt;&lt;a href=&quot;#cb2-23&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        a list of with entries [i,j,k] &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-24&quot;&gt;&lt;a href=&quot;#cb2-24&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-25&quot;&gt;&lt;a href=&quot;#cb2-25&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    res &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; []&lt;/span&gt;
+&lt;span id=&quot;cb2-26&quot;&gt;&lt;a href=&quot;#cb2-26&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Number of sticks in the lid&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-27&quot;&gt;&lt;a href=&quot;#cb2-27&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; i &lt;span class=&quot;kw&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;range&lt;/span&gt;(&lt;span class=&quot;bu&quot;&gt;min&lt;/span&gt;(n,&lt;span class=&quot;dv&quot;&gt;5&lt;/span&gt;),&lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,&lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-28&quot;&gt;&lt;a href=&quot;#cb2-28&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# Number of sticks of player 1&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-29&quot;&gt;&lt;a href=&quot;#cb2-29&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; j &lt;span class=&quot;kw&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;range&lt;/span&gt;(n,&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-30&quot;&gt;&lt;a href=&quot;#cb2-30&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;# Number of sticks of player 2&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-31&quot;&gt;&lt;a href=&quot;#cb2-31&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            k &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; n &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt; i &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt; j&lt;/span&gt;
+&lt;span id=&quot;cb2-32&quot;&gt;&lt;a href=&quot;#cb2-32&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;# Only add valid states&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-33&quot;&gt;&lt;a href=&quot;#cb2-33&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (i&lt;span class=&quot;op&quot;&gt;&amp;gt;=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;  &lt;span class=&quot;kw&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;not&lt;/span&gt; (j&lt;span class=&quot;op&quot;&gt;&amp;lt;=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;or&lt;/span&gt; k&lt;span class=&quot;op&quot;&gt;&amp;lt;=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;)):&lt;/span&gt;
+&lt;span id=&quot;cb2-34&quot;&gt;&lt;a href=&quot;#cb2-34&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                &lt;span class=&quot;co&quot;&gt;# Append the state as an array [i,j,k]&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-35&quot;&gt;&lt;a href=&quot;#cb2-35&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                res.append([i,j,k])&lt;/span&gt;
+&lt;span id=&quot;cb2-36&quot;&gt;&lt;a href=&quot;#cb2-36&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt;(res)&lt;/span&gt;
+&lt;span id=&quot;cb2-37&quot;&gt;&lt;a href=&quot;#cb2-37&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-38&quot;&gt;&lt;a href=&quot;#cb2-38&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-39&quot;&gt;&lt;a href=&quot;#cb2-39&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;def&lt;/span&gt; make_states(n):&lt;/span&gt;
+&lt;span id=&quot;cb2-40&quot;&gt;&lt;a href=&quot;#cb2-40&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;&amp;quot;&amp;quot;&amp;quot;All states when there are n sticks in the game left&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-41&quot;&gt;&lt;a href=&quot;#cb2-41&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-42&quot;&gt;&lt;a href=&quot;#cb2-42&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    We distinguish between states with a choice if to throw the dice and those without&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-43&quot;&gt;&lt;a href=&quot;#cb2-43&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-44&quot;&gt;&lt;a href=&quot;#cb2-44&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Parameters&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-45&quot;&gt;&lt;a href=&quot;#cb2-45&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    ----------&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-46&quot;&gt;&lt;a href=&quot;#cb2-46&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    n : int&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-47&quot;&gt;&lt;a href=&quot;#cb2-47&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        The number of sticks left in the game&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-48&quot;&gt;&lt;a href=&quot;#cb2-48&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-49&quot;&gt;&lt;a href=&quot;#cb2-49&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Returns&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-50&quot;&gt;&lt;a href=&quot;#cb2-50&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    -------&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-51&quot;&gt;&lt;a href=&quot;#cb2-51&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    list&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-52&quot;&gt;&lt;a href=&quot;#cb2-52&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        a list of with entries [i,j,k] &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-53&quot;&gt;&lt;a href=&quot;#cb2-53&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;   &lt;/span&gt;
+&lt;span id=&quot;cb2-54&quot;&gt;&lt;a href=&quot;#cb2-54&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    states &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; []&lt;/span&gt;
+&lt;span id=&quot;cb2-55&quot;&gt;&lt;a href=&quot;#cb2-55&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; i &lt;span class=&quot;kw&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;range&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,n&lt;span class=&quot;op&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-56&quot;&gt;&lt;a href=&quot;#cb2-56&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        s &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; make_situations(i)&lt;/span&gt;
+&lt;span id=&quot;cb2-57&quot;&gt;&lt;a href=&quot;#cb2-57&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# Make list comprehension which adds a fourth component indicating if the move is forced (0=no, 1=yes)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-58&quot;&gt;&lt;a href=&quot;#cb2-58&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; j &lt;span class=&quot;kw&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;range&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-59&quot;&gt;&lt;a href=&quot;#cb2-59&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            states.extend([x &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; [j] &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; x &lt;span class=&quot;kw&quot;&gt;in&lt;/span&gt; s])&lt;/span&gt;
+&lt;span id=&quot;cb2-60&quot;&gt;&lt;a href=&quot;#cb2-60&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Sort the list&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-61&quot;&gt;&lt;a href=&quot;#cb2-61&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    states.sort(reverse&lt;span class=&quot;op&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;va&quot;&gt;True&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb2-62&quot;&gt;&lt;a href=&quot;#cb2-62&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt;(states)&lt;/span&gt;
+&lt;span id=&quot;cb2-63&quot;&gt;&lt;a href=&quot;#cb2-63&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-64&quot;&gt;&lt;a href=&quot;#cb2-64&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;def&lt;/span&gt; swap(state, forced_move &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;va&quot;&gt;None&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-65&quot;&gt;&lt;a href=&quot;#cb2-65&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-66&quot;&gt;&lt;a href=&quot;#cb2-66&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Swap the number of sticks of player 1 and 2&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-67&quot;&gt;&lt;a href=&quot;#cb2-67&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-68&quot;&gt;&lt;a href=&quot;#cb2-68&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Parameters&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-69&quot;&gt;&lt;a href=&quot;#cb2-69&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    ----------&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-70&quot;&gt;&lt;a href=&quot;#cb2-70&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    state : vector of length 4&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-71&quot;&gt;&lt;a href=&quot;#cb2-71&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        The state of the game as a vector with 4 components&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-72&quot;&gt;&lt;a href=&quot;#cb2-72&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-73&quot;&gt;&lt;a href=&quot;#cb2-73&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    forced_move : bool&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-74&quot;&gt;&lt;a href=&quot;#cb2-74&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        If the move is forced (i.e. the player has to swap the sticks)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-75&quot;&gt;&lt;a href=&quot;#cb2-75&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-76&quot;&gt;&lt;a href=&quot;#cb2-76&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Returns&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-77&quot;&gt;&lt;a href=&quot;#cb2-77&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    -------&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-78&quot;&gt;&lt;a href=&quot;#cb2-78&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        The new state as a vector of length 4&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-79&quot;&gt;&lt;a href=&quot;#cb2-79&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-80&quot;&gt;&lt;a href=&quot;#cb2-80&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    res &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; [state[&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;], state[&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;], state[&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;], state[&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;]]&lt;/span&gt;
+&lt;span id=&quot;cb2-81&quot;&gt;&lt;a href=&quot;#cb2-81&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (forced_move &lt;span class=&quot;op&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;va&quot;&gt;None&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-82&quot;&gt;&lt;a href=&quot;#cb2-82&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        res[&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; forced_move&lt;/span&gt;
+&lt;span id=&quot;cb2-83&quot;&gt;&lt;a href=&quot;#cb2-83&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt;(res)&lt;/span&gt;
+&lt;span id=&quot;cb2-84&quot;&gt;&lt;a href=&quot;#cb2-84&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-85&quot;&gt;&lt;a href=&quot;#cb2-85&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;def&lt;/span&gt; add_state(state, Delta, forced_move &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;va&quot;&gt;None&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-86&quot;&gt;&lt;a href=&quot;#cb2-86&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    res &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; [&lt;span class=&quot;bu&quot;&gt;sum&lt;/span&gt;(x) &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; x &lt;span class=&quot;kw&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;zip&lt;/span&gt;(state, Delta)]&lt;/span&gt;
+&lt;span id=&quot;cb2-87&quot;&gt;&lt;a href=&quot;#cb2-87&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (forced_move &lt;span class=&quot;op&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;va&quot;&gt;None&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-88&quot;&gt;&lt;a href=&quot;#cb2-88&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        res[&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; forced_move&lt;/span&gt;
+&lt;span id=&quot;cb2-89&quot;&gt;&lt;a href=&quot;#cb2-89&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt;(res)&lt;/span&gt;
+&lt;span id=&quot;cb2-90&quot;&gt;&lt;a href=&quot;#cb2-90&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-91&quot;&gt;&lt;a href=&quot;#cb2-91&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-92&quot;&gt;&lt;a href=&quot;#cb2-92&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;def&lt;/span&gt; R(state):&lt;/span&gt;
+&lt;span id=&quot;cb2-93&quot;&gt;&lt;a href=&quot;#cb2-93&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;&amp;quot;&amp;quot;&amp;quot;The immediate reward function&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-94&quot;&gt;&lt;a href=&quot;#cb2-94&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-95&quot;&gt;&lt;a href=&quot;#cb2-95&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Parameters&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-96&quot;&gt;&lt;a href=&quot;#cb2-96&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    ----------&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-97&quot;&gt;&lt;a href=&quot;#cb2-97&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    state : list&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-98&quot;&gt;&lt;a href=&quot;#cb2-98&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        The state of the game as a vector with 4 components&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-99&quot;&gt;&lt;a href=&quot;#cb2-99&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-100&quot;&gt;&lt;a href=&quot;#cb2-100&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    Returns&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-101&quot;&gt;&lt;a href=&quot;#cb2-101&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    -------&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-102&quot;&gt;&lt;a href=&quot;#cb2-102&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    double The reward R(state), i.e. 1 if player 1 wins, -1 if player 2 wins, 0 otherwise&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-103&quot;&gt;&lt;a href=&quot;#cb2-103&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;        &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-104&quot;&gt;&lt;a href=&quot;#cb2-104&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-105&quot;&gt;&lt;a href=&quot;#cb2-105&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# A terminal state (player 1 = 0)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-106&quot;&gt;&lt;a href=&quot;#cb2-106&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; state[&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;:&lt;/span&gt;
+&lt;span id=&quot;cb2-107&quot;&gt;&lt;a href=&quot;#cb2-107&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-108&quot;&gt;&lt;a href=&quot;#cb2-108&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# A terminal state (player 2 = 0)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-109&quot;&gt;&lt;a href=&quot;#cb2-109&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; state[&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;:&lt;/span&gt;
+&lt;span id=&quot;cb2-110&quot;&gt;&lt;a href=&quot;#cb2-110&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-111&quot;&gt;&lt;a href=&quot;#cb2-111&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Other state (nothing)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-112&quot;&gt;&lt;a href=&quot;#cb2-112&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-113&quot;&gt;&lt;a href=&quot;#cb2-113&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-114&quot;&gt;&lt;a href=&quot;#cb2-114&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;def&lt;/span&gt; optimal_strategy(n, debug&lt;span class=&quot;op&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;va&quot;&gt;False&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-115&quot;&gt;&lt;a href=&quot;#cb2-115&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;&amp;quot;&amp;quot;&amp;quot;&amp;quot;Find the optimal strategy for a game with n sticks left&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-116&quot;&gt;&lt;a href=&quot;#cb2-116&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-117&quot;&gt;&lt;a href=&quot;#cb2-117&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-118&quot;&gt;&lt;a href=&quot;#cb2-118&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Define local variables for the function&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-119&quot;&gt;&lt;a href=&quot;#cb2-119&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    states &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; make_states(n)&lt;/span&gt;
+&lt;span id=&quot;cb2-120&quot;&gt;&lt;a href=&quot;#cb2-120&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    n_states &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;len&lt;/span&gt;(states)&lt;/span&gt;
+&lt;span id=&quot;cb2-121&quot;&gt;&lt;a href=&quot;#cb2-121&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;## Storage of the value function&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-122&quot;&gt;&lt;a href=&quot;#cb2-122&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    U_vec &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; np.zeros(n_states)&lt;/span&gt;
+&lt;span id=&quot;cb2-123&quot;&gt;&lt;a href=&quot;#cb2-123&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    U_vec_prime &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; np.zeros(n_states)&lt;/span&gt;
+&lt;span id=&quot;cb2-124&quot;&gt;&lt;a href=&quot;#cb2-124&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;## Storage of the policy/strategy&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-125&quot;&gt;&lt;a href=&quot;#cb2-125&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    pi &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; np.full(n_states, np.nan)&lt;/span&gt;
+&lt;span id=&quot;cb2-126&quot;&gt;&lt;a href=&quot;#cb2-126&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-127&quot;&gt;&lt;a href=&quot;#cb2-127&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Future reward function.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-128&quot;&gt;&lt;a href=&quot;#cb2-128&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Note terminating states (i=0 or j=0) have zero future reward.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-129&quot;&gt;&lt;a href=&quot;#cb2-129&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# The function uses a local variable states and the value function uvec. Might want to add this to the arguments&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-130&quot;&gt;&lt;a href=&quot;#cb2-130&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;kw&quot;&gt;def&lt;/span&gt; U(state):&lt;/span&gt;
+&lt;span id=&quot;cb2-131&quot;&gt;&lt;a href=&quot;#cb2-131&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# Terminal state (no future returns)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-132&quot;&gt;&lt;a href=&quot;#cb2-132&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (state[&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-133&quot;&gt;&lt;a href=&quot;#cb2-133&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-134&quot;&gt;&lt;a href=&quot;#cb2-134&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (state[&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-135&quot;&gt;&lt;a href=&quot;#cb2-135&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-136&quot;&gt;&lt;a href=&quot;#cb2-136&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# Find index of the element matching in states vector&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-137&quot;&gt;&lt;a href=&quot;#cb2-137&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        idx &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; states.index(state)&lt;/span&gt;
+&lt;span id=&quot;cb2-138&quot;&gt;&lt;a href=&quot;#cb2-138&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# Return value function of the state&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-139&quot;&gt;&lt;a href=&quot;#cb2-139&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; U_vec[idx]&lt;/span&gt;
+&lt;span id=&quot;cb2-140&quot;&gt;&lt;a href=&quot;#cb2-140&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-141&quot;&gt;&lt;a href=&quot;#cb2-141&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;## Loop controls&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-142&quot;&gt;&lt;a href=&quot;#cb2-142&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    stop &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;va&quot;&gt;False&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-143&quot;&gt;&lt;a href=&quot;#cb2-143&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    epsilon &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;fl&quot;&gt;1e-10&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-144&quot;&gt;&lt;a href=&quot;#cb2-144&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;bu&quot;&gt;iter&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-145&quot;&gt;&lt;a href=&quot;#cb2-145&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-146&quot;&gt;&lt;a href=&quot;#cb2-146&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Value iteration &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-147&quot;&gt;&lt;a href=&quot;#cb2-147&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;while&lt;/span&gt; (stop &lt;span class=&quot;op&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;va&quot;&gt;False&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-148&quot;&gt;&lt;a href=&quot;#cb2-148&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;bu&quot;&gt;iter&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-149&quot;&gt;&lt;a href=&quot;#cb2-149&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        Delta &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-150&quot;&gt;&lt;a href=&quot;#cb2-150&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; idx &lt;span class=&quot;kw&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;range&lt;/span&gt;(n_states):&lt;/span&gt;
+&lt;span id=&quot;cb2-151&quot;&gt;&lt;a href=&quot;#cb2-151&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;# Translate to integer configuration&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-152&quot;&gt;&lt;a href=&quot;#cb2-152&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            state &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; states[idx]&lt;/span&gt;
+&lt;span id=&quot;cb2-153&quot;&gt;&lt;a href=&quot;#cb2-153&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-154&quot;&gt;&lt;a href=&quot;#cb2-154&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;# The 4 possible moves&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-155&quot;&gt;&lt;a href=&quot;#cb2-155&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-156&quot;&gt;&lt;a href=&quot;#cb2-156&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;# Do vector addition of the variable state and [0, -1, 0, 0]&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-157&quot;&gt;&lt;a href=&quot;#cb2-157&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            state_six &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; add_state(state,  [&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;], forced_move&lt;span class=&quot;op&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;va&quot;&gt;False&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb2-158&quot;&gt;&lt;a href=&quot;#cb2-158&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            state_free &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; add_state(state, [&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;], forced_move&lt;span class=&quot;op&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;va&quot;&gt;False&lt;/span&gt;)       &lt;/span&gt;
+&lt;span id=&quot;cb2-159&quot;&gt;&lt;a href=&quot;#cb2-159&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            state_occupied &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; swap(add_state(state, [&lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;], forced_move&lt;span class=&quot;op&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;va&quot;&gt;True&lt;/span&gt;))&lt;/span&gt;
+&lt;span id=&quot;cb2-160&quot;&gt;&lt;a href=&quot;#cb2-160&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            state_swap     &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; swap(state, forced_move&lt;span class=&quot;op&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;va&quot;&gt;True&lt;/span&gt;)                 &lt;/span&gt;
+&lt;span id=&quot;cb2-161&quot;&gt;&lt;a href=&quot;#cb2-161&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;/span&gt;
+&lt;span id=&quot;cb2-162&quot;&gt;&lt;a href=&quot;#cb2-162&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;# Number of sticks in the lid&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-163&quot;&gt;&lt;a href=&quot;#cb2-163&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            i &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; state[&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;]&lt;/span&gt;
+&lt;span id=&quot;cb2-164&quot;&gt;&lt;a href=&quot;#cb2-164&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-165&quot;&gt;&lt;a href=&quot;#cb2-165&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;#Q(s, continue)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-166&quot;&gt;&lt;a href=&quot;#cb2-166&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            qs_continue &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; (&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;  &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt; (R(state_six)  &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt;  U(state_six))) &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;\&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-167&quot;&gt;&lt;a href=&quot;#cb2-167&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                        ((&lt;span class=&quot;dv&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;i)&lt;span class=&quot;op&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt; (R(state_free) &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt;  U(state_free)) &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; i&lt;span class=&quot;op&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;5&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;) &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;\&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-168&quot;&gt;&lt;a href=&quot;#cb2-168&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                        (i&lt;span class=&quot;op&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;     &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt; (R(state_occupied) &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt; U(state_occupied)) &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; i&lt;span class=&quot;op&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb2-169&quot;&gt;&lt;a href=&quot;#cb2-169&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-170&quot;&gt;&lt;a href=&quot;#cb2-170&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;#Q(s, stop)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-171&quot;&gt;&lt;a href=&quot;#cb2-171&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            qs_stop &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;(R(state_swap) &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; U(state_swap))&lt;/span&gt;
+&lt;span id=&quot;cb2-172&quot;&gt;&lt;a href=&quot;#cb2-172&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-173&quot;&gt;&lt;a href=&quot;#cb2-173&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;# Updated value &amp;amp; strategy if there is a choice.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-174&quot;&gt;&lt;a href=&quot;#cb2-174&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (state[&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;]&lt;span class=&quot;op&quot;&gt;==&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;):&lt;/span&gt;
+&lt;span id=&quot;cb2-175&quot;&gt;&lt;a href=&quot;#cb2-175&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                U_vec_prime[idx] &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;max&lt;/span&gt;(qs_continue, qs_stop)&lt;/span&gt;
+&lt;span id=&quot;cb2-176&quot;&gt;&lt;a href=&quot;#cb2-176&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                pi[idx] &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; qs_continue &lt;span class=&quot;op&quot;&gt;&amp;gt;&lt;/span&gt; qs_stop&lt;/span&gt;
+&lt;span id=&quot;cb2-177&quot;&gt;&lt;a href=&quot;#cb2-177&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;cf&quot;&gt;else&lt;/span&gt;: &lt;span class=&quot;co&quot;&gt;#no choice&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-178&quot;&gt;&lt;a href=&quot;#cb2-178&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                U_vec_prime[idx] &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; qs_continue&lt;/span&gt;
+&lt;span id=&quot;cb2-179&quot;&gt;&lt;a href=&quot;#cb2-179&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                pi[idx] &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-180&quot;&gt;&lt;a href=&quot;#cb2-180&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-181&quot;&gt;&lt;a href=&quot;#cb2-181&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;co&quot;&gt;# Discrepancy  &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-182&quot;&gt;&lt;a href=&quot;#cb2-182&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            Delta &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;max&lt;/span&gt;(Delta, &lt;span class=&quot;bu&quot;&gt;abs&lt;/span&gt;(U_vec[idx] &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt; U_vec_prime[idx]))&lt;/span&gt;
+&lt;span id=&quot;cb2-183&quot;&gt;&lt;a href=&quot;#cb2-183&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-184&quot;&gt;&lt;a href=&quot;#cb2-184&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# Update the value function by copying the new values&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-185&quot;&gt;&lt;a href=&quot;#cb2-185&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# Note: In NumPy, using &amp;quot;=&amp;quot; would only make a reference to the new vector&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-186&quot;&gt;&lt;a href=&quot;#cb2-186&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# See https://www.geeksforgeeks.org/array-copying-in-python/&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-187&quot;&gt;&lt;a href=&quot;#cb2-187&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        U_vec &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; U_vec_prime.copy()&lt;/span&gt;
+&lt;span id=&quot;cb2-188&quot;&gt;&lt;a href=&quot;#cb2-188&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-189&quot;&gt;&lt;a href=&quot;#cb2-189&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;co&quot;&gt;# Continue the value iteration?  &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-190&quot;&gt;&lt;a href=&quot;#cb2-190&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (debug):&lt;/span&gt;
+&lt;span id=&quot;cb2-191&quot;&gt;&lt;a href=&quot;#cb2-191&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;bu&quot;&gt;print&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;iter = &amp;quot;&lt;/span&gt;, &lt;span class=&quot;bu&quot;&gt;iter&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;, Delta =&amp;quot;&lt;/span&gt;, Delta)  &lt;/span&gt;
+&lt;span id=&quot;cb2-192&quot;&gt;&lt;a href=&quot;#cb2-192&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        stop &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; (Delta &lt;span class=&quot;op&quot;&gt;&amp;lt;=&lt;/span&gt; epsilon)&lt;/span&gt;
+&lt;span id=&quot;cb2-193&quot;&gt;&lt;a href=&quot;#cb2-193&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-194&quot;&gt;&lt;a href=&quot;#cb2-194&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Make a tibble containing the strategy  &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-195&quot;&gt;&lt;a href=&quot;#cb2-195&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    strategy &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; pd.DataFrame({&lt;span class=&quot;st&quot;&gt;&amp;#39;state&amp;#39;&lt;/span&gt;: states, &lt;span class=&quot;st&quot;&gt;&amp;#39;value&amp;#39;&lt;/span&gt;: U_vec, &lt;span class=&quot;st&quot;&gt;&amp;#39;strategy&amp;#39;&lt;/span&gt;: pi, &lt;span class=&quot;st&quot;&gt;&amp;#39;prob&amp;#39;&lt;/span&gt;: &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;*&lt;/span&gt;U_vec&lt;span class=&quot;op&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;})  &lt;/span&gt;
+&lt;span id=&quot;cb2-196&quot;&gt;&lt;a href=&quot;#cb2-196&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Split state column into 4 separate columns&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-197&quot;&gt;&lt;a href=&quot;#cb2-197&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    strategy[[&lt;span class=&quot;st&quot;&gt;&amp;#39;i&amp;#39;&lt;/span&gt;,&lt;span class=&quot;st&quot;&gt;&amp;#39;j&amp;#39;&lt;/span&gt;,&lt;span class=&quot;st&quot;&gt;&amp;#39;k&amp;#39;&lt;/span&gt;,&lt;span class=&quot;st&quot;&gt;&amp;#39;l&amp;#39;&lt;/span&gt;]] &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; pd.DataFrame(strategy.state.tolist(), index&lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; strategy.index) &lt;/span&gt;
+&lt;span id=&quot;cb2-198&quot;&gt;&lt;a href=&quot;#cb2-198&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Drop the state column&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-199&quot;&gt;&lt;a href=&quot;#cb2-199&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    strategy &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; strategy.drop(columns&lt;span class=&quot;op&quot;&gt;=&lt;/span&gt;[&lt;span class=&quot;st&quot;&gt;&amp;#39;state&amp;#39;&lt;/span&gt;])&lt;/span&gt;
+&lt;span id=&quot;cb2-200&quot;&gt;&lt;a href=&quot;#cb2-200&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Convert strategy to boolean&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-201&quot;&gt;&lt;a href=&quot;#cb2-201&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    strategy[&lt;span class=&quot;st&quot;&gt;&amp;#39;strategy&amp;#39;&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; strategy[&lt;span class=&quot;st&quot;&gt;&amp;#39;strategy&amp;#39;&lt;/span&gt;].astype(&lt;span class=&quot;bu&quot;&gt;bool&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb2-202&quot;&gt;&lt;a href=&quot;#cb2-202&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Change the order such that the i,j,k,forced_move columns are shown first&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-203&quot;&gt;&lt;a href=&quot;#cb2-203&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    cols &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; strategy.columns.tolist()&lt;/span&gt;
+&lt;span id=&quot;cb2-204&quot;&gt;&lt;a href=&quot;#cb2-204&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    cols &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; cols[&lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;4&lt;/span&gt;:] &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; cols[:&lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;4&lt;/span&gt;]&lt;/span&gt;
+&lt;span id=&quot;cb2-205&quot;&gt;&lt;a href=&quot;#cb2-205&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    strategy &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; strategy[cols]&lt;/span&gt;
+&lt;span id=&quot;cb2-206&quot;&gt;&lt;a href=&quot;#cb2-206&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-207&quot;&gt;&lt;a href=&quot;#cb2-207&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt;(strategy)&lt;/span&gt;
+&lt;span id=&quot;cb2-208&quot;&gt;&lt;a href=&quot;#cb2-208&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-209&quot;&gt;&lt;a href=&quot;#cb2-209&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-210&quot;&gt;&lt;a href=&quot;#cb2-210&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#Test function&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-211&quot;&gt;&lt;a href=&quot;#cb2-211&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#make_situations(6)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-212&quot;&gt;&lt;a href=&quot;#cb2-212&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-213&quot;&gt;&lt;a href=&quot;#cb2-213&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Find optimal strategy for game with 6 sticks left&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-214&quot;&gt;&lt;a href=&quot;#cb2-214&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;s_best &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; optimal_strategy(&lt;span class=&quot;dv&quot;&gt;7&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb2-215&quot;&gt;&lt;a href=&quot;#cb2-215&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Print full strategy without row number, https://stackoverflow.com/questions/52396477/printing-a-pandas-dataframe-without-row-number-index&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-216&quot;&gt;&lt;a href=&quot;#cb2-216&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# pd.set_option(&amp;#39;display.max_rows&amp;#39;, None)&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-217&quot;&gt;&lt;a href=&quot;#cb2-217&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# print(s_best.to_string(index=False))&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2 class=&quot;unnumbered&quot; id=&quot;references&quot;&gt;References&lt;/h2&gt;
+&lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
+role=&quot;list&quot;&gt;
+&lt;div id=&quot;ref-jehn2021&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Jehn, Rüdiger. 2021. &lt;span&gt;“Optimum Strategies for the Game Super
+Six.”&lt;/span&gt; arXiv. &lt;a
+href=&quot;https://doi.org/10.48550/ARXIV.2109.10700&quot;&gt;https://doi.org/10.48550/ARXIV.2109.10700&lt;/a&gt;.
+&lt;/div&gt;
+&lt;div id=&quot;ref-russell_norvig2020&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Russell, S. J., and P. Norvig. 2020. &lt;em&gt;Artificial Intelligence: A
+Modern Approach&lt;/em&gt;. Pearson Series in Artificial Intelligence.
+Pearson.
+&lt;/div&gt;
+&lt;div id=&quot;ref-sutton_burto2020&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Sutton, Richard S., and Andrew G. Barto. 2020. &lt;em&gt;Reinforcement
+Learning - an Introduction&lt;/em&gt;. 2nd ed. The MIT Press.
+&lt;/div&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Mon, 20 Mar 2023 00:00:00 +0100</pubDate>
+        <link>http://mhoehle.github.io/blog/2023/03/20/dynprog.html</link>
+        <guid isPermaLink="true">http://mhoehle.github.io/blog/2023/03/20/dynprog.html</guid>
+        
+        <category>rstats</category>
+        
+        <category>python</category>
+        
+        <category>dynamic programming</category>
+        
+        <category>reinforcement learning</category>
+        
+        <category>game theory</category>
+        
+        
+      </item>
     
       <item>
         <title>How to Win a Game (or More) of Super Six</title>
@@ -819,17 +1339,17 @@ strategy for the &lt;span class=&quot;math inline&quot;&gt;\(n=2\)&lt;/span&gt; 
 situation. It depends on the number of sticks left in the game and the
 number of sticks each player has. In most cases the strategy stops if
 more than 3 pits are occupied – see Appendix 1 for details. This
-dependence on the other player’s hand is likely to carry forward to
-&lt;span class=&quot;math inline&quot;&gt;\(n&amp;gt;2\)&lt;/span&gt; player situation. Analytic
-results for &lt;span class=&quot;math inline&quot;&gt;\(n&amp;gt;2\)&lt;/span&gt; situations will
-be extremely difficult to obtain, but it makes intuitive sense to be
-more aggressive when there are more players, because there are more
+dependence on the other player’s hand is likely to carry forward to the
+&lt;span class=&quot;math inline&quot;&gt;\(n&amp;gt;2\)&lt;/span&gt; player situation. However,
+analytic results for &lt;span class=&quot;math inline&quot;&gt;\(n&amp;gt;2\)&lt;/span&gt; will be
+extremely difficult to obtain, but it makes intuitive sense to be more
+aggressive when there are more players, because there are more
 contestants for the win.&lt;/p&gt;
-&lt;p&gt;Did the game developers realized that the start player has such a
-high probability of winning the game? It seems advisable to accompany
-game development by simulations and mathematical calculations at the
-design stage. In practice one should randomize the start player to
-enhance fairness.&lt;/p&gt;
+&lt;p&gt;Did the game developers realize that the start player has such a high
+probability of winning the game? It seems advisable to accompany game
+development by simulations and mathematical calculations at the design
+stage. In practice, one should randomize the start player to enhance
+fairness.&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;Final note&lt;/strong&gt;: This will be the last post of &lt;em&gt;Theory
 Meets Practice&lt;/em&gt; Blog in its current form. As of Jan 2023 I am
 working as full professor in Statistics and Data Science at the &lt;a
@@ -957,7 +1477,7 @@ pits filled situation, if each player has only one stick left
 &lt;p&gt;Finally, we implement a function, which implements Jehn’s optimal
 strategy in a way, which can be used by the simulation function
 &lt;code&gt;simulate_super6()&lt;/code&gt;:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb23&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb23-1&quot;&gt;&lt;a href=&quot;#cb23-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&amp;#39; Jehn&amp;#39;s optimal strategy for for two players&lt;/span&gt;&lt;/span&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb23&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb23-1&quot;&gt;&lt;a href=&quot;#cb23-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&amp;#39; Jehn&amp;#39;s optimal strategy for two players&lt;/span&gt;&lt;/span&gt;
 &lt;span id=&quot;cb23-2&quot;&gt;&lt;a href=&quot;#cb23-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&amp;#39;&lt;/span&gt;&lt;/span&gt;
 &lt;span id=&quot;cb23-3&quot;&gt;&lt;a href=&quot;#cb23-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&amp;#39; @param player_idx Index of the player in the state_players variable (see simulate_super6 function)&lt;/span&gt;&lt;/span&gt;
 &lt;span id=&quot;cb23-4&quot;&gt;&lt;a href=&quot;#cb23-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&amp;#39; @param filled_holes Number of pits filled&lt;/span&gt;&lt;/span&gt;
@@ -4006,382 +4526,6 @@ href=&quot;#fnref5&quot; class=&quot;footnote-back&quot; role=&quot;doc-backlink
         <category>digital epidemiology</category>
         
         <category>contact tracing</category>
-        
-        
-      </item>
-    
-      <item>
-        <title>Superspreading and the Gini Coefficient</title>
-        <description>&lt;h2 id=&quot;abstract&quot;&gt;Abstract:&lt;/h2&gt;
-&lt;p&gt;We look at superspreading in infectious disease transmission from a
-statistical point of view. We characterise heterogeneity in the
-offspring distribution by the Gini coefficient instead of the usual
-dispersion parameter of the negative binomial distribution. This allows
-us to consider more flexible offspring distributions.&lt;/p&gt;
-&lt;center&gt;
-&lt;img src=&quot;/blog/figure/source/2020-05-31-superspreader/PLOTMODIFIEDLORENZ-1.png&quot; width=&quot;550&quot;&gt;
-&lt;/center&gt;
-&lt;p&gt;&lt;br&gt;
-&lt;a rel=&quot;license&quot; href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;&lt;img alt=&quot;Creative Commons License&quot; style=&quot;border-width:0&quot; src=&quot;https://i.creativecommons.org/l/by-sa/4.0/88x31.png&quot;/&gt;&lt;/a&gt;
-This work is licensed under a &lt;a rel=&quot;license&quot;
-href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;Creative Commons
-Attribution-ShareAlike 4.0 International License&lt;/a&gt;. The
-markdown+Rknitr source code of this blog is available under a &lt;a
-href=&quot;https://www.gnu.org/licenses/gpl-3.0.html&quot;&gt;GNU General Public
-License (GPL v3)&lt;/a&gt; license from github.&lt;/p&gt;
-&lt;h2 id=&quot;motivation&quot;&gt;Motivation&lt;/h2&gt;
-&lt;p&gt;The recent Science report on &lt;a
-href=&quot;https://www.sciencemag.org/news/2020/05/why-do-some-covid-19-patients-infect-many-others-whereas-most-don-t-spread-virus-all&quot;&gt;Superspreading
-during the COVID-19 pandemic&lt;/a&gt; by Kai Kupferschmidt has made the
-dispersion parameter &lt;span class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt; of the
-negative binomial distribution a hot quantity&lt;a href=&quot;#fn1&quot;
-class=&quot;footnote-ref&quot; id=&quot;fnref1&quot; role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/a&gt; in
-the discussions of how to determine effective interventions. This short
-blog post aims at understanding the math behind statements such as
-“Probably about 10% of cases lead to 80% of the spread” and replicate
-them with computations in &lt;a href=&quot;https://www.r-project.org&quot;&gt;R&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Warning&lt;/strong&gt;: This post reflects more my own learning
-process of what is superspreading than trying to make any statements of
-importance.&lt;/p&gt;
-&lt;h2 id=&quot;superspreading&quot;&gt;Superspreading&lt;/h2&gt;
-&lt;p&gt;&lt;span class=&quot;citation&quot; data-cites=&quot;lloydsmith_etal2005&quot;&gt;Lloyd-Smith
-et al. (2005)&lt;/span&gt; show that the 2002-2004 SARS-CoV-1 epidemic was
-driven by a small number of events where one case directly infected a
-large number of secondary cases - a so called superspreading event. This
-means that for SARS-CoV-1 the distribution of how many secondary cases
-each primary case generates is heavy tailed. More specifically, the &lt;a
-href=&quot;https://staff.math.su.se/hoehle/blog/2020/04/15/effectiveR0.html&quot;&gt;effective
-reproduction number&lt;/a&gt; describes the mean number of secondary cases a
-primary case generates during the outbreak, i.e. it is the mean of the
-offspring distribution. In order to address dispersion around this mean,
-&lt;span class=&quot;citation&quot; data-cites=&quot;lloydsmith_etal2005&quot;&gt;Lloyd-Smith et
-al. (2005)&lt;/span&gt; use the &lt;a
-href=&quot;https://en.wikipedia.org/wiki/Negative_binomial_distribution&quot;&gt;negative
-binomial distribution&lt;/a&gt; with mean &lt;span
-class=&quot;math inline&quot;&gt;\(R(t)\)&lt;/span&gt; and over-dispersion parameter &lt;span
-class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt; as a probability model for the
-offspring distribution. The number of offspring that case &lt;span
-class=&quot;math inline&quot;&gt;\(i\)&lt;/span&gt;, which got infected at time &lt;span
-class=&quot;math inline&quot;&gt;\(t_i\)&lt;/span&gt;, causes is given by &lt;span
-class=&quot;math display&quot;&gt;\[
-Y_{i} \sim \operatorname{NegBin}(R(t_i), k),
-\]&lt;/span&gt; s.t. &lt;span class=&quot;math inline&quot;&gt;\(\operatorname{E}(Y_{i}) =
-R(t_i)\)&lt;/span&gt; and &lt;span
-class=&quot;math inline&quot;&gt;\(\operatorname{Var}(Y_{i}) = R(t_i) (1 +
-\frac{1}{k} R(t_i))\)&lt;/span&gt;. This parametrisation makes it easy to see
-that the negative binomial model has an additional factor &lt;span
-class=&quot;math inline&quot;&gt;\(1 + \frac{1}{k} R(t_i)\)&lt;/span&gt; for the variance,
-which allows it to have excess variance (aka. over-dispersion) compared
-to the Poisson distribution, which has &lt;span
-class=&quot;math inline&quot;&gt;\(\operatorname{Var}(Y_{i}) = R(t_i)\)&lt;/span&gt;. If
-&lt;span class=&quot;math inline&quot;&gt;\(k\rightarrow \infty\)&lt;/span&gt; we get the
-Poisson distribution and the closer &lt;span
-class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt; is to zero the larger the variance,
-i.e. the heterogeneity, in the distribution is. Note the deliberate use
-of the effective reproduction number &lt;span
-class=&quot;math inline&quot;&gt;\(R(t_i)\)&lt;/span&gt; instead of the basic reproduction
-number &lt;span class=&quot;math inline&quot;&gt;\(R_0\)&lt;/span&gt; (as done in &lt;span
-class=&quot;citation&quot; data-cites=&quot;lloydsmith_etal2005&quot;&gt;Lloyd-Smith et al.
-(2005)&lt;/span&gt;) in the model. This is to highlight, that one is likely to
-observe clusters in the context of interventions and depletion of
-susceptibles.&lt;/p&gt;
-&lt;p&gt;That the dispersion parameter &lt;span class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt;
-is making epidemiological fame is a little surprising, because it is a
-parameter in a specific parametric model. A parametric model, which
-might be inadequate for the observed data. A secondary objective of this
-post is thus to focus more on describing the heterogeneity of the
-offspring distribution using classical statistical concepts such as the
-&lt;a href=&quot;https://en.wikipedia.org/wiki/Gini_coefficient&quot;&gt;&lt;strong&gt;Gini
-coefficient&lt;/strong&gt;&lt;/a&gt;.&lt;/p&gt;
-&lt;h2
-id=&quot;negative-binomial-distributed-number-of-secondary-cases&quot;&gt;Negative
-binomial distributed number of secondary cases&lt;/h2&gt;
-&lt;p&gt;Let’s assume &lt;span class=&quot;math inline&quot;&gt;\(k=0.45\)&lt;/span&gt; as done in
-&lt;span class=&quot;citation&quot; data-cites=&quot;adam_etal2020&quot;&gt;Adam et al.
-(2020)&lt;/span&gt;. This is a slightly higher estimate than the &lt;span
-class=&quot;math inline&quot;&gt;\(k=0.1\)&lt;/span&gt; estimate by &lt;span class=&quot;citation&quot;
-data-cites=&quot;endo_etal2020&quot;&gt;Endo et al. (2020)&lt;/span&gt;&lt;a href=&quot;#fn2&quot;
-class=&quot;footnote-ref&quot; id=&quot;fnref2&quot; role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt;
-quoted in the Science article. We want to derive statements like “the x%
-most active spreaders infected y% of all cases” as a function of &lt;span
-class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt;. The PMF of the offspring distribution
-with mean 2.5 and dispersion 0.45 looks as follows:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a href=&quot;#cb1-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;Rt &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fl&quot;&gt;2.5&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-2&quot;&gt;&lt;a href=&quot;#cb1-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;k  &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fl&quot;&gt;0.45&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb1-3&quot;&gt;&lt;a href=&quot;#cb1-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-4&quot;&gt;&lt;a href=&quot;#cb1-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Evaluate on a larger enough grid, so E(Y_t) is determined accurate enough&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-5&quot;&gt;&lt;a href=&quot;#cb1-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# We also include -1 in the grid to get a point (0,0) needed for the Lorenz curve&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-6&quot;&gt;&lt;a href=&quot;#cb1-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;df &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;data.frame&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;250&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;pmf=&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;dnbinom&lt;/span&gt;(x, &lt;span class=&quot;at&quot;&gt;mu=&lt;/span&gt;Rt, &lt;span class=&quot;at&quot;&gt;size=&lt;/span&gt;k))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2020-05-31-superspreader/PMFNEGBIN-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
-&lt;p&gt;So we observe that 43% of the cases never manage to infect a
-secondary case, whereas some cases manage to generate more than 10 new
-cases. The mean of the distribution is checked empirically to equal the
-specified &lt;span class=&quot;math inline&quot;&gt;\(R(t)\)&lt;/span&gt; of 2.5:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a href=&quot;#cb2-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(df&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;x &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; df&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;pmf)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] 2.5&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;span class=&quot;citation&quot; data-cites=&quot;lloydsmith_etal2005&quot;&gt;Lloyd-Smith
-et al. (2005)&lt;/span&gt; define a &lt;strong&gt;superspreader&lt;/strong&gt; to be a
-primary case, which generates more secondary cases than the 99th
-quantile of the Poisson distribution with mean &lt;span
-class=&quot;math inline&quot;&gt;\(R(t)\)&lt;/span&gt;. We use this to compute the
-proportion of superspreaders in our distribution:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb4&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb4-1&quot;&gt;&lt;a href=&quot;#cb4-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;(superspreader_threshold &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;qpois&lt;/span&gt;(&lt;span class=&quot;fl&quot;&gt;0.99&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;lambda=&lt;/span&gt;Rt))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] 7&lt;/code&gt;&lt;/pre&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb6&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb6-1&quot;&gt;&lt;a href=&quot;#cb6-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;(p_superspreader &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;pnbinom&lt;/span&gt;(superspreader_threshold, &lt;span class=&quot;at&quot;&gt;mu=&lt;/span&gt;Rt, &lt;span class=&quot;at&quot;&gt;size=&lt;/span&gt;k, &lt;span class=&quot;at&quot;&gt;lower.tail=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;FALSE&lt;/span&gt;))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] 0.09539277&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;So 10% of the cases will generate more than 7 new cases. To get to
-statements such as “10% generate 80% of the cases” we also need to know
-how many cases those 10% generate out of the 2.5 average.&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb8&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb8-1&quot;&gt;&lt;a href=&quot;#cb8-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Compute proportion of the overall expected number of new cases&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb8-2&quot;&gt;&lt;a href=&quot;#cb8-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;df &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; df &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;cdf =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;pnbinom&lt;/span&gt;(x, &lt;span class=&quot;at&quot;&gt;mu=&lt;/span&gt;Rt, &lt;span class=&quot;at&quot;&gt;size=&lt;/span&gt;k), &lt;/span&gt;
-&lt;span id=&quot;cb8-3&quot;&gt;&lt;a href=&quot;#cb8-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                    &lt;span class=&quot;at&quot;&gt;expected_cases=&lt;/span&gt;x&lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt;pmf, &lt;/span&gt;
-&lt;span id=&quot;cb8-4&quot;&gt;&lt;a href=&quot;#cb8-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                    &lt;span class=&quot;at&quot;&gt;prop_of_Rt=&lt;/span&gt;expected_cases&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;Rt,&lt;/span&gt;
-&lt;span id=&quot;cb8-5&quot;&gt;&lt;a href=&quot;#cb8-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                    &lt;span class=&quot;at&quot;&gt;cum_prop_of_Rt =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cumsum&lt;/span&gt;(prop_of_Rt))&lt;/span&gt;
-&lt;span id=&quot;cb8-6&quot;&gt;&lt;a href=&quot;#cb8-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb8-7&quot;&gt;&lt;a href=&quot;#cb8-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Summarise&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb8-8&quot;&gt;&lt;a href=&quot;#cb8-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;info &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; df &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;filter&lt;/span&gt;(x &lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt; superspreader_threshold) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb8-9&quot;&gt;&lt;a href=&quot;#cb8-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;expected_cases =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(expected_cases), &lt;span class=&quot;at&quot;&gt;prop_of_Rt =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(prop_of_Rt))&lt;/span&gt;
-&lt;span id=&quot;cb8-10&quot;&gt;&lt;a href=&quot;#cb8-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;info&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;##   expected_cases prop_of_Rt
-## 1       1.192786  0.4771144&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;In other words, the superspreaders generate (on average) 1.19 of the
-2.5 new cases of a generation, i.e. 48%.&lt;/p&gt;
-&lt;p&gt;These statements can also be made without formulating a superspreader
-threshold by graphing the cumulative share of primary cases against the
-cumulative share of secondary cases these primary cases generate. This
-is exactly what the &lt;a
-href=&quot;https://en.wikipedia.org/wiki/Lorenz_curve&quot;&gt;Lorenz curve&lt;/a&gt; is
-doing. However, for outbreak analysis it appears clearer to graph the
-cumulative distribution in decreasing order of the number of offspring
-generated, i.e. following &lt;span class=&quot;citation&quot;
-data-cites=&quot;lloydsmith_etal2005&quot;&gt;Lloyd-Smith et al. (2005)&lt;/span&gt; we
-plot the cumulative share as &lt;span class=&quot;math inline&quot;&gt;\(P(Y\geq
-y)\)&lt;/span&gt; instead of &lt;span class=&quot;math inline&quot;&gt;\(P(Y \leq y)\)&lt;/span&gt;.
-This is a variation of the Lorenz curve, but allows statements such as
-“the %x cases with highest number of offspring generate %y of the
-secondary cases”.&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb10&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb10-1&quot;&gt;&lt;a href=&quot;#cb10-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Add information for plotting the modified Lorenz curve&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb10-2&quot;&gt;&lt;a href=&quot;#cb10-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;df &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; df &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb10-3&quot;&gt;&lt;a href=&quot;#cb10-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;cdf_decreasing =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;pnbinom&lt;/span&gt;(x&lt;span class=&quot;dv&quot;&gt;-1&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;mu=&lt;/span&gt;Rt, &lt;span class=&quot;at&quot;&gt;size=&lt;/span&gt;k, &lt;span class=&quot;at&quot;&gt;lower.tail=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;FALSE&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb10-4&quot;&gt;&lt;a href=&quot;#cb10-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;arrange&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;desc&lt;/span&gt;(x)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;  &lt;/span&gt;
-&lt;span id=&quot;cb10-5&quot;&gt;&lt;a href=&quot;#cb10-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;cum_prop_of_Rt_decreasing =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cumsum&lt;/span&gt;(prop_of_Rt))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb11&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb11-1&quot;&gt;&lt;a href=&quot;#cb11-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Plot the modified Lorenz curve as in Fig 1b of Lloyd-Smith et al. (2005)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb11-2&quot;&gt;&lt;a href=&quot;#cb11-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;ggplot&lt;/span&gt;(df, &lt;span class=&quot;fu&quot;&gt;aes&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;cdf_decreasing, &lt;span class=&quot;at&quot;&gt;y=&lt;/span&gt;cum_prop_of_Rt_decreasing)) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;geom_line&lt;/span&gt;() &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb11-3&quot;&gt;&lt;a href=&quot;#cb11-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;coord_cartesian&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;xlim=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb11-4&quot;&gt;&lt;a href=&quot;#cb11-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;xlab&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;Proportion of the infectious cases (cases with most secondary cases first)&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb11-5&quot;&gt;&lt;a href=&quot;#cb11-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;ylab&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;Proportion of the secondary cases&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb11-6&quot;&gt;&lt;a href=&quot;#cb11-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;scale_x_continuous&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;labels=&lt;/span&gt;scales&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;percent, &lt;span class=&quot;at&quot;&gt;breaks=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;seq&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,&lt;span class=&quot;at&quot;&gt;length=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb11-7&quot;&gt;&lt;a href=&quot;#cb11-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;scale_y_continuous&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;labels=&lt;/span&gt;scales&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;percent, &lt;span class=&quot;at&quot;&gt;breaks=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;seq&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,&lt;span class=&quot;at&quot;&gt;length=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb11-8&quot;&gt;&lt;a href=&quot;#cb11-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;geom_line&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;data=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;data.frame&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;seq&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,&lt;span class=&quot;at&quot;&gt;length=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;100&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;y=&lt;/span&gt;x), &lt;span class=&quot;fu&quot;&gt;aes&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;x, &lt;span class=&quot;at&quot;&gt;y=&lt;/span&gt;y), &lt;span class=&quot;at&quot;&gt;lty=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;col=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;gray&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;ggtitle&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;str_c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;Scenario: R(t) = &amp;quot;&lt;/span&gt;, Rt, &lt;span class=&quot;st&quot;&gt;&amp;quot;, k = &amp;quot;&lt;/span&gt;, k))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2020-05-31-superspreader/PLOTMODIFIEDLORENZ-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Update 2020-06-01&lt;/strong&gt;: &lt;a
-href=&quot;https://twitter.com/cortinah&quot;&gt;Hernando Cortina&lt;/a&gt; made me aware
-that plotting the Lorenz curve for decreasing values is easily done
-using the &lt;a
-href=&quot;https://cran.r-project.org/web/packages/gglorenz/index.html&quot;&gt;&lt;code&gt;gglorenz&lt;/code&gt;&lt;/a&gt;
-package. However, it requires a sample. So a quick way to do all the
-above for the negative binomial without thinking about CDFs, proportions
-of &lt;span class=&quot;math inline&quot;&gt;\(R(t)\)&lt;/span&gt; etc. is to just generate a
-sample of arbitrary size from the PMF and then plot the decreasing
-Lorenz curve.&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb12&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb12-1&quot;&gt;&lt;a href=&quot;#cb12-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Sample an articial population so we can use the empirical lorenz curve&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb12-2&quot;&gt;&lt;a href=&quot;#cb12-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;outbreak &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;data.frame&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;secondary_cases=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;rnbinom&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;10000&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;mu=&lt;/span&gt;Rt, &lt;span class=&quot;at&quot;&gt;size=&lt;/span&gt;k))&lt;/span&gt;
-&lt;span id=&quot;cb12-3&quot;&gt;&lt;a href=&quot;#cb12-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb12-4&quot;&gt;&lt;a href=&quot;#cb12-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;ggplot&lt;/span&gt;(outbreak, &lt;span class=&quot;fu&quot;&gt;aes&lt;/span&gt;(secondary_cases)) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; gglorenz&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;stat_lorenz&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;desc=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb12-5&quot;&gt;&lt;a href=&quot;#cb12-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;xlab&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;Proportion of the infectious cases (cases with most secondary cases first)&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb12-6&quot;&gt;&lt;a href=&quot;#cb12-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;ylab&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;Proportion of the secondary cases&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb12-7&quot;&gt;&lt;a href=&quot;#cb12-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;scale_x_continuous&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;labels=&lt;/span&gt;scales&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;percent, &lt;span class=&quot;at&quot;&gt;breaks=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;seq&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,&lt;span class=&quot;at&quot;&gt;length=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb12-8&quot;&gt;&lt;a href=&quot;#cb12-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;scale_y_continuous&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;labels=&lt;/span&gt;scales&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;percent, &lt;span class=&quot;at&quot;&gt;breaks=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;seq&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,&lt;span class=&quot;at&quot;&gt;length=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb12-9&quot;&gt;&lt;a href=&quot;#cb12-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;geom_line&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;data=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;data.frame&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;seq&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,&lt;span class=&quot;at&quot;&gt;length=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;100&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;y=&lt;/span&gt;x), &lt;span class=&quot;fu&quot;&gt;aes&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;x, &lt;span class=&quot;at&quot;&gt;y=&lt;/span&gt;y), &lt;span class=&quot;at&quot;&gt;lty=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;col=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;gray&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;ggtitle&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;str_c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;Scenario: R(t) = &amp;quot;&lt;/span&gt;, Rt, &lt;span class=&quot;st&quot;&gt;&amp;quot;, k = &amp;quot;&lt;/span&gt;, k))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2020-05-31-superspreader/GGLORENZ-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
-&lt;h3 id=&quot;gini-coefficient&quot;&gt;Gini Coefficient&lt;/h3&gt;
-&lt;p&gt;Using the standard formulas to compute the &lt;a
-href=&quot;https://en.wikipedia.org/wiki/Gini_coefficient#Discrete_probability_distribution&quot;&gt;Gini
-coefficient&lt;/a&gt; for a discrete distribution with support on the
-non-negative integers, i.e.  &lt;span class=&quot;math display&quot;&gt;\[
-G = \frac{1}{2\mu} \sum_{y=0}^\infty \sum_{z=0}^\infty f(y) f(z) |y-z|,
-\]&lt;/span&gt; where &lt;span class=&quot;math inline&quot;&gt;\(f(y)\)&lt;/span&gt;, &lt;span
-class=&quot;math inline&quot;&gt;\(y=0,1,\ldots\)&lt;/span&gt; denotes the PMF of the
-distribution and &lt;span class=&quot;math inline&quot;&gt;\(\mu=\sum_{y=0}^\infty y
-f(y)\)&lt;/span&gt; is the mean of the distribution. In our case &lt;span
-class=&quot;math inline&quot;&gt;\(\mu=R(t)\)&lt;/span&gt;. From this we get&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb13&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb13-1&quot;&gt;&lt;a href=&quot;#cb13-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Gini index for a discrete probability distribution&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb13-2&quot;&gt;&lt;a href=&quot;#cb13-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;gini_coeff &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(df) {&lt;/span&gt;
-&lt;span id=&quot;cb13-3&quot;&gt;&lt;a href=&quot;#cb13-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  mu &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(df&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;x &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; df&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;pmf)&lt;/span&gt;
-&lt;span id=&quot;cb13-4&quot;&gt;&lt;a href=&quot;#cb13-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  sum &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb13-5&quot;&gt;&lt;a href=&quot;#cb13-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; (i &lt;span class=&quot;cf&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;nrow&lt;/span&gt;(df)) {&lt;/span&gt;
-&lt;span id=&quot;cb13-6&quot;&gt;&lt;a href=&quot;#cb13-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; (j &lt;span class=&quot;cf&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;nrow&lt;/span&gt;(df)) {&lt;/span&gt;
-&lt;span id=&quot;cb13-7&quot;&gt;&lt;a href=&quot;#cb13-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;      sum &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; sum &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; df&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;pmf[i] &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; df&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;pmf[j] &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;abs&lt;/span&gt;(df&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;x[i] &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt; df&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;x[j])&lt;/span&gt;
-&lt;span id=&quot;cb13-8&quot;&gt;&lt;a href=&quot;#cb13-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    }&lt;/span&gt;
-&lt;span id=&quot;cb13-9&quot;&gt;&lt;a href=&quot;#cb13-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  }&lt;/span&gt;
-&lt;span id=&quot;cb13-10&quot;&gt;&lt;a href=&quot;#cb13-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;return&lt;/span&gt;(sum&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt;mu))&lt;/span&gt;
-&lt;span id=&quot;cb13-11&quot;&gt;&lt;a href=&quot;#cb13-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}&lt;/span&gt;
-&lt;span id=&quot;cb13-12&quot;&gt;&lt;a href=&quot;#cb13-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb13-13&quot;&gt;&lt;a href=&quot;#cb13-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;gini_coeff&lt;/span&gt;(df)  &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] 0.704049&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;A plot of the relationship between the dispersion parameter and the
-Gini index, given a fixed value of &lt;span
-class=&quot;math inline&quot;&gt;\(R(t)=2.5\)&lt;/span&gt;, looks as follows
-&lt;img src=&quot;/blog/figure/source/2020-05-31-superspreader/PLOTGINIKRELATIONSHIP-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
-&lt;p&gt;We see that the Gini index converges from above to the Gini index of
-the Poisson distribution with mean &lt;span
-class=&quot;math inline&quot;&gt;\(R(t)\)&lt;/span&gt;. In our case this limit is&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb15&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb15-1&quot;&gt;&lt;a href=&quot;#cb15-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;gini_coeff&lt;/span&gt;( &lt;span class=&quot;fu&quot;&gt;data.frame&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;250&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;pmf =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;dpois&lt;/span&gt;(x, &lt;span class=&quot;at&quot;&gt;lambda=&lt;/span&gt;Rt)))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] 0.3475131&lt;/code&gt;&lt;/pre&gt;
-&lt;h3 id=&quot;red-marble-toy-example&quot;&gt;Red Marble Toy Example&lt;/h3&gt;
-&lt;p&gt;For the &lt;a href=&quot;https://youtu.be/fOHB6PtcoMU?t=1259&quot;&gt;toy example
-offspring distribution&lt;/a&gt; used by &lt;a
-href=&quot;https://twitter.com/c_drosten&quot;&gt;Christian Drosten&lt;/a&gt; in his
-Coronavirus Update podcast on COVID-19 superspreading (episode 44, in
-German). The described hypothetical scenario is translated to an
-offspring distribution, where a primary case either generates 1 (with
-probability 9/10) or 10 (with probability 1/10) secondary cases:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb17&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb17-1&quot;&gt;&lt;a href=&quot;#cb17-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Offspring distribution&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb17-2&quot;&gt;&lt;a href=&quot;#cb17-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;df_toyoffspring &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;data.frame&lt;/span&gt;( &lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;10&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;pmf=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;9&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;10&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;10&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb17-3&quot;&gt;&lt;a href=&quot;#cb17-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb17-4&quot;&gt;&lt;a href=&quot;#cb17-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Hypothetical outbreak with 10000 cases from this offspring distribution&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb17-5&quot;&gt;&lt;a href=&quot;#cb17-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;y_obs &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sample&lt;/span&gt;(df_toyoffspring&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;x, &lt;span class=&quot;at&quot;&gt;size=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;10000&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;replace=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;prob=&lt;/span&gt;df_toyoffspring&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;pmf)&lt;/span&gt;
-&lt;span id=&quot;cb17-6&quot;&gt;&lt;a href=&quot;#cb17-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb17-7&quot;&gt;&lt;a href=&quot;#cb17-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Fit the negative binomial distribution to the observed offspring distribution&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb17-8&quot;&gt;&lt;a href=&quot;#cb17-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Note It would be better to fit the PMF directly instead of to the hypothetical&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb17-9&quot;&gt;&lt;a href=&quot;#cb17-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# outbreak data&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb17-10&quot;&gt;&lt;a href=&quot;#cb17-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;(fit &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; MASS&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;fitdistr&lt;/span&gt;(y_obs, &lt;span class=&quot;st&quot;&gt;&amp;quot;negative binomial&amp;quot;&lt;/span&gt;))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;##       size          mu    
-##   1.73380924   1.87481616 
-##  (0.03857807) (0.01975387)&lt;/code&gt;&lt;/pre&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb19&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb19-1&quot;&gt;&lt;a href=&quot;#cb19-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Note: different parametrisation of the k parameter&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-2&quot;&gt;&lt;a href=&quot;#cb19-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;(k.hat &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;fit&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;estimate[&lt;span class=&quot;st&quot;&gt;&amp;quot;size&amp;quot;&lt;/span&gt;])&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;##      size 
-## 0.5767647&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;In other words, when fitting a negative binomial distribution to
-these data (probably not a good idea) we get a dispersion parameter of
-0.58.
-&lt;img src=&quot;/blog/figure/source/2020-05-31-superspreader/PLOTNEGBINTOYPMF-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;
-The Gini coefficient of this fitted negative distribution is 0.68. If we
-instead compute the Gini coefficient for the distribution directly we
-get&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb21&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb21-1&quot;&gt;&lt;a href=&quot;#cb21-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;gini_coeff&lt;/span&gt;(df_toyoffspring) &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] 0.4263158&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Altogether, it can be discussed how much gain there is in using more
-flexible distributions to model the COVID-19 offspring distribution. The
-distribution is likely to center around 0-5, but with some mass above
-10+. Too many additional parameters probably do not make sense. However,
-one consequnce of assuming negative binomial distributed offspring
-distribution is that we accept Poisson-offspring as the minimum lvl of
-heterogeneity. This might be theoretically justified, but the Gini index
-would allow for a unified reporting of heterogeneity independent of
-assumptions about the parametric shape of the offspring distribution. In
-the toy example case, a negative binomial distribution was certainly not
-an adequate distribution, but of course this is just a toy example.&lt;/p&gt;
-&lt;h3 id=&quot;simulation&quot;&gt;Simulation&lt;/h3&gt;
-&lt;p&gt;We can use the &lt;code&gt;R0::sim.epid&lt;/code&gt; function to simulate 1000
-trajectories of an outbreak with negative binomial offspring
-distribution (c.f. &lt;a
-href=&quot;https://staff.math.su.se/hoehle/blog/2020/04/15/effectiveR0.html&quot;&gt;effective
-reproduction number&lt;/a&gt; post) having mean 2.5 and dispersion parameter
-0.45. For ease of exposition we use a constant generation time of 1 day,
-start with 1 infectious case at generation time 0, and then simulate the
-epidemic for 10 additional generations.&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb23&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb23-1&quot;&gt;&lt;a href=&quot;#cb23-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Fixed generation time GT, for simplicity time scale is equal to GT, i.e. GT=1&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb23-2&quot;&gt;&lt;a href=&quot;#cb23-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;gt &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; R0&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;generation.time&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;type=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;empirical&amp;quot;&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;val=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb23-3&quot;&gt;&lt;a href=&quot;#cb23-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb23-4&quot;&gt;&lt;a href=&quot;#cb23-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Simulate 10 epidemics, &lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb23-5&quot;&gt;&lt;a href=&quot;#cb23-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;raw_sims &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; R0&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;sim.epid&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;epid.nb=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1000&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;GT=&lt;/span&gt;gt, &lt;span class=&quot;at&quot;&gt;R0=&lt;/span&gt;Rt, &lt;span class=&quot;at&quot;&gt;epid.length=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;10&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;peak.value=&lt;/span&gt;&lt;span class=&quot;fl&quot;&gt;1e5&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;family=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;negbin&amp;quot;&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;negbin.size=&lt;/span&gt;k)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2020-05-31-superspreader/PLOTSIMS-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;
-Note that the plot uses a log-10 logarithmic y-axis. Furthermore, we see
-that 44% of the simulations become extinct in generation 1, because the
-initial case does not manage to generate any new cases. This matches the
-&lt;span class=&quot;math inline&quot;&gt;\(P(Y_i=0)\)&lt;/span&gt; probability under the
-corresponding negative binomial distribution. Furthermore, 59% of the
-simulations have a final size of 10 or less cases.&lt;/p&gt;
-&lt;h2 id=&quot;discussion&quot;&gt;Discussion&lt;/h2&gt;
-&lt;p&gt;The effect of superspreaders underlines the stochastic nature of the
-dynamics of an person-to-person transmitted disease in a population. The
-dispersion parameter &lt;span class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt; is
-conditional on the assumption of a given parametric model for the
-offspring distribution (negative binomial). The Gini index is an
-alternative characterisation to measure heterogeneity. However, in both
-cases the parameters are to be interpreted together with the expectation
-of the distribution. Estimation of the dispersion parameter is
-orthogonal to the mean in the negative binomial and its straightforward
-to also get confidence intervals for it. This is less straightforward
-for the Gini index.&lt;/p&gt;
-&lt;p&gt;A heavy tailed offspring distribution can make the disease easier to
-control by targeting intervention measures to restrict superspreading
-&lt;span class=&quot;citation&quot; data-cites=&quot;lloydsmith_etal2005&quot;&gt;(Lloyd-Smith et
-al. 2005)&lt;/span&gt;. The hope is that such interventions are “cheaper” than
-interventions which target the entire population of infectious contacts.
-However, the success of such a targeted strategy also depends on how
-large the contribution of superspreaders really is. Hence, some effort
-is needed to quantify the effect of superspreaders. Furthermore, the
-above treatment also underlines that heterogeneity can be a helpful
-feature to exploit when trying to control a disease. Another aspect of
-such heterogeneity, namely its influence on the threshold of herd
-immunity, has recently been invested by my colleagues at Stockholm
-University &lt;span class=&quot;citation&quot;
-data-cites=&quot;britton_etal2020&quot;&gt;(Britton, Ball, and Trapman
-2020)&lt;/span&gt;.&lt;/p&gt;
-&lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
-&lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
-&lt;div id=&quot;ref-adam_etal2020&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
-Adam, DC, P Wu, J Wong, E Lau, T Tsang, S Cauchemez, G Leung, and B
-Cowling. 2020. &lt;span&gt;“Clustering and Superspreading Potential of Severe
-Acute Respiratory Syndrome Coronavirus 2 (SARS-CoV-2) Infections in Hong
-Kong.”&lt;/span&gt; Research Square. &lt;a
-href=&quot;https://doi.org/10.21203/rs.3.rs-29548/v1&quot;&gt;https://doi.org/10.21203/rs.3.rs-29548/v1&lt;/a&gt;.
-&lt;/div&gt;
-&lt;div id=&quot;ref-britton_etal2020&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
-Britton, T, F Ball, and P Trapman. 2020. &lt;span&gt;“The Disease-Induced Herd
-Immunity Level for Covid-19 Is Substantially Lower Than the Classical
-Herd Immunity Level.”&lt;/span&gt; &lt;a
-href=&quot;https://arxiv.org/abs/2005.03085&quot;&gt;https://arxiv.org/abs/2005.03085&lt;/a&gt;.
-&lt;/div&gt;
-&lt;div id=&quot;ref-endo_etal2020&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
-Endo, A, Centre for the Mathematical Modelling of Infectious Diseases
-COVID-19 Working Group, S Abbott, AJ Kucharski, and S Funk. 2020.
-&lt;span&gt;“Estimating the Overdispersion in COVID-19 Transmission Using
-Outbreak Sizes Outside China [Version 1; Peer Review: 1 Approved, 1
-Approved with Reservations].”&lt;/span&gt; Wellcome Open Res. &lt;a
-href=&quot;https://doi.org/10.12688/wellcomeopenres.15842.1&quot;&gt;https://doi.org/10.12688/wellcomeopenres.15842.1&lt;/a&gt;.
-&lt;/div&gt;
-&lt;div id=&quot;ref-lloydsmith_etal2005&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
-Lloyd-Smith, J. O., S. J. Schreiber, P. E. Kopp, and W. M. Getz. 2005.
-&lt;span&gt;“Superspreading and the Effect of Individual Variation on Disease
-Emergence.”&lt;/span&gt; &lt;em&gt;Nature&lt;/em&gt; 438 (7066): 355–59. &lt;a
-href=&quot;https://doi.org/10.1038/nature04153&quot;&gt;https://doi.org/10.1038/nature04153&lt;/a&gt;.
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;section id=&quot;footnotes&quot; class=&quot;footnotes footnotes-end-of-document&quot;
-role=&quot;doc-endnotes&quot;&gt;
-&lt;hr /&gt;
-&lt;ol&gt;
-&lt;li id=&quot;fn1&quot;&gt;&lt;p&gt;To be added to the list of characterising quantities
-such as doubling time, reproduction number, generation time, serial
-interval, …&lt;a href=&quot;#fnref1&quot; class=&quot;footnote-back&quot;
-role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;li id=&quot;fn2&quot;&gt;&lt;p&gt;&lt;span class=&quot;citation&quot;
-data-cites=&quot;lloydsmith_etal2005&quot;&gt;Lloyd-Smith et al. (2005)&lt;/span&gt;
-estimated &lt;span class=&quot;math inline&quot;&gt;\(k=0.16\)&lt;/span&gt; for SARS-CoV-1.&lt;a
-href=&quot;#fnref2&quot; class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;
-&lt;/section&gt;
-</description>
-        <pubDate>Sun, 31 May 2020 00:00:00 +0200</pubDate>
-        <link>http://mhoehle.github.io/blog/2020/05/31/superspreader.html</link>
-        <guid isPermaLink="true">http://mhoehle.github.io/blog/2020/05/31/superspreader.html</guid>
-        
-        <category>rstats</category>
-        
-        <category>dataviz</category>
-        
-        <category>R</category>
-        
-        <category>COVID-19</category>
-        
-        <category>SARS-CoV-2</category>
-        
-        <category>epidemic models</category>
         
         
       </item>
