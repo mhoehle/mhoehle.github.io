@@ -6,9 +6,809 @@
 </description>
     <link>https://mhoehle.github.io/blog/</link>
     <atom:link href="https://mhoehle.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 21 Mar 2023 13:58:51 +0100</pubDate>
-    <lastBuildDate>Tue, 21 Mar 2023 13:58:51 +0100</lastBuildDate>
+    <pubDate>Mon, 12 Feb 2024 10:55:48 +0100</pubDate>
+    <lastBuildDate>Mon, 12 Feb 2024 10:55:48 +0100</lastBuildDate>
     <generator>Jekyll v4.2.2</generator>
+    
+      <item>
+        <title>Guess My Name with Decision Trees</title>
+        <description>&lt;h2 id=&quot;abstract&quot;&gt;Abstract:&lt;/h2&gt;
+&lt;p&gt;We use classification trees to determine the optimal sequence of
+questions to ask in the game “Guess my name” (Mini Logix series from
+Djeco). Aim of the game is to identify wich person, out of 16 possible,
+the opponent is. Clasification trees and optimal sequential decision
+making in this case have strong similarities with cross-entropy of the
+class distribution working as a common metric for quantifying
+information gain.&lt;/p&gt;
+&lt;center&gt;
+&lt;img src=&quot;/blog/figure/source/2024-02-12-decisiontree/splash.png&quot; /&gt;
+&lt;/center&gt;
+&lt;p&gt;&lt;br&gt;
+&lt;a rel=&quot;license&quot; href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;&lt;img alt=&quot;Creative Commons License&quot; style=&quot;border-width:0&quot; src=&quot;https://i.creativecommons.org/l/by-sa/4.0/88x31.png&quot;/&gt;&lt;/a&gt;
+This work is licensed under a &lt;a rel=&quot;license&quot;
+href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;Creative Commons
+Attribution-ShareAlike 4.0 International License&lt;/a&gt;. The &lt;a
+href=&quot;https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/blog2024-02-12-decisiontree.Rmd&quot;&gt;R-markdown
+source code&lt;/a&gt; of this blog is available under a &lt;a
+href=&quot;https://www.gnu.org/licenses/gpl-3.0.html&quot;&gt;GNU General Public
+License (GPL v3)&lt;/a&gt; license from GitHub.&lt;/p&gt;
+&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;As a mathmatician you do not play logic games for fun, you play to
+win. So when playing “Guess my name” (Mini Logix series from Djeco),
+where the task is to ask your opponent a series of questions in order to
+identify which of 16 picture characters they are, you want to devise an
+optimal sequence of questions in order to determine your opponent’s
+choice. Given a catalogue of possible questions, we use classification
+trees to find the optimal sequence of questions to ask.&lt;/p&gt;
+&lt;p&gt;The game goes as follows: Each player gets a card with pictures of 16
+persons. Each player selects a person of the 16 she wants to be and
+writes the name of this person on their card.&lt;/p&gt;
+&lt;p&gt;
+&lt;center&gt;
+&lt;img
+src=&quot;/blog/figure/source/2024-02-12-decisiontree/karte-lowres.jpg&quot; /&gt;
+&lt;br&gt; Figure 1: Exemplary game card of the “Guess my name” game, Mini
+Logix series, Djeco, during gameplay.
+&lt;/center&gt;
+&lt;p&gt;
+&lt;p&gt;The players then take turns to ask the opponent &lt;i&gt;one&lt;/i&gt; question
+about their person, for example you could ask &lt;i&gt;Does your person have
+glasses?&lt;/i&gt; or &lt;i&gt;Is your person wearing a chef’s hat?&lt;/i&gt;“. Based on
+the answer (possible answers are: yes or no) you sequentially rule out
+more and more persons on the card until you are ready to guess who the
+other person is. The first player to correctly identify the opponent’s
+person wins. Note that only questions about the picture of the person
+are allowed. In what follows, we shall assume that a third answer
+cateogry”unclear” is also possible, because some questions like &lt;i&gt;does
+your person have blonde hair&lt;/i&gt; can not be answered when the hair is
+not visible on the picture (see for example the picture of Clovis).&lt;/p&gt;
+&lt;p&gt;The aim is now to devise a series of questions whick as quickly as
+possible can narrow our set of candidate persons down to 1 person. When
+only yes or no answers are possible, in the optimal case, each question
+reduces the set of possible persons by a factor 2. Hence, &lt;span
+class=&quot;math inline&quot;&gt;\(2^x = 16 \Leftrightarrow x = \log_{2}(16) =
+4\)&lt;/span&gt; (well chosen) questions are needed to reduce the set of
+candidates from 16 to 1. However, it might not be possible to find a
+sequence of such optimal questions, because (given the previous set of
+questions) the next question might not split the remaining pool of
+candidates in two sets of equal cardinality. As a more hands-on approach
+we formulate the task as follows: given a set of questions, where we for
+each of the 16 persons know the answer to, which questions and in what
+sequence should we ask them in order to correctly identity the
+opponent’s person.&lt;/p&gt;
+&lt;h2 id=&quot;methods&quot;&gt;Methods&lt;/h2&gt;
+&lt;h3 id=&quot;question-catalogue&quot;&gt;Question Catalogue&lt;/h3&gt;
+To begin with we develop a set of questions and encode the answer of
+each of the 16 persons to the question as yes, no or unclear Below we
+show an exemplary question catalogue consisting of 12 together with the
+answers for 8 out of the 16 persons (full data for all 16 &lt;a
+href=&quot;../../../figure/source/2024-02-12-decisiontree/whatismyname.xlsx&quot;&gt;here&lt;/a&gt;).
+One can compare the answers with the picture of the above shown game
+card.
+&lt;p&gt;
+&lt;p&gt;
+&lt;hr&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style=&quot;text-align:left;&quot;&gt;
+Question: Does the person
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+Gonzague
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+Clovis
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+Mounir
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+Dan
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+Barnabé
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+Casimir
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+Philippe
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+Max
+&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have a headgear?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have glasses somewhere?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have a brush behind the ear?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have blonde hair?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+unclear
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+wear a top with no or short sleeves?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have visible eyebrows?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+picture have something red in it?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have a top hat on?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+picture have something green in it?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have blue eyes?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have a chef’s hat on?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:left;&quot;&gt;
+have a V-collar?
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+yes
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;&quot;&gt;
+no
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;p&gt;
+&lt;p&gt;
+&lt;h3 id=&quot;decision-trees-as-classification-trees&quot;&gt;Decision Trees as
+Classification Trees&lt;/h3&gt;
+&lt;p&gt;We use classification trees to represent the sequence of questions to
+ask. Our goal is to correctly identify the person at the end of the
+sequence, hence, each leave node should assign the correct person with
+100% probability. This is somewhat opposite to traditional
+classification trees, which inspired by Occam’s razor are kept small and
+thus accept a certain misclassification rate on the training data in
+order to generalize well to out-of-sample data.&lt;/p&gt;
+&lt;p&gt;We address this tweak by working with saturated trees (i.e. no
+pruning). Furthermore, we need to shape the questions s.t. they space of
+answers allows for a correct partitioning of all 16 persons. For ease of
+exposition we assume that each of the 16 persons is equally likely to be
+chosen by your opponent, i.e. the prior probability for each person is
+1/16. The appendix “Technical Details” contains information about how
+the tree is grown. In R, classification trees can be fitted using the
+function &lt;code&gt;rpart::rpart()&lt;/code&gt;. We configure the function such
+that a saturated tree is grown, if this possible from the question
+catalogue. Since training and test data in our case are identical we
+want a tree which fits as good as possible on the training data.&lt;/p&gt;
+&lt;h2 id=&quot;results&quot;&gt;Results&lt;/h2&gt;
+&lt;p&gt;We transpose the question catalogue in order to bring the data into a
+shape with columns being the features and one row per person.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a href=&quot;#cb1-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Tranpose data to a tibble allowing a fit&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb1-2&quot;&gt;&lt;a href=&quot;#cb1-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;persons &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; questions &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb1-3&quot;&gt;&lt;a href=&quot;#cb1-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;pivot_longer&lt;/span&gt;(&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;Question: Does the person&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;names_to=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;Person&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb1-4&quot;&gt;&lt;a href=&quot;#cb1-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;pivot_wider&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;id_cols =&lt;/span&gt; Person, &lt;span class=&quot;at&quot;&gt;names_from=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;Question: Does the person&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;,&lt;/span&gt;
+&lt;span id=&quot;cb1-5&quot;&gt;&lt;a href=&quot;#cb1-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;                                &lt;span class=&quot;at&quot;&gt;values_from=&lt;/span&gt;value) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb1-6&quot;&gt;&lt;a href=&quot;#cb1-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;across&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;everything&lt;/span&gt;(), factor))&lt;/span&gt;
+&lt;span id=&quot;cb1-7&quot;&gt;&lt;a href=&quot;#cb1-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;head&lt;/span&gt;(persons)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 6 × 13
+##   Person   `have a headgear?` `have glasses somewhere?` have a brush behind the ea…¹ `have blonde hair?` wear a top with no o…² have visible eyebrow…³
+##   &amp;lt;fct&amp;gt;    &amp;lt;fct&amp;gt;              &amp;lt;fct&amp;gt;                     &amp;lt;fct&amp;gt;                        &amp;lt;fct&amp;gt;               &amp;lt;fct&amp;gt;                  &amp;lt;fct&amp;gt;                 
+## 1 Gonzague no                 yes                       no                           yes                 no                     yes                   
+## 2 Clovis   yes                no                        no                           unclear             no                     no                    
+## 3 Mounir   yes                no                        no                           no                  no                     yes                   
+## 4 Dan      yes                no                        no                           no                  no                     no                    
+## 5 Barnabé  no                 yes                       no                           no                  no                     yes                   
+## 6 Casimir  yes                no                        no                           no                  yes                    yes                   
+## # ℹ abbreviated names: ¹​`have a brush behind the ear?`, ²​`wear a top with no or short sleeves?`, ³​`have visible eyebrows?`
+## # ℹ 6 more variables: `picture have something red in it?` &amp;lt;fct&amp;gt;, `have a top hat on?` &amp;lt;fct&amp;gt;, `picture have something green in it?` &amp;lt;fct&amp;gt;,
+## #   `have blue eyes?` &amp;lt;fct&amp;gt;, `have a chef&amp;#39;s hat on?` &amp;lt;fct&amp;gt;, `have a V-collar?` &amp;lt;fct&amp;gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This format of the data can then be used with
+&lt;code&gt;rpart::rpart()&lt;/code&gt;.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb3&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb3-1&quot;&gt;&lt;a href=&quot;#cb3-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Fit tree using rpart&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-2&quot;&gt;&lt;a href=&quot;#cb3-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Make sure we get a saturated tree&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-3&quot;&gt;&lt;a href=&quot;#cb3-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;tree &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;rpart&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;formula =&lt;/span&gt; Person &lt;span class=&quot;sc&quot;&gt;~&lt;/span&gt; ., &lt;span class=&quot;at&quot;&gt;data =&lt;/span&gt; persons, &lt;/span&gt;
+&lt;span id=&quot;cb3-4&quot;&gt;&lt;a href=&quot;#cb3-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;              &lt;span class=&quot;at&quot;&gt;method=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;class&amp;quot;&lt;/span&gt;,&lt;/span&gt;
+&lt;span id=&quot;cb3-5&quot;&gt;&lt;a href=&quot;#cb3-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;              &lt;span class=&quot;at&quot;&gt;parms=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;list&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;split=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;information&amp;quot;&lt;/span&gt;),&lt;/span&gt;
+&lt;span id=&quot;cb3-6&quot;&gt;&lt;a href=&quot;#cb3-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;              &lt;span class=&quot;at&quot;&gt;control=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;rpart.control&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;minbucket=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;xval=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;cp =&lt;/span&gt; &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The resulting decision tree is illustrated below. We start at the
+root node branching left or right depending on whether the answer to the
+question: Does the person have have blonde hair? is “no”. If this is the
+case we go left, otherwise (i.e. if the answer is “yes” or “unclear”) we
+go right. At a leaf node we classify observations to the class indicated
+by the round blue node around the name of the person.&lt;/p&gt;
+&lt;div class=&quot;figure&quot; style=&quot;text-align: center&quot;&gt;
+&lt;img src=&quot;/blog/figure/source/2024-02-12-decisiontree/RPART_SATURATED_TREE_PLOT-1.png&quot; alt=&quot;Figure 2: Decision tree to correctly identify your opponent with 4 questions.&quot;  /&gt;
+&lt;p class=&quot;caption&quot;&gt;
+Figure 2: Decision tree to correctly identify your opponent with 4
+questions.
+&lt;/p&gt;
+&lt;/div&gt;
+&lt;p&gt;We note that the misclassification rate at each terminal leaf is 0,
+i.e. if we follow the decision tree we are able to identify the correct
+person. Furthermore, the depth of the tree is only 4. Hence, even though
+there are 12 questions, the decision trees shows that we can use them in
+a clever sequence so that - no matter how the answer is - we correctly
+identify the person after 4 questions. Only 9 out of the 12 questions
+are used anywhere in the tree.&lt;/p&gt;
+&lt;h2 id=&quot;discussion&quot;&gt;Discussion&lt;/h2&gt;
+&lt;p&gt;Finding optimal sequences of question for identification has
+application beyond winning logic games. One example is fault tree
+diagnosis in reliability assessment, where entropy also plays a central
+role in the finding minimal cut set &lt;span class=&quot;citation&quot;
+data-cites=&quot;Xiaozhong1991&quot;&gt;(Xiaozhong 1991)&lt;/span&gt;. Troubleshooting
+complex technical devices, such as printers, in addition to a dianosis
+stage can also model the consequence of any repair actions &lt;span
+class=&quot;citation&quot; data-cites=&quot;langseth_jensen2003&quot;&gt;(Langseth and Jensen
+2003)&lt;/span&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
+&lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
+role=&quot;list&quot;&gt;
+&lt;div id=&quot;ref-hastie_etal2017&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Hastie, T., R. Tibshirani, and J. Friedman. 2017. &lt;em&gt;The Elements of
+Statistical Learning&lt;/em&gt;. 2nd ed. Springer.
+&lt;/div&gt;
+&lt;div id=&quot;ref-langseth_jensen2003&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Langseth, H., and F. V. Jensen. 2003. &lt;span&gt;“Decision Theoretic
+Troubleshooting of Coherent Systems.”&lt;/span&gt; &lt;em&gt;Reliability Engineering
+&amp;amp; System Safety&lt;/em&gt; 80 (1): 49–62. &lt;a
+href=&quot;https://doi.org/10.1016/S0951-8320(02)00202-8&quot;&gt;https://doi.org/10.1016/S0951-8320(02)00202-8&lt;/a&gt;.
+&lt;/div&gt;
+&lt;div id=&quot;ref-Xiaozhong1991&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Xiaozhong, W. 1991. &lt;span&gt;“Fault Tree Diagnosis Based on
+&lt;span&gt;S&lt;/span&gt;hannon Entropy.”&lt;/span&gt; &lt;em&gt;Reliability Engineering &amp;amp;
+System Safety&lt;/em&gt; 34 (2): 143–67. &lt;a
+href=&quot;https://doi.org/10.1016/0951-8320(91)90086-M&quot;&gt;https://doi.org/10.1016/0951-8320(91)90086-M&lt;/a&gt;.
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;
+&lt;h2 id=&quot;appendix-technical-details&quot;&gt;Appendix: Technical Details&lt;/h2&gt;
+&lt;p&gt;This section discusses the algorithmic details of how classification
+trees are grown. For readers without interest in such technical detail
+this section can safely be skipped. More details can be found in for
+example &lt;span class=&quot;citation&quot; data-cites=&quot;hastie_etal2017&quot;&gt;Hastie,
+Tibshirani, and Friedman (2017)&lt;/span&gt;, Sect 9.2.3.&lt;/p&gt;
+&lt;p&gt;The number of possible splits for a categorical node with &lt;span
+class=&quot;math inline&quot;&gt;\(M\)&lt;/span&gt; unordered categories is &lt;span
+class=&quot;math inline&quot;&gt;\(2^{M-1}-1\)&lt;/span&gt;, i.e. for &lt;span
+class=&quot;math inline&quot;&gt;\(M=2\)&lt;/span&gt; features there is only one possible
+split, whereas &lt;span class=&quot;math inline&quot;&gt;\(K=3\)&lt;/span&gt; features have 3
+possible splits. In our case, questions with &lt;span
+class=&quot;math inline&quot;&gt;\(M=2\)&lt;/span&gt; have answers &lt;i&gt;yes&lt;/i&gt; and &lt;i&gt;no&lt;/i&gt;
+and thus the split is ({yes}, {no}). When &lt;span
+class=&quot;math inline&quot;&gt;\(M=3\)&lt;/span&gt; we have answers &lt;i&gt;yes&lt;/i&gt;, &lt;i&gt;no&lt;/i&gt;
+and &lt;i&gt;unclear&lt;/i&gt; and consequently the splits are: ({yes}, {no,
+unclear}), ({yes, unclear}, {no}), and ({yes,no},{unclear}). Note that
+most questions in the question catalogue have &lt;span
+class=&quot;math inline&quot;&gt;\(K=2\)&lt;/span&gt; answers:&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb4&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb4-1&quot;&gt;&lt;a href=&quot;#cb4-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;persons &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;across&lt;/span&gt;(&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;Person, n_distinct))  &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb4-2&quot;&gt;&lt;a href=&quot;#cb4-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;pivot_longer&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;cols=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;everything&lt;/span&gt;(), &lt;span class=&quot;at&quot;&gt;values_to =&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&amp;quot;M&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb4-3&quot;&gt;&lt;a href=&quot;#cb4-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;group_by&lt;/span&gt;(M) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb4-4&quot;&gt;&lt;a href=&quot;#cb4-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;no_questions=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;n&lt;/span&gt;())&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 2 × 2
+##       M no_questions
+##   &amp;lt;int&amp;gt;        &amp;lt;int&amp;gt;
+## 1     2           11
+## 2     3            1&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Let the learning set be &lt;span class=&quot;math inline&quot;&gt;\(\mathcal{L}=\{
+(\boldsymbol{x}_i, y_i), i=1,\ldots,n\}\)&lt;/span&gt;, where &lt;span
+class=&quot;math inline&quot;&gt;\(\boldsymbol{x}_i=(x_{i1},\ldots,x_{ir})^\top\)&lt;/span&gt;
+denotes the answers to the &lt;span class=&quot;math inline&quot;&gt;\(r=12\)&lt;/span&gt;
+questions for each of the &lt;span class=&quot;math inline&quot;&gt;\(n=16\)&lt;/span&gt;
+persons on a game card. For a node &lt;span
+class=&quot;math inline&quot;&gt;\(m\)&lt;/span&gt; in tree &lt;span
+class=&quot;math inline&quot;&gt;\(T\)&lt;/span&gt; we use an impurity measure &lt;span
+class=&quot;math inline&quot;&gt;\(Q_m(T)\)&lt;/span&gt; to decide which split to use. Let
+&lt;span class=&quot;math inline&quot;&gt;\(R_m\)&lt;/span&gt; denote the set of all
+observations in the training data, whose feature vector &lt;span
+class=&quot;math inline&quot;&gt;\(\boldsymbol{x}_i\)&lt;/span&gt; fulfills all Boolean
+conditions posed by following the tree until node &lt;span
+class=&quot;math inline&quot;&gt;\(m\)&lt;/span&gt;. In what follows we shall write &lt;span
+class=&quot;math inline&quot;&gt;\(\boldsymbol{x}_i\in R_m\)&lt;/span&gt; if an observation
+&lt;span class=&quot;math inline&quot;&gt;\((\boldsymbol{x}_i, y_i)\)&lt;/span&gt; from the
+learning data is in &lt;span class=&quot;math inline&quot;&gt;\(R_m\)&lt;/span&gt;.
+Furthermore, let &lt;span class=&quot;math inline&quot;&gt;\(n_m=|R_m|\)&lt;/span&gt; denote
+the corresponding number of observations in &lt;span
+class=&quot;math inline&quot;&gt;\(R_m\)&lt;/span&gt; and let &lt;span class=&quot;math display&quot;&gt;\[
+\widehat{p}_{mk}=\frac{1}{n_m} \sum_{\boldsymbol{x}_i\in R_m} I(y_i=k) =
+\frac{n_{mk}}{n_m}, \quad k=1,\ldots,K
+\]&lt;/span&gt; be the proportion of category &lt;span
+class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt; observations at node &lt;span
+class=&quot;math inline&quot;&gt;\(m\)&lt;/span&gt;. The &lt;b&gt;cross-entropy impurity
+measure&lt;/b&gt; is defined as&lt;/p&gt;
+&lt;span class=&quot;math display&quot;&gt;\[
+Q_m(T) = - \sum_{k=1}^K \widehat{p}_{mk} \cdot \log(\widehat{p}_{mk}),
+\]&lt;/span&gt; where we use the convention that &lt;span
+class=&quot;math inline&quot;&gt;\(0\cdot \log(0)=0\)&lt;/span&gt; if some of the
+probabilities &lt;span class=&quot;math inline&quot;&gt;\(\widehat{p}_{mk}\)&lt;/span&gt; are
+zero. As an example we show a plot of the cross-entropy function for
+&lt;span class=&quot;math inline&quot;&gt;\(K=2\)&lt;/span&gt; for varying values of &lt;span
+class=&quot;math inline&quot;&gt;\(p_{m1}=p\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(p_{m2}=1-p\)&lt;/span&gt;:
+&lt;p&gt;
+&lt;img src=&quot;/blog/figure/source/2024-02-12-decisiontree/PLOT_ENTROPY-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;
+&lt;p&gt;
+&lt;p&gt;The largest value for the impurity &lt;span
+class=&quot;math inline&quot;&gt;\(Q_m(T)\)&lt;/span&gt; is obtained when all &lt;span
+class=&quot;math inline&quot;&gt;\(K\)&lt;/span&gt; categories are equally likely,
+i.e. when &lt;span class=&quot;math inline&quot;&gt;\(p_{mk}=1/K\)&lt;/span&gt;, &lt;span
+class=&quot;math inline&quot;&gt;\(k=1,\ldots,K\)&lt;/span&gt;. Furthermore, the smallest
+value &lt;span class=&quot;math inline&quot;&gt;\(Q_m(T)=0\)&lt;/span&gt; is obtained when one
+category, say &lt;span class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt;, has &lt;span
+class=&quot;math inline&quot;&gt;\(p_{mk}=1\)&lt;/span&gt; and consequently &lt;span
+class=&quot;math inline&quot;&gt;\(p_{mk&amp;#39;}=0\)&lt;/span&gt; for all &lt;span
+class=&quot;math inline&quot;&gt;\(k&amp;#39; \neq k\)&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;For a node &lt;span class=&quot;math inline&quot;&gt;\(m\)&lt;/span&gt; and unordered
+categorical feature &lt;span class=&quot;math inline&quot;&gt;\(x_j\)&lt;/span&gt;, &lt;span
+class=&quot;math inline&quot;&gt;\(j=1,\ldots,r\)&lt;/span&gt; we can now investigate the
+set of possible splits &lt;span class=&quot;math inline&quot;&gt;\(S_j\)&lt;/span&gt; of &lt;span
+class=&quot;math inline&quot;&gt;\(x_j\)&lt;/span&gt; by looking at the gain in impurity
+for each split &lt;span class=&quot;math inline&quot;&gt;\(s\in S_j\)&lt;/span&gt;. A split
+&lt;span class=&quot;math inline&quot;&gt;\(s=(s_L, s_R)\)&lt;/span&gt; of &lt;span
+class=&quot;math inline&quot;&gt;\(x_j\)&lt;/span&gt; is characterised by a partition of
+the labels of &lt;span class=&quot;math inline&quot;&gt;\(x_j\)&lt;/span&gt; in two disjoint
+sets, &lt;span class=&quot;math inline&quot;&gt;\(s_L\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(s_R\)&lt;/span&gt;. For example, if &lt;span
+class=&quot;math inline&quot;&gt;\(x_j\)&lt;/span&gt; has &lt;span
+class=&quot;math inline&quot;&gt;\(M=3\)&lt;/span&gt; levels (yes, no, unclear) one
+possible split could be &lt;span
+class=&quot;math inline&quot;&gt;\(s_L=\{\text{yes\}}\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(s_R=\{\text{no,unclear}\}\)&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;If we split &lt;span class=&quot;math inline&quot;&gt;\(m\)&lt;/span&gt; according to the
+rule &lt;span class=&quot;math inline&quot;&gt;\(s\in S_j\)&lt;/span&gt; we obtain two
+sub-nodes &lt;span class=&quot;math inline&quot;&gt;\(m_L\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(m_R\)&lt;/span&gt;, where &lt;span
+class=&quot;math inline&quot;&gt;\(R_{m_L} = \{ \boldsymbol{x}_i \in R_m : x_{ij} \in
+s_L\}\)&lt;/span&gt; and &lt;span class=&quot;math inline&quot;&gt;\(R_{m_R} = \{
+\boldsymbol{x}_i \in R_m : x_{ij} \in s_R\}\)&lt;/span&gt;. The impurity of
+&lt;span class=&quot;math inline&quot;&gt;\(m\)&lt;/span&gt; in a tree &lt;span
+class=&quot;math inline&quot;&gt;\(T_s\)&lt;/span&gt; implementing the split &lt;span
+class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt;, and thus having additional subnodes
+&lt;span class=&quot;math inline&quot;&gt;\(m_L\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(m_R\)&lt;/span&gt;, is then calculated as &lt;span
+class=&quot;math display&quot;&gt;\[
+Q_m(T_s) = \frac{n_{m_L}}{n_m} Q_{m_L}(T_s) + \frac{n_{m_R}}{n_m}
+Q_{m_R}(T_s).
+\]&lt;/span&gt; Note that the probabilities to be used in the computation of
+the subnodes’ cross-entropy are, e.g., &lt;span
+class=&quot;math inline&quot;&gt;\(\widehat{p}_{m_L k} = n_{m_L k}/n_{m_L}\)&lt;/span&gt;.
+We select the split, which minimizes the impurity. If we also let the
+feature &lt;span class=&quot;math inline&quot;&gt;\(j\)&lt;/span&gt; vary we thus select &lt;span
+class=&quot;math display&quot;&gt;\[
+(j,s)=\DeclareMathOperator*{\argmin}{arg\,min}
+\argmin_{j\in\{1,\ldots,r\},\&amp;gt; s\in S_j} Q_m(T_s).
+\]&lt;/span&gt; As a simple example for our data: assume that the current tree
+consists of just a root node &lt;span class=&quot;math inline&quot;&gt;\(m\)&lt;/span&gt;,
+i.e. &lt;span class=&quot;math inline&quot;&gt;\(R_m\)&lt;/span&gt; consists of all &lt;span
+class=&quot;math inline&quot;&gt;\(n=16\)&lt;/span&gt; observations.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb6&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb6-1&quot;&gt;&lt;a href=&quot;#cb6-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Compute impurity of root&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb6-2&quot;&gt;&lt;a href=&quot;#cb6-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;(Q_root &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cross_entropy&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;rep&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;16&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;16&lt;/span&gt;)))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## [1] 2.772589&lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb8&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb8-1&quot;&gt;&lt;a href=&quot;#cb8-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Determine if split on feature j&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb8-2&quot;&gt;&lt;a href=&quot;#cb8-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;best_split &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt; (j, Rm) {&lt;/span&gt;
+&lt;span id=&quot;cb8-3&quot;&gt;&lt;a href=&quot;#cb8-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# We know |S|=2^{M-1}-1 and define the split by the set consisting of&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb8-4&quot;&gt;&lt;a href=&quot;#cb8-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# just ONE level (if |S|=1 we know yes/no and would not need the other level.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb8-5&quot;&gt;&lt;a href=&quot;#cb8-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# We can just pick one of them&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb8-6&quot;&gt;&lt;a href=&quot;#cb8-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  S &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;levels&lt;/span&gt;(persons[,j][[&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;]])&lt;/span&gt;
+&lt;span id=&quot;cb8-7&quot;&gt;&lt;a href=&quot;#cb8-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (&lt;span class=&quot;fu&quot;&gt;length&lt;/span&gt;(S) &lt;span class=&quot;sc&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;) S &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; S[&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;]&lt;/span&gt;
+&lt;span id=&quot;cb8-8&quot;&gt;&lt;a href=&quot;#cb8-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; (&lt;span class=&quot;fu&quot;&gt;length&lt;/span&gt;(S) &lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;) &lt;span class=&quot;fu&quot;&gt;stop&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;M&amp;gt;3 currently not supported.&amp;quot;&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb8-9&quot;&gt;&lt;a href=&quot;#cb8-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  S&lt;/span&gt;
+&lt;span id=&quot;cb8-10&quot;&gt;&lt;a href=&quot;#cb8-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Try out all splits&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb8-11&quot;&gt;&lt;a href=&quot;#cb8-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  Q_s &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sapply&lt;/span&gt;(S, &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(s) {&lt;/span&gt;
+&lt;span id=&quot;cb8-12&quot;&gt;&lt;a href=&quot;#cb8-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    R_mL &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; Rm[Rm[,j][[&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;]] &lt;span class=&quot;sc&quot;&gt;==&lt;/span&gt; s,]&lt;/span&gt;
+&lt;span id=&quot;cb8-13&quot;&gt;&lt;a href=&quot;#cb8-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    R_mR &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; Rm[Rm[,j][[&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;]] &lt;span class=&quot;sc&quot;&gt;!=&lt;/span&gt; s,]&lt;/span&gt;
+&lt;span id=&quot;cb8-14&quot;&gt;&lt;a href=&quot;#cb8-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    n_m &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;nrow&lt;/span&gt;(Rm)&lt;/span&gt;
+&lt;span id=&quot;cb8-15&quot;&gt;&lt;a href=&quot;#cb8-15&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    n_mL &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;table&lt;/span&gt;(R_mL&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;Person)&lt;/span&gt;
+&lt;span id=&quot;cb8-16&quot;&gt;&lt;a href=&quot;#cb8-16&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    n_mR &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;table&lt;/span&gt;(R_mR&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;Person)&lt;/span&gt;
+&lt;span id=&quot;cb8-17&quot;&gt;&lt;a href=&quot;#cb8-17&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    p_mL &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; n_mL &lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(n_mL)&lt;/span&gt;
+&lt;span id=&quot;cb8-18&quot;&gt;&lt;a href=&quot;#cb8-18&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    p_mR &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; n_mR &lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(n_mR)&lt;/span&gt;
+&lt;span id=&quot;cb8-19&quot;&gt;&lt;a href=&quot;#cb8-19&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    Q_s &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(n_mL)&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;n_m &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cross_entropy&lt;/span&gt;(p_mL) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(n_mR)&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;n_m &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cross_entropy&lt;/span&gt;(p_mR)&lt;/span&gt;
+&lt;span id=&quot;cb8-20&quot;&gt;&lt;a href=&quot;#cb8-20&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;return&lt;/span&gt;(Q_s)&lt;/span&gt;
+&lt;span id=&quot;cb8-21&quot;&gt;&lt;a href=&quot;#cb8-21&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  }) &lt;/span&gt;
+&lt;span id=&quot;cb8-22&quot;&gt;&lt;a href=&quot;#cb8-22&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;tibble&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;name =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;names&lt;/span&gt;(Rm)[j], &lt;span class=&quot;at&quot;&gt;split=&lt;/span&gt;S[&lt;span class=&quot;fu&quot;&gt;which.min&lt;/span&gt;(Q_s)], &lt;span class=&quot;at&quot;&gt;Q=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;min&lt;/span&gt;(Q_s))&lt;/span&gt;
+&lt;span id=&quot;cb8-23&quot;&gt;&lt;a href=&quot;#cb8-23&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}&lt;/span&gt;
+&lt;span id=&quot;cb8-24&quot;&gt;&lt;a href=&quot;#cb8-24&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb8-25&quot;&gt;&lt;a href=&quot;#cb8-25&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Columns of the data frame where the questions are located&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb8-26&quot;&gt;&lt;a href=&quot;#cb8-26&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;question_col_idx &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;seq_len&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;ncol&lt;/span&gt;(persons))[&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;]&lt;/span&gt;
+&lt;span id=&quot;cb8-27&quot;&gt;&lt;a href=&quot;#cb8-27&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;e &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;map_df&lt;/span&gt;(question_col_idx, best_split, &lt;span class=&quot;at&quot;&gt;Rm=&lt;/span&gt;persons) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;arrange&lt;/span&gt;(Q)&lt;/span&gt;
+&lt;span id=&quot;cb8-28&quot;&gt;&lt;a href=&quot;#cb8-28&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;head&lt;/span&gt;(e)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 6 × 3
+##   name                                 split     Q
+##   &amp;lt;chr&amp;gt;                                &amp;lt;chr&amp;gt; &amp;lt;dbl&amp;gt;
+## 1 have blonde hair?                    no     2.08
+## 2 picture have something red in it?    yes    2.09
+## 3 have a headgear?                     yes    2.15
+## 4 wear a top with no or short sleeves? yes    2.15
+## 5 have visible eyebrows?               yes    2.15
+## 6 have blue eyes?                      yes    2.15&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If we are to build the tree only with one additional node we would
+thus use the &lt;i&gt;Does the person have blonde hair?&lt;/i&gt; question and would
+put the &lt;i&gt;no&lt;/i&gt; answers in one branch the &lt;i&gt;yes&lt;/i&gt; and
+&lt;i&gt;unclear&lt;/i&gt; answers on the other branch.&lt;/p&gt;
+&lt;p&gt;The same computations can be done with the
+&lt;code&gt;rpart::rpart()&lt;/code&gt; function. We set the control parameters s.t.
+the tree can consist only of one split (&lt;code&gt;maxdepth=1&lt;/code&gt;).
+Furthermore, we lower the minimum number of observations one split can
+produce in one branch from the default value of 20. Otherwise, with only
+16 observations no split would be attempted.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb10&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb10-1&quot;&gt;&lt;a href=&quot;#cb10-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;tree_onesplit &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;rpart&lt;/span&gt;(Person &lt;span class=&quot;sc&quot;&gt;~&lt;/span&gt; ., &lt;span class=&quot;at&quot;&gt;data =&lt;/span&gt; persons, &lt;span class=&quot;at&quot;&gt;method=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;class&amp;quot;&lt;/span&gt;,&lt;/span&gt;
+&lt;span id=&quot;cb10-2&quot;&gt;&lt;a href=&quot;#cb10-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;               &lt;span class=&quot;at&quot;&gt;parms=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;list&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;split=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;information&amp;quot;&lt;/span&gt;),&lt;/span&gt;
+&lt;span id=&quot;cb10-3&quot;&gt;&lt;a href=&quot;#cb10-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;               &lt;span class=&quot;at&quot;&gt;control=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;rpart.control&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;minsplit=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,  &lt;span class=&quot;at&quot;&gt;maxdepth=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;))&lt;/span&gt;
+&lt;span id=&quot;cb10-4&quot;&gt;&lt;a href=&quot;#cb10-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;rpart.plot&lt;/span&gt;(tree_onesplit, &lt;span class=&quot;at&quot;&gt;under=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;extra=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;box.palette=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;Blues&amp;quot;&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2024-02-12-decisiontree/RPART_ONESPLIT-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;The graph of the decision tree in each node contains the most likely
+class. The number below the most likely class specifies the
+misclassification rate from this choice. As all classes are initially
+equally likely, choosing “Barnabé” at the root node (i.e. if it is not
+possible to ask further question) is just the first alphabetical choice
+- selecting any of the 15 other persons would have resulted in the same
+misclassification error. Similarly, choosing “Barnabé” among those with
+no blonde hair (somewhat confusingly this corresponds to the branch
+labelled “yes” of the logical condition: &lt;i&gt;Does the person have blonde
+hair = no&lt;/i&gt;) is again just for alphabetical reasons. Equally probable
+classifications would have been Mounir, Dan, Barnabé, Casimir, Max, Bob,
+Mathis and Mikis. This is also reflected by the misclassification rate
+in that leaf node, which is 7/8.&lt;/p&gt;
+&lt;p&gt;Assume now that we picked the blonde hair question and are ready to
+add an additional sub-node to each of the two branches: Which question
+should we choose in each case?&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb11&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb11-1&quot;&gt;&lt;a href=&quot;#cb11-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;R_L &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; persons &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;filter&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;have blonde hair?&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt; &lt;span class=&quot;sc&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&amp;quot;no&amp;quot;&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb11-2&quot;&gt;&lt;a href=&quot;#cb11-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;map_df&lt;/span&gt;(question_col_idx, best_split, &lt;span class=&quot;at&quot;&gt;Rm=&lt;/span&gt;R_L) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;slice_min&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;order_by=&lt;/span&gt;Q)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 1 × 3
+##   name                              split     Q
+##   &amp;lt;chr&amp;gt;                             &amp;lt;chr&amp;gt; &amp;lt;dbl&amp;gt;
+## 1 picture have something red in it? yes    1.39&lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb13&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb13-1&quot;&gt;&lt;a href=&quot;#cb13-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;R_R &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; persons &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;filter&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;have blonde hair?&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt; &lt;span class=&quot;sc&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&amp;quot;no&amp;quot;&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb13-2&quot;&gt;&lt;a href=&quot;#cb13-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt; &lt;span class=&quot;fu&quot;&gt;map_df&lt;/span&gt;(question_col_idx, best_split, &lt;span class=&quot;at&quot;&gt;Rm=&lt;/span&gt;R_R) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;slice_min&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;order_by=&lt;/span&gt;Q)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 1 × 3
+##   name                                split     Q
+##   &amp;lt;chr&amp;gt;                               &amp;lt;chr&amp;gt; &amp;lt;dbl&amp;gt;
+## 1 picture have something green in it? yes    1.39&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In other words, for the branch where
+&lt;code&gt;have blonde hair? == &quot;no&quot;&lt;/code&gt; we ask, whether the person’s
+picture has something red in it, whereas we for those with blonde or
+unclear hair color ask, if there is something green in the person’s
+picture. Again, we can reproduce this directly using
+&lt;code&gt;rpart::rpart()&lt;/code&gt;.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb15&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb15-1&quot;&gt;&lt;a href=&quot;#cb15-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;tree_twosplit &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;rpart&lt;/span&gt;(Person &lt;span class=&quot;sc&quot;&gt;~&lt;/span&gt; ., &lt;span class=&quot;at&quot;&gt;data =&lt;/span&gt; persons, &lt;span class=&quot;at&quot;&gt;method=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;class&amp;quot;&lt;/span&gt;,&lt;/span&gt;
+&lt;span id=&quot;cb15-2&quot;&gt;&lt;a href=&quot;#cb15-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;               &lt;span class=&quot;at&quot;&gt;parms=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;list&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;split=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;information&amp;quot;&lt;/span&gt;),&lt;/span&gt;
+&lt;span id=&quot;cb15-3&quot;&gt;&lt;a href=&quot;#cb15-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;               &lt;span class=&quot;at&quot;&gt;control=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;rpart.control&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;minsplit=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;maxdepth=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2024-02-12-decisiontree/RPART_TWOSPLIT_PLOT-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;As before, the selected person at each node is again a purely
+alphabetical choice, e.g. at the leftmost leaf node (Bob) equally
+probable choices would have been Dan, Casimir, Max and Bob. The above
+classification tree is of course still not perfect with
+misclassification rates of 3/4 at each leaf node. In the main section of
+the blog post we compute a more elaborate decision tree with a depth of
+4 having zero misclassification rate at each leaf node.&lt;/p&gt;
+</description>
+        <pubDate>Mon, 12 Feb 2024 00:00:00 +0100</pubDate>
+        <link>https://mhoehle.github.io/blog/2024/02/12/decisiontree.html</link>
+        <guid isPermaLink="true">https://mhoehle.github.io/blog/2024/02/12/decisiontree.html</guid>
+        
+        <category>rstats</category>
+        
+        <category>python</category>
+        
+        <category>reinforcement learning</category>
+        
+        <category>game theory</category>
+        
+        
+      </item>
     
       <item>
         <title>Dynamic Programming for Super Six</title>
@@ -4094,505 +4894,6 @@ epidemiology skills.&lt;/p&gt;
         <category>SARS-CoV-2</category>
         
         <category>mathematical modelling</category>
-        
-        
-      </item>
-    
-      <item>
-        <title>Risk Scoring in Digital Contact Tracing Apps</title>
-        <description>&lt;h2 id=&quot;abstract&quot;&gt;Abstract:&lt;/h2&gt;
-We attempt a mathematical description of the risk scoring algorithm used
-in the Google and Apple exposure notification framework (v1). This
-algorithm is used in many digital contact tracing apps for COVID-19,
-e.g., in Germany or Switzerland.
-&lt;p&gt;
-&lt;center&gt;
-&lt;img src=&quot;/blog/figure/source/2020-09-17-gaen_riskscoring/classifier3.png&quot; width=&quot;550&quot;&gt;
-&lt;/center&gt;
-&lt;p&gt;&lt;br&gt;
-&lt;a rel=&quot;license&quot; href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;&lt;img alt=&quot;Creative Commons License&quot; style=&quot;border-width:0&quot; src=&quot;https://i.creativecommons.org/l/by-sa/4.0/88x31.png&quot;/&gt;&lt;/a&gt;
-This work is licensed under a &lt;a rel=&quot;license&quot;
-href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;Creative Commons
-Attribution-ShareAlike 4.0 International License&lt;/a&gt;. The
-markdown+Rknitr source code of this blog is available under a &lt;a
-href=&quot;https://www.gnu.org/licenses/gpl-3.0.html&quot;&gt;GNU General Public
-License (GPL v3)&lt;/a&gt; license from github.&lt;/p&gt;
-&lt;h2 id=&quot;motivation&quot;&gt;Motivation&lt;/h2&gt;
-&lt;p&gt;My phone runs a digital COVID-19 contact tracing app based on the
-Apple and Google exposure notification (GAEN) framework [&lt;a
-href=&quot;https://developer.apple.com/exposure-notification/&quot;&gt;Apple&lt;/a&gt;| &lt;a
-href=&quot;https://www.google.com/covid19/exposurenotifications/&quot;&gt;Google&lt;/a&gt;|
-&lt;a
-href=&quot;https://en.wikipedia.org/wiki/Exposure_Notification&quot;&gt;Wikipedia&lt;/a&gt;].
-Since my future health might depend on it, I am interested in the risk
-classification algorithm of the framework: when does it warn me about a
-possible exposure risk? Since algorithmic transparency is a key
-component in gaining acceptance for digital contact tracing apps, this
-blog post tries to give a mathematical description of the risk scoring
-algorithm in the GAEN framework - as far as I have been able to
-understand it. The description is accompanied by a small case study
-implemented in R.&lt;/p&gt;
-&lt;p&gt;The GAEN is used by country specific COVID-19 Apps in &lt;a
-href=&quot;https://github.com/PersonalDataIO/CoronaRiskScoring&quot;&gt;several
-countries&lt;/a&gt;, e.g., Switzerland, Latvia, Denmark, Italy, Poland. In
-this post special focus is on the German &lt;a
-href=&quot;https://www.coronawarn.app/en/&quot;&gt;Corona-Warn-App&lt;/a&gt; (CWA), which
-comes with a special commitment to transparency:&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;The Corona-Warn-App is an app that helps trace infection chains of
-SARS-CoV-2 (which can cause COVID-19) in Germany. The app is based on
-technologies with a decentralized approach and notifies users if they
-have been exposed to SARS-CoV-2. Transparency is key to both protect the
-app’s end-users and to encourage adoption.&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;This means that all code and documentation of the CWA is available
-under an open-source license through &lt;a
-href=&quot;https://github.com/corona-warn-app&quot;&gt;GitHub&lt;/a&gt;. A good overview of
-the technical foundation of the app is provided &lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-documentation/blob/master/solution_architecture.md&quot;&gt;here&lt;/a&gt;.
-However, important parts of the CWA risk scoring are taken from the GAEN
-framework, which is less transparent&lt;a href=&quot;#fn1&quot; class=&quot;footnote-ref&quot;
-id=&quot;fnref1&quot; role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/a&gt;. In particular I was
-interested in the &lt;a
-href=&quot;https://developer.apple.com/documentation/exposurenotification/enexposureconfiguration/calculating_the_exposure_risk_value_in_exposurenotification_version_1&quot;&gt;API
-v1&lt;/a&gt; form of the risk scoring, because this forms the basis of the CWA
-and also provides epidemiological flexibility through the use of the
-transmission risk level parameter.&lt;/p&gt;
-&lt;h2 id=&quot;the-risk-scoring&quot;&gt;The Risk Scoring&lt;/h2&gt;
-&lt;p&gt;A phone using the GAEN framework scans the immediate surroundings in
-regular time intervals&lt;a href=&quot;#fn2&quot; class=&quot;footnote-ref&quot; id=&quot;fnref2&quot;
-role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt; using the &lt;a
-href=&quot;https://en.wikipedia.org/wiki/Bluetooth_Low_Energy&quot;&gt;BLE&lt;/a&gt;
-protocol. Doing so, the phone collects anonymous identifier keys of the
-devices running BLE near you. If a GAEN user is tested positive, they
-can voluntarily decide to upload their anonymous identifier keys to a
-server. With regular intervals the app on your phone downloads these
-keys and investigates whether there is a match between the keys you
-encountered and those available on the server. If there is a match, an
-algorithm decides based on attributes of the contact, e.g. duration,
-distance and infectiousness of the potential infector, whether the user
-should be displayed a warning about an increased risk for infection. It
-is this classification algorithm I am interested in.&lt;/p&gt;
-&lt;p&gt;Introducing mathematical notation, let &lt;span
-class=&quot;math inline&quot;&gt;\(E\)&lt;/span&gt; be the set of encounters recorded by
-your phone during the last 14 days. We assume each entry &lt;span
-class=&quot;math inline&quot;&gt;\(e\in E\)&lt;/span&gt; consists of attributes&lt;a
-href=&quot;#fn3&quot; class=&quot;footnote-ref&quot; id=&quot;fnref3&quot;
-role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;3&lt;/sup&gt;&lt;/a&gt; containing the identifier key - also
-known as &lt;em&gt;temporary exposure key&lt;/em&gt; (TEK) - of the phone you met,
-i.e. &lt;span class=&quot;math inline&quot;&gt;\(\text{key}(e)\)&lt;/span&gt;, the calendar
-day the contact happened, &lt;span
-class=&quot;math inline&quot;&gt;\(\text{date}(e)\)&lt;/span&gt;, the duration of the
-contact, &lt;span class=&quot;math inline&quot;&gt;\(\text{duration}(e)\)&lt;/span&gt;, and
-the average attenuation of the signal during the contact, &lt;span
-class=&quot;math inline&quot;&gt;\(\text{antennuation}(e)\)&lt;/span&gt;. The later serves
-as proxy for the distance between the two phones.&lt;/p&gt;
-&lt;p&gt;Furthermore, the server contains the set of uploaded keys by CWA
-users, who tested positive for COVID-19 and who gave consent to upload
-their keys. Uploaded keys of test positives are also called
-&lt;em&gt;diagnosis keys&lt;/em&gt; - technically they are just TEKs. For simplicity
-we shall assume in this document that phones are using one key per
-calendar day and that an upload of keys consists of the keys used on the
-day of upload and the previous 13 days&lt;a href=&quot;#fn4&quot;
-class=&quot;footnote-ref&quot; id=&quot;fnref4&quot; role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;4&lt;/sup&gt;&lt;/a&gt;.
-Let &lt;span class=&quot;math inline&quot;&gt;\(S\)&lt;/span&gt; denote the set of uploaded
-keys on the server and for &lt;span class=&quot;math inline&quot;&gt;\(s\in S\)&lt;/span&gt;
-let &lt;span class=&quot;math inline&quot;&gt;\(\text{key}(s)\)&lt;/span&gt; denote the
-diagnosis key, &lt;span class=&quot;math inline&quot;&gt;\(\text{day_valid}(s)\)&lt;/span&gt;
-the calendar day the key was in use and &lt;span
-class=&quot;math inline&quot;&gt;\(\text{TRL}(s)\)&lt;/span&gt; the transmission risk. The
-later is a numerical value for how infectious the potential infector was
-on &lt;span class=&quot;math inline&quot;&gt;\(\text{day_valid}(s)\)&lt;/span&gt;. For
-simplicity, in what follows, we shall consider only the so called
-&lt;strong&gt;level&lt;/strong&gt; of the duration, attenuation and transmission
-risk, which in the GAEN framework is a discretized version of the
-continuous quantity represented by an integer between 0-8.&lt;/p&gt;
-&lt;p&gt;We shall denote by &lt;span class=&quot;math inline&quot;&gt;\(I\)&lt;/span&gt; the subset
-of &lt;span class=&quot;math inline&quot;&gt;\(E\)&lt;/span&gt;, which consists of keys known
-to have been positively tested for COVID-19, that is, the key was
-uploaded to the server. For simplicity we shall extend the elements of
-&lt;span class=&quot;math inline&quot;&gt;\(E\)&lt;/span&gt; with additional information
-provided by the server about the key, i.e. we let &lt;span
-class=&quot;math display&quot;&gt;\[
-I = \{ (e, s) : e \in E , s \in S , \text{key}(s) = \text{key}(e) \}.
-\]&lt;/span&gt;&lt;/p&gt;
-&lt;h2 id=&quot;case-study-with-aisha-anton-and-betty&quot;&gt;Case Study with Aisha,
-Anton and Betty&lt;/h2&gt;
-&lt;p&gt;We shall illustrate the above using an example inspired by the &lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-documentation/blob/master/cwa-risk-assessment.md&quot;&gt;CWA
-documentation&lt;/a&gt;. In the example the CWA user Betty travels with Anton
-and Aisha together by bus to and from work on the 9th and the 16th of
-the month. Each trip lasts 10 minutes. Anton sat one meter away from
-Betty, while Aisha sat two meters away. Both Anton and Aisha become test
-positive on the 20th and decide to upload their keys to the server on
-the 20th and 21st, respectively. We perform Betty’s risk calculation on
-the 20th and 21st, respectively. To make the example clearer, the
-original trip length of 10 minutes is changed to 11 minutes.&lt;/p&gt;
-&lt;h3 id=&quot;gaen-configuration&quot;&gt;GAEN Configuration&lt;/h3&gt;
-&lt;p&gt;Configuration of the risk scoring parameters as done for the CWA:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a href=&quot;#cb1-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;do&quot;&gt;## Transmission risk level provided at key upload - see https://github.com/corona-warn-app/cwa-app-android/blob/fe9128fdb28384640d0a248b7ff46701d6a04f0e/Corona-Warn-App/src/main/java/de/rki/coronawarnapp/util/ProtoFormatConverterExtensions.kt#L12 for the google App&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-2&quot;&gt;&lt;a href=&quot;#cb1-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;trl &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;structure&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;5&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;8&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;8&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;8&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;5&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;fu&quot;&gt;rep&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;7&lt;/span&gt;)), &lt;span class=&quot;at&quot;&gt;names=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;13&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb1-3&quot;&gt;&lt;a href=&quot;#cb1-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-4&quot;&gt;&lt;a href=&quot;#cb1-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Breaks in dB for the attenuation - see https://github.com/google/exposure-notifications-internals/blob/e953a09dd3c20c04dfa29e362eef461890dac25c/exposurenotification/src/main/java/com/google/samples/exposurenotification/features/ContactTracingFeature.java#L515 &lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-5&quot;&gt;&lt;a href=&quot;#cb1-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;attenuation_breaks &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;10&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;15&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;27&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;33&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;51&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;63&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;73&lt;/span&gt;, &lt;span class=&quot;cn&quot;&gt;Inf&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb1-6&quot;&gt;&lt;a href=&quot;#cb1-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;attenuation_include_lowest &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-7&quot;&gt;&lt;a href=&quot;#cb1-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Level for each attenuation bucket, see https://github.com/corona-warn-app/cwa-server/blob/master/services/distribution/src/main/resources/master-config/exposure-config.yaml&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-8&quot;&gt;&lt;a href=&quot;#cb1-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;attenuation_lvl    &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;tibble&lt;/span&gt;( &lt;span class=&quot;at&quot;&gt;bucket =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;[0,10]&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;(10,15]&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;(15,27]&amp;quot;&lt;/span&gt;,&lt;span class=&quot;st&quot;&gt;&amp;quot;(27,33]&amp;quot;&lt;/span&gt;,  &lt;span class=&quot;st&quot;&gt;&amp;quot;(33,51]&amp;quot;&lt;/span&gt;,  &lt;span class=&quot;st&quot;&gt;&amp;quot;(51,63]&amp;quot;&lt;/span&gt;,  &lt;span class=&quot;st&quot;&gt;&amp;quot;(63,73]&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;(73,Inf]&amp;quot;&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;lvl=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb1-9&quot;&gt;&lt;a href=&quot;#cb1-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-10&quot;&gt;&lt;a href=&quot;#cb1-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Bucket limits in https://github.com/google/exposure-notifications-internals/blob/e953a09dd3c20c04dfa29e362eef461890dac25c/exposurenotification/src/main/java/com/google/samples/exposurenotification/features/ContactTracingFeature.java#L502 (note that the buckets are closed to the right)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-11&quot;&gt;&lt;a href=&quot;#cb1-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;duration_breaks &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;Inf&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;5&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;10&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;15&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;20&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;25&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;30&lt;/span&gt;, &lt;span class=&quot;cn&quot;&gt;Inf&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb1-12&quot;&gt;&lt;a href=&quot;#cb1-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;duration_include_lowest &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cn&quot;&gt;FALSE&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-13&quot;&gt;&lt;a href=&quot;#cb1-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Levels - see https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/exposure-config.yaml#L50&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-14&quot;&gt;&lt;a href=&quot;#cb1-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;duration_lvl    &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;tibble&lt;/span&gt;( &lt;span class=&quot;at&quot;&gt;bucket =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;(-Inf,0]&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;(0,5]&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;(5,10]&amp;quot;&lt;/span&gt; , &lt;span class=&quot;st&quot;&gt;&amp;quot;(10,15]&amp;quot;&lt;/span&gt;,  &lt;span class=&quot;st&quot;&gt;&amp;quot;(15,20]&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;(20,25]&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;(25,30]&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;(30, Inf]&amp;quot;&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;lvl=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;,  &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb1-15&quot;&gt;&lt;a href=&quot;#cb1-15&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-16&quot;&gt;&lt;a href=&quot;#cb1-16&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Days parameters - see https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/exposure-config.yaml#L40&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-17&quot;&gt;&lt;a href=&quot;#cb1-17&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;days_lvl &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;5&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-18&quot;&gt;&lt;a href=&quot;#cb1-18&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-19&quot;&gt;&lt;a href=&quot;#cb1-19&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Time_attenuation_buckets (to be used later)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-20&quot;&gt;&lt;a href=&quot;#cb1-20&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;time_attenuation_bucket_breaks &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;55&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;63&lt;/span&gt;, &lt;span class=&quot;cn&quot;&gt;Inf&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb1-21&quot;&gt;&lt;a href=&quot;#cb1-21&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;time_attenuation_buckets &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;levels&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;cut&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;100&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;breaks=&lt;/span&gt;time_attenuation_bucket_breaks, &lt;span class=&quot;at&quot;&gt;include.lowest=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;right=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;FALSE&lt;/span&gt;))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;The &lt;span class=&quot;math inline&quot;&gt;\(\text{days}(e)\)&lt;/span&gt; parameter of
-an &lt;span class=&quot;math inline&quot;&gt;\(e\in E\)&lt;/span&gt; exposure reflects the
-possibility to provide additional risk relevant information about the
-CWA user at the day of the contact. However, the CWA currently keeps it
-at a fixed value of &lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/exposure-config.yaml#L40&quot;&gt;5&lt;/a&gt;
-and, hence, it plays little role in the risk calculations.&lt;/p&gt;
-&lt;h4 id=&quot;part-1-uploaded-keys-on-the-server&quot;&gt;Part 1: Uploaded keys on the
-server&lt;/h4&gt;
-&lt;p&gt;Anton had his CWA running since 2020-09-13, while Aisha has been
-running her app since 2020-09-01. For each of the two we build a tibble
-containing the uploaded keys at the day of transmission, i.e. on the
-20th and 21st, respectively&lt;a href=&quot;#fn5&quot; class=&quot;footnote-ref&quot;
-id=&quot;fnref5&quot; role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;5&lt;/sup&gt;&lt;/a&gt;. Furthermore, we
-construct two tibbles mimicking the state of the diagnosis key server on
-2020-09-20 and 2020-09-21, respectively.&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a href=&quot;#cb2-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Upload of Anton on the 2020-09-20 where his app has been running for 8 days&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-2&quot;&gt;&lt;a href=&quot;#cb2-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;anton_ndays &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;min&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;14&lt;/span&gt;, &lt;span class=&quot;fu&quot;&gt;as.numeric&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;as.Date&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;2020-09-20&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt; cwa_start_anton &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb2-3&quot;&gt;&lt;a href=&quot;#cb2-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;anton &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;tibble&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;key=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;rkey&lt;/span&gt;(anton_ndays),&lt;span class=&quot;at&quot;&gt;valid=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;seq&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;as.Date&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;2020-09-20&amp;quot;&lt;/span&gt;),&lt;span class=&quot;at&quot;&gt;length.out=&lt;/span&gt;anton_ndays,&lt;span class=&quot;at&quot;&gt;by=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;-1 day&amp;quot;&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;trl=&lt;/span&gt;trl[&lt;span class=&quot;fu&quot;&gt;seq_len&lt;/span&gt;(anton_ndays)])&lt;/span&gt;
-&lt;span id=&quot;cb2-4&quot;&gt;&lt;a href=&quot;#cb2-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-5&quot;&gt;&lt;a href=&quot;#cb2-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Upload of Aisha on the 2020-09-21 where her app has been running for 14 days&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-6&quot;&gt;&lt;a href=&quot;#cb2-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;aisha_ndays &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;min&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;14&lt;/span&gt;, &lt;span class=&quot;fu&quot;&gt;as.numeric&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;as.Date&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;2020-09-20&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt; cwa_start_aisha &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb2-7&quot;&gt;&lt;a href=&quot;#cb2-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;aisha &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;tibble&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;key=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;rkey&lt;/span&gt;(aisha_ndays),&lt;span class=&quot;at&quot;&gt;valid=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;seq&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;as.Date&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;2020-09-21&amp;quot;&lt;/span&gt;),&lt;span class=&quot;at&quot;&gt;length.out=&lt;/span&gt;aisha_ndays,&lt;span class=&quot;at&quot;&gt;by=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;-1 day&amp;quot;&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;trl=&lt;/span&gt;trl[&lt;span class=&quot;fu&quot;&gt;seq_len&lt;/span&gt;(aisha_ndays)])&lt;/span&gt;
-&lt;span id=&quot;cb2-8&quot;&gt;&lt;a href=&quot;#cb2-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-9&quot;&gt;&lt;a href=&quot;#cb2-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#  Upload to server consists of keys for the last 13 days (note: day zero caveat is ignored). Hence dk&amp;lt;date&amp;gt; consists of all keys who were active during the last  13 days within &amp;lt;date&amp;gt;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-10&quot;&gt;&lt;a href=&quot;#cb2-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;dk20200920 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; anton &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;filter&lt;/span&gt;(valid &lt;span class=&quot;sc&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;as.Date&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;2020-09-20&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;13&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb2-11&quot;&gt;&lt;a href=&quot;#cb2-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;dk20200921 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;rbind&lt;/span&gt;(anton, aisha) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;filter&lt;/span&gt;(valid &lt;span class=&quot;sc&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;as.Date&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;2020-09-21&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;13&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb2-12&quot;&gt;&lt;a href=&quot;#cb2-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-13&quot;&gt;&lt;a href=&quot;#cb2-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Show diagnosis keys of 2020-09-20 (these are Anton&amp;#39;s keys)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-14&quot;&gt;&lt;a href=&quot;#cb2-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;dk20200920&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## # A tibble: 8 x 3
-##   key    valid        trl
-##   &amp;lt;chr&amp;gt;  &amp;lt;date&amp;gt;     &amp;lt;dbl&amp;gt;
-## 1 2a0a87 2020-09-20     5
-## 2 051447 2020-09-19     6
-## 3 f810f4 2020-09-18     8
-## 4 17a0d6 2020-09-17     8
-## 5 3d12e3 2020-09-16     8
-## 6 aaf590 2020-09-15     5
-## 7 22b909 2020-09-14     3
-## 8 1be004 2020-09-13     1&lt;/code&gt;&lt;/pre&gt;
-&lt;h4 id=&quot;part-2-bettys-exposure-history&quot;&gt;Part 2: Betty’s exposure
-history&lt;/h4&gt;
-&lt;p&gt;Betty’s sighting history would look as follows:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;## # A tibble: 6 x 7
-##   key    date       attenuation duration attenuation_lvl duration_lvl days_lvl
-##   &amp;lt;chr&amp;gt;  &amp;lt;date&amp;gt;           &amp;lt;dbl&amp;gt;    &amp;lt;dbl&amp;gt;           &amp;lt;dbl&amp;gt;        &amp;lt;dbl&amp;gt;    &amp;lt;dbl&amp;gt;
-## 1 3d12e3 2020-09-16          40       11               2            1        5
-## 2 3d12e3 2020-09-16          40       11               2            1        5
-## 3 835292 2020-09-16          60       11               2            1        5
-## 4 835292 2020-09-16          60       11               2            1        5
-## 5 3d8508 2020-09-09          60       11               2            1        5
-## 6 3d8508 2020-09-09          60       11               2            1        5&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Hence, Betty’s set of exposures with test positives provided by the
-server on the 20th is:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb5&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb5-1&quot;&gt;&lt;a href=&quot;#cb5-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;i_set &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;inner_join&lt;/span&gt;(eh_betty, dk20200920, &lt;span class=&quot;at&quot;&gt;by=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;key&amp;quot;&lt;/span&gt;) &lt;/span&gt;
-&lt;span id=&quot;cb5-2&quot;&gt;&lt;a href=&quot;#cb5-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;i_set&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## # A tibble: 2 x 9
-##   key    date       attenuation duration attenuation_lvl duration_lvl days_lvl valid        trl
-##   &amp;lt;chr&amp;gt;  &amp;lt;date&amp;gt;           &amp;lt;dbl&amp;gt;    &amp;lt;dbl&amp;gt;           &amp;lt;dbl&amp;gt;        &amp;lt;dbl&amp;gt;    &amp;lt;dbl&amp;gt; &amp;lt;date&amp;gt;     &amp;lt;dbl&amp;gt;
-## 1 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8
-## 2 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8&lt;/code&gt;&lt;/pre&gt;
-&lt;h2 id=&quot;risk-scoring&quot;&gt;Risk scoring&lt;/h2&gt;
-&lt;p&gt;The description of the risk scoring in the CWA app is centered around
-&lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-documentation/blob/master/solution_architecture.md&quot;&gt;Fig.
-12 and 13&lt;/a&gt; of the solution architecture documentation. An
-illustrative example of how this computation looks can be found &lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-documentation/blob/master/cwa-risk-assessment.md&quot;&gt;here&lt;/a&gt;.
-For further details the source code for the risk scoring in the CWA can
-be consulted [&lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-app-android/blob/5240f1baf92b9d3082d38570c4e11a4f72edde6b/Corona-Warn-App/src/main/java/de/rki/coronawarnapp/risk/DefaultRiskLevelCalculation.kt&quot;&gt;Android
-version&lt;/a&gt;| &lt;a href=&quot;&quot;&gt;iOS&lt;/a&gt;]. However, for the Android version,
-which is the one I checked most, it is &lt;a
-href=&quot;https://github.com/google/exposure-notifications-internals/issues/17#issuecomment-692981452&quot;&gt;not
-100% transparent&lt;/a&gt; (to me) how the important &lt;a
-href=&quot;https://developers.google.com/android/exposure-notifications/exposure-notifications-api#modes&quot;&gt;&lt;code&gt;exposureSummary&lt;/code&gt;&lt;/a&gt;
-object is generated by the API. Nevertheless, the computation of the
-GAEN risk scoring algorithm consists of two steps: a per-exposure risk
-score calculation followed by an aggregation over all exposures. The
-best approximation I could find is &lt;a
-href=&quot;https://github.com/google/exposure-notifications-internals/blob/413b561f59cd4a63b571cac83821959e6e022ce8/exposurenotification/src/main/java/com/google/samples/exposurenotification/matching/KeyExposureEvaluator.java&quot;&gt;&lt;code&gt;KeyExposureEvaluator.java&lt;/code&gt;&lt;/a&gt;,
-which might be from a later release than v1, though.&lt;/p&gt;
-&lt;h2 id=&quot;risk-score&quot;&gt;Risk Score&lt;/h2&gt;
-&lt;p&gt;We compute the total risk for each exposure with a test positive,
-i.e. for each element &lt;span class=&quot;math inline&quot;&gt;\(i\in I\)&lt;/span&gt;, by:
-&lt;span class=&quot;math display&quot;&gt;\[
-\text{TR}(i) = \text{duration}(i)\times
-\text{attenuation}(i) \times
-\text{TRL}(i) \times
-\text{days}(i)
-\]&lt;/span&gt;&lt;/p&gt;
-&lt;p&gt;Exposure risks with a total risk below the &lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/app-config.yaml#L13&quot;&gt;minimum
-risk score&lt;/a&gt; of 11 are put to zero:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb7&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb7-1&quot;&gt;&lt;a href=&quot;#cb7-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Minimum risk score - see https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/app-config.yaml#L13&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb7-2&quot;&gt;&lt;a href=&quot;#cb7-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;minimum_risk_score &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;11&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb8&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb8-1&quot;&gt;&lt;a href=&quot;#cb8-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Compute risk score and filter out those below the minimum&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb8-2&quot;&gt;&lt;a href=&quot;#cb8-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;risk &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; i_set &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb8-3&quot;&gt;&lt;a href=&quot;#cb8-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;risk_score =&lt;/span&gt; attenuation_lvl &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; duration_lvl &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; trl &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; days_lvl) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb8-4&quot;&gt;&lt;a href=&quot;#cb8-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;filter&lt;/span&gt;(risk_score &lt;span class=&quot;sc&quot;&gt;&amp;gt;=&lt;/span&gt; minimum_risk_score)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb9&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb9-1&quot;&gt;&lt;a href=&quot;#cb9-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;risk&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## # A tibble: 2 x 10
-##   key    date       attenuation duration attenuation_lvl duration_lvl days_lvl valid        trl risk_score
-##   &amp;lt;chr&amp;gt;  &amp;lt;date&amp;gt;           &amp;lt;dbl&amp;gt;    &amp;lt;dbl&amp;gt;           &amp;lt;dbl&amp;gt;        &amp;lt;dbl&amp;gt;    &amp;lt;dbl&amp;gt; &amp;lt;date&amp;gt;     &amp;lt;dbl&amp;gt;      &amp;lt;dbl&amp;gt;
-## 1 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8         80
-## 2 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8         80&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;From this we can compute the the so called &lt;strong&gt;Normalized Total
-Risk Score&lt;/strong&gt; defined as &lt;span class=&quot;math display&quot;&gt;\[
-\text{Normalized Total Risk Score} := \frac{\max_{i\in I}
-\text{TR}(i)}{50}.
-\]&lt;/span&gt; I’m guessing, but the value of 50 appears to be a “baseline”
-for the transmission risk given by the risk test positives have on the
-day they upload their keys ( first element of &lt;code&gt;trl&lt;/code&gt; is 5 and,
-hence, &lt;span class=&quot;math inline&quot;&gt;\(1 \times 2 \times 5 \times 5 =
-50\)&lt;/span&gt;).&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb11&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb11-1&quot;&gt;&lt;a href=&quot;#cb11-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Derive the normalized total risk score&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb11-2&quot;&gt;&lt;a href=&quot;#cb11-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;maxTR &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;max&lt;/span&gt;(risk&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;risk_score)&lt;/span&gt;
-&lt;span id=&quot;cb11-3&quot;&gt;&lt;a href=&quot;#cb11-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;ntrs &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; maxTR &lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;50&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb12&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb12-1&quot;&gt;&lt;a href=&quot;#cb12-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(maxTR, ntrs)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] 80.0  1.6&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;In order to reflect that the accumulation of several exposures with a
-test positive increases your risk, a weighted summation of time spent in
-three 3 attenuation buckets (distance: far, intermediate and close) is
-computed.&lt;/p&gt;
-&lt;p&gt;For each class &lt;span class=&quot;math inline&quot;&gt;\(j=1,2,3\)&lt;/span&gt; (signal
-strength is low, mid and high) a weighted time in the class is computed
-&lt;span class=&quot;math display&quot;&gt;\[
-\begin{align}
-wt_j = \max\left(30, \sum_{i\in  I^*} \mathcal{I}\left(l_j  \leq
-\text{attenuation}(i) &amp;lt; u_j \right) \times \text{duration}(i) \times
-w_{j}\right)
-\end{align}
-\]&lt;/span&gt; where &lt;span class=&quot;math inline&quot;&gt;\(\mathcal{I}(A)\)&lt;/span&gt;
-denotes the indicator function which is 1 if the condition &lt;span
-class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; is fulfilled and zero otherwise.
-Furthermore, &lt;span class=&quot;math inline&quot;&gt;\(I^* = \{ i \in I :
-\text{TR}(i)&amp;gt;0\}\)&lt;/span&gt;, &lt;span class=&quot;math inline&quot;&gt;\(w_1=0,
-w_2=0.5\)&lt;/span&gt; and &lt;span class=&quot;math inline&quot;&gt;\(w_3=1\)&lt;/span&gt; and the
-limits &lt;span class=&quot;math inline&quot;&gt;\((l_j, u_j)\)&lt;/span&gt; of the three
-classes are &lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/attenuation-duration.yaml#L13&quot;&gt;chosen&lt;/a&gt;
-as &lt;span class=&quot;math inline&quot;&gt;\([63, \infty)\)&lt;/span&gt;, &lt;span
-class=&quot;math inline&quot;&gt;\([55,63)\)&lt;/span&gt; and &lt;span
-class=&quot;math inline&quot;&gt;\([0,55)\)&lt;/span&gt; dB. Note that for reasons beyond
-my knowledge, the time in each class is capped at 30 minutes. The total
-time is then calculated as as &lt;span class=&quot;math display&quot;&gt;\[
-\text{Total time} = \sum_{j=1}^4 wt_j,
-\]&lt;/span&gt; where &lt;span class=&quot;math inline&quot;&gt;\(wt_4\geq 0\)&lt;/span&gt; is
-denoted a bucket offset value, which is currently set to 0 in the CWA.
-Hence, the largest possible total time is &lt;span
-class=&quot;math inline&quot;&gt;\(0\times 30 + 0.5\times 30 + 1\times 30 + 0 =
-45\)&lt;/span&gt; minutes.&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb14&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb14-1&quot;&gt;&lt;a href=&quot;#cb14-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Accumulate time in the 3 attenuation buckets&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb14-2&quot;&gt;&lt;a href=&quot;#cb14-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;ta_buckets &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; risk &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb14-3&quot;&gt;&lt;a href=&quot;#cb14-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;( &lt;span class=&quot;at&quot;&gt;time_attenuation_bucket =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cut&lt;/span&gt;(attenuation, &lt;span class=&quot;at&quot;&gt;breaks=&lt;/span&gt;time_attenuation_bucket_breaks, &lt;span class=&quot;at&quot;&gt;include.lowest=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;right=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;FALSE&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb14-4&quot;&gt;&lt;a href=&quot;#cb14-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;group_by&lt;/span&gt;(time_attenuation_bucket) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;  &lt;/span&gt;
-&lt;span id=&quot;cb14-5&quot;&gt;&lt;a href=&quot;#cb14-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;time =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(duration)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb14-6&quot;&gt;&lt;a href=&quot;#cb14-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Cap at 30 minutes&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb14-7&quot;&gt;&lt;a href=&quot;#cb14-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;time =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;pmin&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;30&lt;/span&gt;, time, &lt;span class=&quot;at&quot;&gt;na.rm=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb14-8&quot;&gt;&lt;a href=&quot;#cb14-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb14-9&quot;&gt;&lt;a href=&quot;#cb14-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Define the weights - https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/attenuation-duration.yaml#L15&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb14-10&quot;&gt;&lt;a href=&quot;#cb14-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;weights &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;tibble&lt;/span&gt;( &lt;span class=&quot;at&quot;&gt;time_attenuation_bucket=&lt;/span&gt;time_attenuation_buckets, &lt;span class=&quot;at&quot;&gt;weight=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;fl&quot;&gt;0.5&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb14-11&quot;&gt;&lt;a href=&quot;#cb14-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;ta_buckets_w &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;right_join&lt;/span&gt;( ta_buckets, weights, &lt;span class=&quot;at&quot;&gt;by=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;time_attenuation_bucket&amp;quot;&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb14-12&quot;&gt;&lt;a href=&quot;#cb14-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb14-13&quot;&gt;&lt;a href=&quot;#cb14-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Do the weighted summation and add the bucket offset&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb14-14&quot;&gt;&lt;a href=&quot;#cb14-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;exposure_score &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; ta_buckets_w &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;total =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(time&lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt;weight, &lt;span class=&quot;at&quot;&gt;na.rm=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;  &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;as.numeric&lt;/span&gt;()&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;The combined risk score is now given as &lt;span class=&quot;math display&quot;&gt;\[
-\text{Combined Risk Score} = \text{Exposure Score } \times
-\text{Normalized Total Risk Score}
-\]&lt;/span&gt;&lt;/p&gt;
-&lt;p&gt;A warning is given by the app, if the combined risk is above a
-threshold value of &lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/risk-score-classification.yaml#L24&quot;&gt;15&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;In code:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb15&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb15-1&quot;&gt;&lt;a href=&quot;#cb15-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Compute combined risk score and classify&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb15-2&quot;&gt;&lt;a href=&quot;#cb15-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;(combined_risk_score &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; exposure_score &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; ntrs)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] 35.2&lt;/code&gt;&lt;/pre&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb17&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb17-1&quot;&gt;&lt;a href=&quot;#cb17-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;(alarm &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; combined_risk_score &lt;span class=&quot;sc&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;15&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## [1] TRUE&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Hence, Betty receives an alarm on the 20th.&lt;/p&gt;
-&lt;h4 id=&quot;the-classifier-in-a-nutshell&quot;&gt;The classifier in a nutshell&lt;/h4&gt;
-&lt;p&gt;To summarise, the resulting binary risk classifier of the CWA can be
-expressed mathematically by the single formula&lt;/p&gt;
-&lt;p&gt;&lt;span class=&quot;math display&quot;&gt;\[
-\begin{align*}
-\mathcal{I}\left\{\left[\sum_{j=1}^ 3 \max\left(30, \sum_{i\in  I^*}
-\mathcal{I}\left( \text{attenuation}(i) \in [l_j,u_j) \right) \times
-\text{duration}(i) \times w_{j}\right)\right] \times \\
-\quad\quad\quad\quad\quad \max_{i\in I} \{\text{duration}(i)\times
-\text{attenuation}(i) \times
-\text{TRL}(i) \times
-\text{days}(i)\} \geq 15\cdot 50 \right\}.
-\end{align*}
-\]&lt;/span&gt;&lt;/p&gt;
-&lt;p&gt;The formula can also be assembled into one classifier function, which
-we will use to repeat the risk classification based on the available
-server information on 2020-09-21:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb19&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb19-1&quot;&gt;&lt;a href=&quot;#cb19-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;cwa_classifier &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(i_set) {&lt;/span&gt;
-&lt;span id=&quot;cb19-2&quot;&gt;&lt;a href=&quot;#cb19-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Compute risk score and filter out those below the minimum&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-3&quot;&gt;&lt;a href=&quot;#cb19-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  risk &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; i_set &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-4&quot;&gt;&lt;a href=&quot;#cb19-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;risk_score =&lt;/span&gt; attenuation_lvl &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; duration_lvl &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; trl &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; days_lvl) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb19-5&quot;&gt;&lt;a href=&quot;#cb19-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;filter&lt;/span&gt;(risk_score &lt;span class=&quot;sc&quot;&gt;&amp;gt;=&lt;/span&gt; minimum_risk_score)&lt;/span&gt;
-&lt;span id=&quot;cb19-6&quot;&gt;&lt;a href=&quot;#cb19-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;/span&gt;
-&lt;span id=&quot;cb19-7&quot;&gt;&lt;a href=&quot;#cb19-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Derive the normalized total risk score&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-8&quot;&gt;&lt;a href=&quot;#cb19-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  maxTR &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;max&lt;/span&gt;(risk&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;risk_score)&lt;/span&gt;
-&lt;span id=&quot;cb19-9&quot;&gt;&lt;a href=&quot;#cb19-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  ntrs &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; maxTR &lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;50&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-10&quot;&gt;&lt;a href=&quot;#cb19-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;/span&gt;
-&lt;span id=&quot;cb19-11&quot;&gt;&lt;a href=&quot;#cb19-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Accumulate time in the 3 attenuation buckets&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-12&quot;&gt;&lt;a href=&quot;#cb19-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  ta_buckets &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; risk &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb19-13&quot;&gt;&lt;a href=&quot;#cb19-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;( &lt;span class=&quot;at&quot;&gt;time_attenuation_bucket =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cut&lt;/span&gt;(attenuation, &lt;span class=&quot;at&quot;&gt;breaks=&lt;/span&gt;time_attenuation_bucket_breaks, &lt;span class=&quot;at&quot;&gt;include.lowest=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;right=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;FALSE&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb19-14&quot;&gt;&lt;a href=&quot;#cb19-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;group_by&lt;/span&gt;(time_attenuation_bucket) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;  &lt;/span&gt;
-&lt;span id=&quot;cb19-15&quot;&gt;&lt;a href=&quot;#cb19-15&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;time =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(duration)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb19-16&quot;&gt;&lt;a href=&quot;#cb19-16&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# Cap at 30 minutes&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-17&quot;&gt;&lt;a href=&quot;#cb19-17&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;time =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;pmin&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;30&lt;/span&gt;, time, &lt;span class=&quot;at&quot;&gt;na.rm=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb19-18&quot;&gt;&lt;a href=&quot;#cb19-18&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
-&lt;span id=&quot;cb19-19&quot;&gt;&lt;a href=&quot;#cb19-19&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Define the weights - https://github.com/corona-warn-app/cwa-server/blob/f3d66840ef59e2ced10fb9b42f08a8938e76075a/services/distribution/src/main/resources/master-config/attenuation-duration.yaml#L15&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-20&quot;&gt;&lt;a href=&quot;#cb19-20&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  weights &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;tibble&lt;/span&gt;( &lt;span class=&quot;at&quot;&gt;time_attenuation_bucket=&lt;/span&gt;time_attenuation_buckets, &lt;span class=&quot;at&quot;&gt;weight=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, &lt;span class=&quot;fl&quot;&gt;0.5&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;))&lt;/span&gt;
-&lt;span id=&quot;cb19-21&quot;&gt;&lt;a href=&quot;#cb19-21&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  ta_buckets_w &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;right_join&lt;/span&gt;( ta_buckets, weights, &lt;span class=&quot;at&quot;&gt;by=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;time_attenuation_bucket&amp;quot;&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb19-22&quot;&gt;&lt;a href=&quot;#cb19-22&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
-&lt;span id=&quot;cb19-23&quot;&gt;&lt;a href=&quot;#cb19-23&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Do the weighted summation and add the bucket offset&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-24&quot;&gt;&lt;a href=&quot;#cb19-24&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  exposure_score &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; ta_buckets_w &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;total =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(time&lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt;weight, &lt;span class=&quot;at&quot;&gt;na.rm=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;  &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;as.numeric&lt;/span&gt;()&lt;/span&gt;
-&lt;span id=&quot;cb19-25&quot;&gt;&lt;a href=&quot;#cb19-25&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;/span&gt;
-&lt;span id=&quot;cb19-26&quot;&gt;&lt;a href=&quot;#cb19-26&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Compute combined risk score and classify&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-27&quot;&gt;&lt;a href=&quot;#cb19-27&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  (combined_risk_score &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; exposure_score &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; ntrs)&lt;/span&gt;
-&lt;span id=&quot;cb19-28&quot;&gt;&lt;a href=&quot;#cb19-28&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  (alarm &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; combined_risk_score &lt;span class=&quot;sc&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;15&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb19-29&quot;&gt;&lt;a href=&quot;#cb19-29&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;/span&gt;
-&lt;span id=&quot;cb19-30&quot;&gt;&lt;a href=&quot;#cb19-30&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Return individals elements of the risk classification&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb19-31&quot;&gt;&lt;a href=&quot;#cb19-31&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;return&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;list&lt;/span&gt;( &lt;span class=&quot;at&quot;&gt;risk=&lt;/span&gt;risk, &lt;span class=&quot;at&quot;&gt;ta_buckets_w=&lt;/span&gt;ta_buckets_w,  &lt;span class=&quot;at&quot;&gt;exposure_score=&lt;/span&gt;exposure_score, &lt;span class=&quot;at&quot;&gt;ntrs=&lt;/span&gt;ntrs, &lt;span class=&quot;at&quot;&gt;combined_risk_score=&lt;/span&gt;combined_risk_score, &lt;span class=&quot;at&quot;&gt;alarm=&lt;/span&gt;alarm))&lt;/span&gt;
-&lt;span id=&quot;cb19-32&quot;&gt;&lt;a href=&quot;#cb19-32&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Note that the server information on 2020-09-21 is slightly different
-from 2020-09-20, because now also Aisha’s keys are available:&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb20&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb20-1&quot;&gt;&lt;a href=&quot;#cb20-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;i_set &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;left_join&lt;/span&gt;(eh_betty, dk20200921, &lt;span class=&quot;at&quot;&gt;by=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;key&amp;quot;&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb20-2&quot;&gt;&lt;a href=&quot;#cb20-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;cwa_classifier&lt;/span&gt;(i_set)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;pre&gt;&lt;code&gt;## $risk
-## # A tibble: 4 x 10
-##   key    date       attenuation duration attenuation_lvl duration_lvl days_lvl valid        trl risk_score
-##   &amp;lt;chr&amp;gt;  &amp;lt;date&amp;gt;           &amp;lt;dbl&amp;gt;    &amp;lt;dbl&amp;gt;           &amp;lt;dbl&amp;gt;        &amp;lt;dbl&amp;gt;    &amp;lt;dbl&amp;gt; &amp;lt;date&amp;gt;     &amp;lt;dbl&amp;gt;      &amp;lt;dbl&amp;gt;
-## 1 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8         80
-## 2 3d12e3 2020-09-16          40       11               2            1        5 2020-09-16     8         80
-## 3 835292 2020-09-16          60       11               2            1        5 2020-09-16     5         50
-## 4 835292 2020-09-16          60       11               2            1        5 2020-09-16     5         50
-## 
-## $ta_buckets_w
-## # A tibble: 3 x 3
-##   time_attenuation_bucket  time weight
-##   &amp;lt;chr&amp;gt;                   &amp;lt;dbl&amp;gt;  &amp;lt;dbl&amp;gt;
-## 1 [0,55)                     22    1  
-## 2 [55,63)                    22    0.5
-## 3 [63,Inf]                   NA    0  
-## 
-## $exposure_score
-## [1] 33
-## 
-## $ntrs
-## [1] 1.6
-## 
-## $combined_risk_score
-## [1] 52.8
-## 
-## $alarm
-## [1] TRUE&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;In other words and not so surprising: we also get an alarm, if Betty
-runs the risk scoring on the 21st. However, the combined risk score is
-now also higher due to the multiple exposures.&lt;/p&gt;
-&lt;h2 id=&quot;discussion&quot;&gt;Discussion&lt;/h2&gt;
-&lt;p&gt;Despite an honest effort to try to understand the code and the
-documentation, there are still specific details, which I’m unsure about.
-One reason is that only parts of the code of the GAEN framework v1 are
-public - this should be improved. Another reason is that I lack the
-technical skills to really build and execute the CWA from source on my
-phone or to evaluate he GAEN snippets. This would allow me to test
-different scenarios and gain insight based on a reverse engineering
-approach. A mathematical and high-level implementation documentation as
-the one attempted in this post is not easy to understand either, but
-math is a universal language with enough abstraction to not get lost in
-the nitty-gritty details of source code. If the source code is public,
-however, a ground truth can always be established - it may just take
-time… This post mixes the two approaches by supplementing the math with
-an illustrative example using R code - the source of this is available
-from &lt;a
-href=&quot;https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2020-09-17-gaen_riskscoring.Rmd&quot;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;More details on the use of mathematics in digital contact tracing can
-be found in my lecture given as part of the 2020 summer course on “The
-Mathematics and Statistics of Infectious Disease Outbreaks” at Stockholm
-University [&lt;a
-href=&quot;https://github.com/hoehleatsu/mt3002-summer2020/blob/master/Lectures/Lecture12/lecture12.pdf&quot;&gt;slides&lt;/a&gt;
-| &lt;a href=&quot;https://youtu.be/KdY62_KmJEE&quot;&gt;video part 1&lt;/a&gt; | &lt;a
-href=&quot;https://youtu.be/DvS6-S3S6vc&quot;&gt;video part 2&lt;/a&gt;].&lt;/p&gt;
-&lt;center&gt;
-&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/KdY62_KmJEE&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen&gt;
-&lt;/iframe&gt;
-&lt;/center&gt;
-&lt;h2 id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
-&lt;section id=&quot;footnotes&quot; class=&quot;footnotes footnotes-end-of-document&quot;
-role=&quot;doc-endnotes&quot;&gt;
-&lt;hr /&gt;
-&lt;ol&gt;
-&lt;li id=&quot;fn1&quot;&gt;&lt;p&gt;Code snippets have recently been published [&lt;a
-href=&quot;https://github.com/google/exposure-notifications-internals&quot;&gt;google&lt;/a&gt;
-| &lt;a href=&quot;https://developer.apple.com/exposure-notification/&quot;&gt;apple&lt;/a&gt;
-| &lt;a
-href=&quot;https://github.com/rettichschnidi/ExposureNotification&quot;&gt;inofficial
-GitHub of the apple code&lt;/a&gt;]. Unfortunately, most of the published code
-appears to cover later releases of the GAEN. Furthermore, as far as I
-can tell, both the Google and the Apple snippets don’t cover the full
-code used for the risk scoring in v1. Hence, some of my above
-explanations deduced from the code may fail to truly capture the state
-and functioning of the v1 risk scoring.&lt;a href=&quot;#fnref1&quot;
-class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;li id=&quot;fn2&quot;&gt;&lt;p&gt;Approximately every 5 minutes.&lt;a href=&quot;#fnref2&quot;
-class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;li id=&quot;fn3&quot;&gt;&lt;p&gt;This description is a simplification. In reality the &lt;a
-href=&quot;https://en.wikipedia.org/wiki/Bluetooth_Low_Energy&quot;&gt;BLE&lt;/a&gt;
-protocol consists of a series of scans where it is recorded which keys
-can be found. These series sightings of a key are then aggregated to
-exposures periods by the GAEN, which have a beginning and an end.&lt;a
-href=&quot;#fnref3&quot; class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;li id=&quot;fn4&quot;&gt;&lt;p&gt;In practice the TEKs change frequently each day to
-preserve anonymity, but it’s possible to deduce all corresponding TEK
-from one uploaded diagnosis key.&lt;a href=&quot;#fnref4&quot; class=&quot;footnote-back&quot;
-role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;li id=&quot;fn5&quot;&gt;&lt;p&gt;For this post we ignore the fact that the key active on
-the day of upload is not uploaded until tomorrow, but see also this &lt;a
-href=&quot;https://github.com/corona-warn-app/cwa-server/issues/723#issuecomment-684814760&quot;&gt;issue&lt;/a&gt;.&lt;a
-href=&quot;#fnref5&quot; class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;
-&lt;/section&gt;
-</description>
-        <pubDate>Thu, 17 Sep 2020 00:00:00 +0200</pubDate>
-        <link>https://mhoehle.github.io/blog/2020/09/17/gaen_riskscoring.html</link>
-        <guid isPermaLink="true">https://mhoehle.github.io/blog/2020/09/17/gaen_riskscoring.html</guid>
-        
-        <category>rstats</category>
-        
-        <category>COVID-19</category>
-        
-        <category>SARS-CoV-2</category>
-        
-        <category>digital epidemiology</category>
-        
-        <category>contact tracing</category>
         
         
       </item>

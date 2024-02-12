@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Guess My Name with Decision Trees</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="https://mhoehle.github.io/blog/2024/02/12/decisiontree.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="https://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Guess My Name with Decision Trees</h1>
+    <p class="post-meta"><time datetime="2024-02-12T00:00:00+01:00" itemprop="datePublished">Feb 12, 2024</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>We use classification trees to determine the optimal sequence of
+questions to ask in the game “Guess my name” (Mini Logix series from
+Djeco). Aim of the game is to identify wich person, out of 16 possible,
+the opponent is. Clasification trees and optimal sequential decision
+making in this case have strong similarities with cross-entropy of the
+class distribution working as a common metric for quantifying
+information gain.</p>
+<center>
+<img src="/blog/figure/source/2024-02-12-decisiontree/splash.png" />
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The <a
+href="https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/blog2024-02-12-decisiontree.Rmd">R-markdown
+source code</a> of this blog is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from GitHub.</p>
+<h2 id="introduction">Introduction</h2>
+<p>As a mathmatician you do not play logic games for fun, you play to
+win. So when playing “Guess my name” (Mini Logix series from Djeco),
+where the task is to ask your opponent a series of questions in order to
+identify which of 16 picture characters they are, you want to devise an
+optimal sequence of questions in order to determine your opponent’s
+choice. Given a catalogue of possible questions, we use classification
+trees to find the optimal sequence of questions to ask.</p>
+<p>The game goes as follows: Each player gets a card with pictures of 16
+persons. Each player selects a person of the 16 she wants to be and
+writes the name of this person on their card.</p>
+<p>
+<center>
+<img
+src="/blog/figure/source/2024-02-12-decisiontree/karte-lowres.jpg" />
+<br> Figure 1: Exemplary game card of the “Guess my name” game, Mini
+Logix series, Djeco, during gameplay.
+</center>
+<p>
+<p>The players then take turns to ask the opponent <i>one</i> question
+about their person, for example you could ask <i>Does your person have
+glasses?</i> or <i>Is your person wearing a chef’s hat?</i>“. Based on
+the answer (possible answers are: yes or no) you sequentially rule out
+more and more persons on the card until you are ready to guess who the
+other person is. The first player to correctly identify the opponent’s
+person wins. Note that only questions about the picture of the person
+are allowed. In what follows, we shall assume that a third answer
+cateogry”unclear” is also possible, because some questions like <i>does
+your person have blonde hair</i> can not be answered when the hair is
+not visible on the picture (see for example the picture of Clovis).</p>
+<p>The aim is now to devise a series of questions whick as quickly as
+possible can narrow our set of candidate persons down to 1 person. When
+only yes or no answers are possible, in the optimal case, each question
+reduces the set of possible persons by a factor 2. Hence, <span
+class="math inline">\(2^x = 16 \Leftrightarrow x = \log_{2}(16) =
+4\)</span> (well chosen) questions are needed to reduce the set of
+candidates from 16 to 1. However, it might not be possible to find a
+sequence of such optimal questions, because (given the previous set of
+questions) the next question might not split the remaining pool of
+candidates in two sets of equal cardinality. As a more hands-on approach
+we formulate the task as follows: given a set of questions, where we for
+each of the 16 persons know the answer to, which questions and in what
+sequence should we ask them in order to correctly identity the
+opponent’s person.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="question-catalogue">Question Catalogue</h3>
+To begin with we develop a set of questions and encode the answer of
+each of the 16 persons to the question as yes, no or unclear Below we
+show an exemplary question catalogue consisting of 12 together with the
+answers for 8 out of the 16 persons (full data for all 16 <a
+href="../../../figure/source/2024-02-12-decisiontree/whatismyname.xlsx">here</a>).
+One can compare the answers with the picture of the above shown game
+card.
+<p>
+<p>
+<hr>
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+Question: Does the person
+</th>
+<th style="text-align:center;">
+Gonzague
+</th>
+<th style="text-align:center;">
+Clovis
+</th>
+<th style="text-align:center;">
+Mounir
+</th>
+<th style="text-align:center;">
+Dan
+</th>
+<th style="text-align:center;">
+Barnabé
+</th>
+<th style="text-align:center;">
+Casimir
+</th>
+<th style="text-align:center;">
+Philippe
+</th>
+<th style="text-align:center;">
+Max
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+have a headgear?
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+yes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+have glasses somewhere?
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+have a brush behind the ear?
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+have blonde hair?
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+unclear
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+wear a top with no or short sleeves?
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+have visible eyebrows?
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+picture have something red in it?
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+have a top hat on?
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+picture have something green in it?
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+have blue eyes?
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+have a chef’s hat on?
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+have a V-collar?
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p>
+<p>
+<h3 id="decision-trees-as-classification-trees">Decision Trees as
+Classification Trees</h3>
+<p>We use classification trees to represent the sequence of questions to
+ask. Our goal is to correctly identify the person at the end of the
+sequence, hence, each leave node should assign the correct person with
+100% probability. This is somewhat opposite to traditional
+classification trees, which inspired by Occam’s razor are kept small and
+thus accept a certain misclassification rate on the training data in
+order to generalize well to out-of-sample data.</p>
+<p>We address this tweak by working with saturated trees (i.e. no
+pruning). Furthermore, we need to shape the questions s.t. they space of
+answers allows for a correct partitioning of all 16 persons. For ease of
+exposition we assume that each of the 16 persons is equally likely to be
+chosen by your opponent, i.e. the prior probability for each person is
+1/16. The appendix “Technical Details” contains information about how
+the tree is grown. In R, classification trees can be fitted using the
+function <code>rpart::rpart()</code>. We configure the function such
+that a saturated tree is grown, if this possible from the question
+catalogue. Since training and test data in our case are identical we
+want a tree which fits as good as possible on the training data.</p>
+<h2 id="results">Results</h2>
+<p>We transpose the question catalogue in order to bring the data into a
+shape with columns being the features and one row per person.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Tranpose data to a tibble allowing a fit</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>persons <span class="ot">&lt;-</span> questions <span class="sc">%&gt;%</span> </span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Question: Does the person</span><span class="st">`</span>, <span class="at">names_to=</span><span class="st">&quot;Person&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> Person, <span class="at">names_from=</span><span class="st">`</span><span class="at">Question: Does the person</span><span class="st">`</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>                                <span class="at">values_from=</span>value) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), factor))</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(persons)</span></code></pre></div>
+<pre><code>## # A tibble: 6 × 13
+##   Person   `have a headgear?` `have glasses somewhere?` have a brush behind the ea…¹ `have blonde hair?` wear a top with no o…² have visible eyebrow…³
+##   &lt;fct&gt;    &lt;fct&gt;              &lt;fct&gt;                     &lt;fct&gt;                        &lt;fct&gt;               &lt;fct&gt;                  &lt;fct&gt;                 
+## 1 Gonzague no                 yes                       no                           yes                 no                     yes                   
+## 2 Clovis   yes                no                        no                           unclear             no                     no                    
+## 3 Mounir   yes                no                        no                           no                  no                     yes                   
+## 4 Dan      yes                no                        no                           no                  no                     no                    
+## 5 Barnabé  no                 yes                       no                           no                  no                     yes                   
+## 6 Casimir  yes                no                        no                           no                  yes                    yes                   
+## # ℹ abbreviated names: ¹​`have a brush behind the ear?`, ²​`wear a top with no or short sleeves?`, ³​`have visible eyebrows?`
+## # ℹ 6 more variables: `picture have something red in it?` &lt;fct&gt;, `have a top hat on?` &lt;fct&gt;, `picture have something green in it?` &lt;fct&gt;,
+## #   `have blue eyes?` &lt;fct&gt;, `have a chef&#39;s hat on?` &lt;fct&gt;, `have a V-collar?` &lt;fct&gt;</code></pre>
+<p>This format of the data can then be used with
+<code>rpart::rpart()</code>.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit tree using rpart</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Make sure we get a saturated tree</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>tree <span class="ot">&lt;-</span> <span class="fu">rpart</span>(<span class="at">formula =</span> Person <span class="sc">~</span> ., <span class="at">data =</span> persons, </span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">method=</span><span class="st">&quot;class&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>              <span class="at">parms=</span><span class="fu">list</span>(<span class="at">split=</span><span class="st">&quot;information&quot;</span>),</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>              <span class="at">control=</span><span class="fu">rpart.control</span>(<span class="at">minbucket=</span><span class="dv">0</span>, <span class="at">xval=</span><span class="dv">0</span>, <span class="at">cp =</span> <span class="sc">-</span><span class="dv">1</span>))</span></code></pre></div>
+<p>The resulting decision tree is illustrated below. We start at the
+root node branching left or right depending on whether the answer to the
+question: Does the person have have blonde hair? is “no”. If this is the
+case we go left, otherwise (i.e. if the answer is “yes” or “unclear”) we
+go right. At a leaf node we classify observations to the class indicated
+by the round blue node around the name of the person.</p>
+<div class="figure" style="text-align: center">
+<img src="/blog/figure/source/2024-02-12-decisiontree/RPART_SATURATED_TREE_PLOT-1.png" alt="Figure 2: Decision tree to correctly identify your opponent with 4 questions."  />
+<p class="caption">
+Figure 2: Decision tree to correctly identify your opponent with 4
+questions.
+</p>
+</div>
+<p>We note that the misclassification rate at each terminal leaf is 0,
+i.e. if we follow the decision tree we are able to identify the correct
+person. Furthermore, the depth of the tree is only 4. Hence, even though
+there are 12 questions, the decision trees shows that we can use them in
+a clever sequence so that - no matter how the answer is - we correctly
+identify the person after 4 questions. Only 9 out of the 12 questions
+are used anywhere in the tree.</p>
+<h2 id="discussion">Discussion</h2>
+<p>Finding optimal sequences of question for identification has
+application beyond winning logic games. One example is fault tree
+diagnosis in reliability assessment, where entropy also plays a central
+role in the finding minimal cut set <span class="citation"
+data-cites="Xiaozhong1991">(Xiaozhong 1991)</span>. Troubleshooting
+complex technical devices, such as printers, in addition to a dianosis
+stage can also model the consequence of any repair actions <span
+class="citation" data-cites="langseth_jensen2003">(Langseth and Jensen
+2003)</span>.</p>
+<h2 id="references">References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-hastie_etal2017" class="csl-entry" role="listitem">
+Hastie, T., R. Tibshirani, and J. Friedman. 2017. <em>The Elements of
+Statistical Learning</em>. 2nd ed. Springer.
+</div>
+<div id="ref-langseth_jensen2003" class="csl-entry" role="listitem">
+Langseth, H., and F. V. Jensen. 2003. <span>“Decision Theoretic
+Troubleshooting of Coherent Systems.”</span> <em>Reliability Engineering
+&amp; System Safety</em> 80 (1): 49–62. <a
+href="https://doi.org/10.1016/S0951-8320(02)00202-8">https://doi.org/10.1016/S0951-8320(02)00202-8</a>.
+</div>
+<div id="ref-Xiaozhong1991" class="csl-entry" role="listitem">
+Xiaozhong, W. 1991. <span>“Fault Tree Diagnosis Based on
+<span>S</span>hannon Entropy.”</span> <em>Reliability Engineering &amp;
+System Safety</em> 34 (2): 143–67. <a
+href="https://doi.org/10.1016/0951-8320(91)90086-M">https://doi.org/10.1016/0951-8320(91)90086-M</a>.
+</div>
+</div>
+<p>
+<h2 id="appendix-technical-details">Appendix: Technical Details</h2>
+<p>This section discusses the algorithmic details of how classification
+trees are grown. For readers without interest in such technical detail
+this section can safely be skipped. More details can be found in for
+example <span class="citation" data-cites="hastie_etal2017">Hastie,
+Tibshirani, and Friedman (2017)</span>, Sect 9.2.3.</p>
+<p>The number of possible splits for a categorical node with <span
+class="math inline">\(M\)</span> unordered categories is <span
+class="math inline">\(2^{M-1}-1\)</span>, i.e. for <span
+class="math inline">\(M=2\)</span> features there is only one possible
+split, whereas <span class="math inline">\(K=3\)</span> features have 3
+possible splits. In our case, questions with <span
+class="math inline">\(M=2\)</span> have answers <i>yes</i> and <i>no</i>
+and thus the split is ({yes}, {no}). When <span
+class="math inline">\(M=3\)</span> we have answers <i>yes</i>, <i>no</i>
+and <i>unclear</i> and consequently the splits are: ({yes}, {no,
+unclear}), ({yes, unclear}, {no}), and ({yes,no},{unclear}). Note that
+most questions in the question catalogue have <span
+class="math inline">\(K=2\)</span> answers:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>persons <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="sc">-</span>Person, n_distinct))  <span class="sc">%&gt;%</span> </span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols=</span><span class="fu">everything</span>(), <span class="at">values_to =</span> <span class="st">&quot;M&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(M) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">no_questions=</span><span class="fu">n</span>())</span></code></pre></div>
+<pre><code>## # A tibble: 2 × 2
+##       M no_questions
+##   &lt;int&gt;        &lt;int&gt;
+## 1     2           11
+## 2     3            1</code></pre>
+<p>Let the learning set be <span class="math inline">\(\mathcal{L}=\{
+(\boldsymbol{x}_i, y_i), i=1,\ldots,n\}\)</span>, where <span
+class="math inline">\(\boldsymbol{x}_i=(x_{i1},\ldots,x_{ir})^\top\)</span>
+denotes the answers to the <span class="math inline">\(r=12\)</span>
+questions for each of the <span class="math inline">\(n=16\)</span>
+persons on a game card. For a node <span
+class="math inline">\(m\)</span> in tree <span
+class="math inline">\(T\)</span> we use an impurity measure <span
+class="math inline">\(Q_m(T)\)</span> to decide which split to use. Let
+<span class="math inline">\(R_m\)</span> denote the set of all
+observations in the training data, whose feature vector <span
+class="math inline">\(\boldsymbol{x}_i\)</span> fulfills all Boolean
+conditions posed by following the tree until node <span
+class="math inline">\(m\)</span>. In what follows we shall write <span
+class="math inline">\(\boldsymbol{x}_i\in R_m\)</span> if an observation
+<span class="math inline">\((\boldsymbol{x}_i, y_i)\)</span> from the
+learning data is in <span class="math inline">\(R_m\)</span>.
+Furthermore, let <span class="math inline">\(n_m=|R_m|\)</span> denote
+the corresponding number of observations in <span
+class="math inline">\(R_m\)</span> and let <span class="math display">\[
+\widehat{p}_{mk}=\frac{1}{n_m} \sum_{\boldsymbol{x}_i\in R_m} I(y_i=k) =
+\frac{n_{mk}}{n_m}, \quad k=1,\ldots,K
+\]</span> be the proportion of category <span
+class="math inline">\(k\)</span> observations at node <span
+class="math inline">\(m\)</span>. The <b>cross-entropy impurity
+measure</b> is defined as</p>
+<span class="math display">\[
+Q_m(T) = - \sum_{k=1}^K \widehat{p}_{mk} \cdot \log(\widehat{p}_{mk}),
+\]</span> where we use the convention that <span
+class="math inline">\(0\cdot \log(0)=0\)</span> if some of the
+probabilities <span class="math inline">\(\widehat{p}_{mk}\)</span> are
+zero. As an example we show a plot of the cross-entropy function for
+<span class="math inline">\(K=2\)</span> for varying values of <span
+class="math inline">\(p_{m1}=p\)</span> and <span
+class="math inline">\(p_{m2}=1-p\)</span>:
+<p>
+<img src="/blog/figure/source/2024-02-12-decisiontree/PLOT_ENTROPY-1.png" style="display: block; margin: auto;" />
+<p>
+<p>The largest value for the impurity <span
+class="math inline">\(Q_m(T)\)</span> is obtained when all <span
+class="math inline">\(K\)</span> categories are equally likely,
+i.e. when <span class="math inline">\(p_{mk}=1/K\)</span>, <span
+class="math inline">\(k=1,\ldots,K\)</span>. Furthermore, the smallest
+value <span class="math inline">\(Q_m(T)=0\)</span> is obtained when one
+category, say <span class="math inline">\(k\)</span>, has <span
+class="math inline">\(p_{mk}=1\)</span> and consequently <span
+class="math inline">\(p_{mk&#39;}=0\)</span> for all <span
+class="math inline">\(k&#39; \neq k\)</span>.</p>
+<p>For a node <span class="math inline">\(m\)</span> and unordered
+categorical feature <span class="math inline">\(x_j\)</span>, <span
+class="math inline">\(j=1,\ldots,r\)</span> we can now investigate the
+set of possible splits <span class="math inline">\(S_j\)</span> of <span
+class="math inline">\(x_j\)</span> by looking at the gain in impurity
+for each split <span class="math inline">\(s\in S_j\)</span>. A split
+<span class="math inline">\(s=(s_L, s_R)\)</span> of <span
+class="math inline">\(x_j\)</span> is characterised by a partition of
+the labels of <span class="math inline">\(x_j\)</span> in two disjoint
+sets, <span class="math inline">\(s_L\)</span> and <span
+class="math inline">\(s_R\)</span>. For example, if <span
+class="math inline">\(x_j\)</span> has <span
+class="math inline">\(M=3\)</span> levels (yes, no, unclear) one
+possible split could be <span
+class="math inline">\(s_L=\{\text{yes\}}\)</span> and <span
+class="math inline">\(s_R=\{\text{no,unclear}\}\)</span>.</p>
+<p>If we split <span class="math inline">\(m\)</span> according to the
+rule <span class="math inline">\(s\in S_j\)</span> we obtain two
+sub-nodes <span class="math inline">\(m_L\)</span> and <span
+class="math inline">\(m_R\)</span>, where <span
+class="math inline">\(R_{m_L} = \{ \boldsymbol{x}_i \in R_m : x_{ij} \in
+s_L\}\)</span> and <span class="math inline">\(R_{m_R} = \{
+\boldsymbol{x}_i \in R_m : x_{ij} \in s_R\}\)</span>. The impurity of
+<span class="math inline">\(m\)</span> in a tree <span
+class="math inline">\(T_s\)</span> implementing the split <span
+class="math inline">\(s\)</span>, and thus having additional subnodes
+<span class="math inline">\(m_L\)</span> and <span
+class="math inline">\(m_R\)</span>, is then calculated as <span
+class="math display">\[
+Q_m(T_s) = \frac{n_{m_L}}{n_m} Q_{m_L}(T_s) + \frac{n_{m_R}}{n_m}
+Q_{m_R}(T_s).
+\]</span> Note that the probabilities to be used in the computation of
+the subnodes’ cross-entropy are, e.g., <span
+class="math inline">\(\widehat{p}_{m_L k} = n_{m_L k}/n_{m_L}\)</span>.
+We select the split, which minimizes the impurity. If we also let the
+feature <span class="math inline">\(j\)</span> vary we thus select <span
+class="math display">\[
+(j,s)=\DeclareMathOperator*{\argmin}{arg\,min}
+\argmin_{j\in\{1,\ldots,r\},\&gt; s\in S_j} Q_m(T_s).
+\]</span> As a simple example for our data: assume that the current tree
+consists of just a root node <span class="math inline">\(m\)</span>,
+i.e. <span class="math inline">\(R_m\)</span> consists of all <span
+class="math inline">\(n=16\)</span> observations.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute impurity of root</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>(Q_root <span class="ot">&lt;-</span> <span class="fu">cross_entropy</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">16</span>, <span class="dv">16</span>)))</span></code></pre></div>
+<pre><code>## [1] 2.772589</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Determine if split on feature j</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>best_split <span class="ot">&lt;-</span> <span class="cf">function</span> (j, Rm) {</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># We know |S|=2^{M-1}-1 and define the split by the set consisting of</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># just ONE level (if |S|=1 we know yes/no and would not need the other level.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># We can just pick one of them</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  S <span class="ot">&lt;-</span> <span class="fu">levels</span>(persons[,j][[<span class="dv">1</span>]])</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(S) <span class="sc">==</span> <span class="dv">2</span>) S <span class="ot">&lt;-</span> S[<span class="dv">2</span>]</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(S) <span class="sc">&gt;</span> <span class="dv">3</span>) <span class="fu">stop</span>(<span class="st">&quot;M&gt;3 currently not supported.&quot;</span>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  S</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Try out all splits</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  Q_s <span class="ot">&lt;-</span> <span class="fu">sapply</span>(S, <span class="cf">function</span>(s) {</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    R_mL <span class="ot">&lt;-</span> Rm[Rm[,j][[<span class="dv">1</span>]] <span class="sc">==</span> s,]</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    R_mR <span class="ot">&lt;-</span> Rm[Rm[,j][[<span class="dv">1</span>]] <span class="sc">!=</span> s,]</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    n_m <span class="ot">&lt;-</span> <span class="fu">nrow</span>(Rm)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    n_mL <span class="ot">&lt;-</span> <span class="fu">table</span>(R_mL<span class="sc">$</span>Person)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    n_mR <span class="ot">&lt;-</span> <span class="fu">table</span>(R_mR<span class="sc">$</span>Person)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    p_mL <span class="ot">&lt;-</span> n_mL <span class="sc">/</span> <span class="fu">sum</span>(n_mL)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    p_mR <span class="ot">&lt;-</span> n_mR <span class="sc">/</span> <span class="fu">sum</span>(n_mR)</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    Q_s <span class="ot">&lt;-</span> <span class="fu">sum</span>(n_mL)<span class="sc">/</span>n_m <span class="sc">*</span> <span class="fu">cross_entropy</span>(p_mL) <span class="sc">+</span> <span class="fu">sum</span>(n_mR)<span class="sc">/</span>n_m <span class="sc">*</span> <span class="fu">cross_entropy</span>(p_mR)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(Q_s)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  }) </span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">name =</span> <span class="fu">names</span>(Rm)[j], <span class="at">split=</span>S[<span class="fu">which.min</span>(Q_s)], <span class="at">Q=</span><span class="fu">min</span>(Q_s))</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Columns of the data frame where the questions are located</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>question_col_idx <span class="ot">&lt;-</span> <span class="fu">seq_len</span>(<span class="fu">ncol</span>(persons))[<span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> <span class="fu">map_df</span>(question_col_idx, best_split, <span class="at">Rm=</span>persons) <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(Q)</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(e)</span></code></pre></div>
+<pre><code>## # A tibble: 6 × 3
+##   name                                 split     Q
+##   &lt;chr&gt;                                &lt;chr&gt; &lt;dbl&gt;
+## 1 have blonde hair?                    no     2.08
+## 2 picture have something red in it?    yes    2.09
+## 3 have a headgear?                     yes    2.15
+## 4 wear a top with no or short sleeves? yes    2.15
+## 5 have visible eyebrows?               yes    2.15
+## 6 have blue eyes?                      yes    2.15</code></pre>
+<p>If we are to build the tree only with one additional node we would
+thus use the <i>Does the person have blonde hair?</i> question and would
+put the <i>no</i> answers in one branch the <i>yes</i> and
+<i>unclear</i> answers on the other branch.</p>
+<p>The same computations can be done with the
+<code>rpart::rpart()</code> function. We set the control parameters s.t.
+the tree can consist only of one split (<code>maxdepth=1</code>).
+Furthermore, we lower the minimum number of observations one split can
+produce in one branch from the default value of 20. Otherwise, with only
+16 observations no split would be attempted.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>tree_onesplit <span class="ot">&lt;-</span> <span class="fu">rpart</span>(Person <span class="sc">~</span> ., <span class="at">data =</span> persons, <span class="at">method=</span><span class="st">&quot;class&quot;</span>,</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">parms=</span><span class="fu">list</span>(<span class="at">split=</span><span class="st">&quot;information&quot;</span>),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">control=</span><span class="fu">rpart.control</span>(<span class="at">minsplit=</span><span class="dv">1</span>,  <span class="at">maxdepth=</span><span class="dv">1</span>))</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(tree_onesplit, <span class="at">under=</span><span class="cn">TRUE</span>, <span class="at">extra=</span><span class="dv">3</span>, <span class="at">box.palette=</span><span class="st">&quot;Blues&quot;</span>)</span></code></pre></div>
+<p><img src="/blog/figure/source/2024-02-12-decisiontree/RPART_ONESPLIT-1.png" style="display: block; margin: auto;" /></p>
+<p>The graph of the decision tree in each node contains the most likely
+class. The number below the most likely class specifies the
+misclassification rate from this choice. As all classes are initially
+equally likely, choosing “Barnabé” at the root node (i.e. if it is not
+possible to ask further question) is just the first alphabetical choice
+- selecting any of the 15 other persons would have resulted in the same
+misclassification error. Similarly, choosing “Barnabé” among those with
+no blonde hair (somewhat confusingly this corresponds to the branch
+labelled “yes” of the logical condition: <i>Does the person have blonde
+hair = no</i>) is again just for alphabetical reasons. Equally probable
+classifications would have been Mounir, Dan, Barnabé, Casimir, Max, Bob,
+Mathis and Mikis. This is also reflected by the misclassification rate
+in that leaf node, which is 7/8.</p>
+<p>Assume now that we picked the blonde hair question and are ready to
+add an additional sub-node to each of the two branches: Which question
+should we choose in each case?</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>R_L <span class="ot">&lt;-</span> persons <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">have blonde hair?</span><span class="st">`</span> <span class="sc">==</span> <span class="st">&quot;no&quot;</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">map_df</span>(question_col_idx, best_split, <span class="at">Rm=</span>R_L) <span class="sc">%&gt;%</span> <span class="fu">slice_min</span>(<span class="at">order_by=</span>Q)</span></code></pre></div>
+<pre><code>## # A tibble: 1 × 3
+##   name                              split     Q
+##   &lt;chr&gt;                             &lt;chr&gt; &lt;dbl&gt;
+## 1 picture have something red in it? yes    1.39</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>R_R <span class="ot">&lt;-</span> persons <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">have blonde hair?</span><span class="st">`</span> <span class="sc">!=</span> <span class="st">&quot;no&quot;</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a> <span class="fu">map_df</span>(question_col_idx, best_split, <span class="at">Rm=</span>R_R) <span class="sc">%&gt;%</span> <span class="fu">slice_min</span>(<span class="at">order_by=</span>Q)</span></code></pre></div>
+<pre><code>## # A tibble: 1 × 3
+##   name                                split     Q
+##   &lt;chr&gt;                               &lt;chr&gt; &lt;dbl&gt;
+## 1 picture have something green in it? yes    1.39</code></pre>
+<p>In other words, for the branch where
+<code>have blonde hair? == "no"</code> we ask, whether the person’s
+picture has something red in it, whereas we for those with blonde or
+unclear hair color ask, if there is something green in the person’s
+picture. Again, we can reproduce this directly using
+<code>rpart::rpart()</code>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>tree_twosplit <span class="ot">&lt;-</span> <span class="fu">rpart</span>(Person <span class="sc">~</span> ., <span class="at">data =</span> persons, <span class="at">method=</span><span class="st">&quot;class&quot;</span>,</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">parms=</span><span class="fu">list</span>(<span class="at">split=</span><span class="st">&quot;information&quot;</span>),</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">control=</span><span class="fu">rpart.control</span>(<span class="at">minsplit=</span><span class="dv">1</span>, <span class="at">maxdepth=</span><span class="dv">2</span>))</span></code></pre></div>
+<p><img src="/blog/figure/source/2024-02-12-decisiontree/RPART_TWOSPLIT_PLOT-1.png" style="display: block; margin: auto;" /></p>
+<p>As before, the selected person at each node is again a purely
+alphabetical choice, e.g. at the leftmost leaf node (Bob) equally
+probable choices would have been Dan, Casimir, Max and Bob. The above
+classification tree is of course still not perfect with
+misclassification rates of 3/4 at each leaf node. In the main section of
+the blog post we compute a more elaborate decision tree with a depth of
+4 having zero misclassification rate at each leaf node.</p>
+
+  </div>
+
+</article>
+
+	
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
