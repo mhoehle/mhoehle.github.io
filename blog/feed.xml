@@ -6,8 +6,8 @@
 </description>
     <link>https://mhoehle.github.io/blog/</link>
     <atom:link href="https://mhoehle.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 12 Feb 2024 10:55:48 +0100</pubDate>
-    <lastBuildDate>Mon, 12 Feb 2024 10:55:48 +0100</lastBuildDate>
+    <pubDate>Tue, 13 Feb 2024 11:12:54 +0100</pubDate>
+    <lastBuildDate>Tue, 13 Feb 2024 11:12:54 +0100</lastBuildDate>
     <generator>Jekyll v4.2.2</generator>
     
       <item>
@@ -28,7 +28,7 @@ information gain.&lt;/p&gt;
 This work is licensed under a &lt;a rel=&quot;license&quot;
 href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;Creative Commons
 Attribution-ShareAlike 4.0 International License&lt;/a&gt;. The &lt;a
-href=&quot;https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/blog2024-02-12-decisiontree.Rmd&quot;&gt;R-markdown
+href=&quot;https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/blob/master/_source/2024-02-12-decisiontree.Rmd&quot;&gt;R-markdown
 source code&lt;/a&gt; of this blog is available under a &lt;a
 href=&quot;https://www.gnu.org/licenses/gpl-3.0.html&quot;&gt;GNU General Public
 License (GPL v3)&lt;/a&gt; license from GitHub.&lt;/p&gt;
