@@ -6,8 +6,8 @@
 </description>
     <link>https://mhoehle.github.io/blog/</link>
     <atom:link href="https://mhoehle.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 13 Feb 2024 12:10:29 +0100</pubDate>
-    <lastBuildDate>Tue, 13 Feb 2024 12:10:29 +0100</lastBuildDate>
+    <pubDate>Tue, 13 Feb 2024 23:02:48 +0100</pubDate>
+    <lastBuildDate>Tue, 13 Feb 2024 23:02:48 +0100</lastBuildDate>
     <generator>Jekyll v4.2.2</generator>
     
       <item>
@@ -2741,11 +2741,11 @@ License (GPL v3)&lt;/a&gt; license from GitHub.&lt;/p&gt;
 to assess under- and overweight of children. As an example, the WHO
 defines obesity for children under 5 years of age when the &lt;a
 href=&quot;https://cdn.who.int/media/docs/default-source/child-growth/child-growth-standards/indicators/weight-for-length-height/cht-wfl-girls-z-0-2.pdf?sfvrsn=a683172c_11&quot;&gt;weight-for-height&lt;/a&gt;
-of a child is greater than 3 standard deviations above WHO Child Growth
-Standards median for that
-age](https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight)
-(see also the WHO R package &lt;a
-href=&quot;https://cran.r-project.org/web/packages/anthro/index.html&quot;&gt;anthro&lt;/a&gt;.&lt;/p&gt;
+of a child is greater than 3 standard deviations above &lt;a
+href=&quot;https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight&quot;&gt;WHO
+Child Growth Standards median for that age&lt;/a&gt; (see also the WHO R
+package &lt;a
+href=&quot;https://cran.r-project.org/web/packages/anthro/index.html&quot;&gt;anthro&lt;/a&gt;).&lt;/p&gt;
 &lt;p&gt;In order to estimate these percentiles, data from a sample of the
 reference population is often fitted using flexible regression models
 such as GAMLSS &lt;span class=&quot;citation&quot;
@@ -2795,7 +2795,7 @@ as follows:&lt;/p&gt;
 ---
 title: &quot;Birth statistics&quot;
 author: &quot;&quot;
-date: &apos;2022-06-11&apos;
+date: &apos;2024-02-13&apos;
 output:
   html_document: default
   pdf_document: default
