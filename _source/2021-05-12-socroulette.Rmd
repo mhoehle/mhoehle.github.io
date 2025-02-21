@@ -67,14 +67,14 @@ cat(paste0("<img src=\"{{ site.baseurl }}/",knitr::opts_chunk$get("fig.path"),"r
 This work is licensed under a <a rel="license"
 href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
 Attribution-ShareAlike 4.0 International License</a>.
-The [R-markdown source code](`r paste0("https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/",current_input())`) of this blog is available under a [GNU General Public License (GPL v3)](https://www.gnu.org/licenses/gpl-3.0.html) license from GitHub.
+The [R-markdown source code](`r paste0("https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/",current_input())`) of this blog is available under a [GNU General Public License (GPL v3)](https://www.gnu.org/licenses/gpl-3.0.html) license from GitHub.
 
 ## Introduction
 
 Groupings are relevant when breakout rooms, mystery lunch partitions or student peer review groups are made. 
-My last blog post [Long time, no see: Virtual Lunch Roulette](https://staff.math.su.se/hoehle/blog/2021/04/04/socialsamp.html) considered the probability of being assigned into the same group as someone, you already were in the same group with the last time (aka. a re-union) when using simple random sampling to assign the groups. This probability proved to be surprisingly high.
+My last blog post [Long time, no see: Virtual Lunch Roulette](https://mhoehle.github.io/blog/2021/04/04/socialsamp.html) considered the probability of being assigned into the same group as someone, you already were in the same group with the last time (aka. a re-union) when using simple random sampling to assign the groups. This probability proved to be surprisingly high.
 
-In this post we develop the subject further by introducing the R package [`socialroulette`](https://hoehleatsu.github.io/socialroulette/), which aims at being helpful in making better group assignments based on solutions of the [**maximally diverse grouping problem**](http://grafo.etsii.urjc.es/optsicom/mdgp/) (MDGP) known from operations research.
+In this post we develop the subject further by introducing the R package [`socialroulette`](https://mhoehle.github.io/socialroulette/), which aims at being helpful in making better group assignments based on solutions of the [**maximally diverse grouping problem**](http://grafo.etsii.urjc.es/optsicom/mdgp/) (MDGP) known from operations research.
 
 
 ### The Problem
@@ -85,7 +85,7 @@ When assigning such groups repeatedly, e.g. one a weekly basis, an additional cr
 
 ## The R package socialroulette
 
-We illustrate the package by considering a use-case, where a class of students repeatably for every lecture have be assigned into breakout rooms. First, we install and load the [`socialroulette`](https://hoehleatsu.github.io/socialroulette/) package available from [GitHub](https://github.com/hoehleatsu/socialroulette/).
+We illustrate the package by considering a use-case, where a class of students repeatably for every lecture have be assigned into breakout rooms. First, we install and load the [`socialroulette`](https://mhoehle.github.io/socialroulette/) package available from [GitHub](https://github.com/mhoehle/socialroulette/).
 
 ```{r, results="hide", message=FALSE}
 library(tidyverse)
@@ -93,10 +93,10 @@ library(socialroulette)
 ```
 ```{r, echo=TRUE, eval=FALSE}
 # Install package
-devtools::install_github("hoehleatsu/socialroulette")
+devtools::install_github("mhoehle/socialroulette")
 library(socialroulette)
 ```
-Note: A binary package version is available from my [r-universe](https://hoehleatsu.r-universe.dev), which is a pipeline automatically compiling the package through GitHub actions.
+Note: A binary package version is available from my [r-universe](https://mhoehle.r-universe.dev), which is a pipeline automatically compiling the package through GitHub actions.
 
 Say the class consists of 100 students, which for a weekly virtual lab exercise class need to be divided into groups of at least 4.
 Since for various reasons not all students show up for each class, the sampling frame of individuals to be partitioned each week changes accordingly. Still, we would like to make the partitioning of the current week s.t. students get as many new acquaintances as possible.
@@ -226,7 +226,7 @@ We provide functionality to create better groupings than obtained by simple rand
 
 ### Acknowledgements
 
-We thank Xiangjing Lai and [Jin-Kao Hao](http://www.info.univ-angers.fr/pub/hao/) for contributing their C++ source code of the MDGP solver in  @lai_hao2016 under a GPL-3 license for the [`socialroulette`](https://hoehleatsu.github.io/socialroulette/) package.
+We thank Xiangjing Lai and [Jin-Kao Hao](http://www.info.univ-angers.fr/pub/hao/) for contributing their C++ source code of the MDGP solver in  @lai_hao2016 under a GPL-3 license for the [`socialroulette`](https://mhoehle.github.io/socialroulette/) package.
 
 ## Appendix: Maximally diverse grouping problem
 

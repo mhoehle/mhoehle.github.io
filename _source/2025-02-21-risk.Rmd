@@ -57,7 +57,7 @@ cat(paste0("![]({{ site.baseurl }}/",knitr::opts_chunk$get("fig.path"),"Risk-dic
 This work is licensed under a <a rel="license"
 href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
 Attribution-ShareAlike 4.0 International License</a>.
-The [R-markdown source code of this blog](`r str_c("https://raw.githubusercontent.com/mhoehle/hoehleatsu.github.io/master/_source/",current_input())`) is available under a [GNU General Public License (GPL v3)](https://www.gnu.org/licenses/gpl-3.0.html) license from GitHub.
+The [R-markdown source code of this blog](`r str_c("https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/",current_input())`) is available under a [GNU General Public License (GPL v3)](https://www.gnu.org/licenses/gpl-3.0.html) license from GitHub.
 
 ## Introduction
 
@@ -506,8 +506,7 @@ single_battle <- function(a = 3, d = 2) {
   # Number of comparisons
   nCompares <- min(a, d)
 
-  # Logischer Vektor mit Länge #Vergleiche, der TRUE enthält
-  #für A gewinnt Würfelvergleich und FALSE sonst
+  # For each position to compare, see if defender looses an army.
   lose_D <- (y_sorted[1:nCompares] > z_sorted[1:nCompares])
 
   return(sum(lose_D))
