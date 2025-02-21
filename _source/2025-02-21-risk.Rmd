@@ -1,0 +1,556 @@
+---
+layout: post
+title: "Risky Risk Results"
+tags: [rstats, probability, game theory]
+comments: yes
+editor_options: 
+  chunk_output_type: console
+bibliography: /Users/hoehle/Literature/Bibtex/jabref.bib  
+---
+
+
+```{r setup,include=FALSE,echo=FALSE,message=FALSE}
+##If default fig.path, then set it.
+if (knitr::opts_chunk$get("fig.path") == "figure/") {
+  knitr::opts_knit$set( base.dir = '/Users/hoehle/Sandbox/Blog/')
+  knitr::opts_chunk$set(fig.path="figure/source/2025-02-21-risk/")
+}
+fullFigPath <- paste0(knitr::opts_knit$get("base.dir"),knitr::opts_chunk$get("fig.path"))
+filePath <- file.path("","Users","hoehle","Sandbox", "Blog", "figure", "source", "2025-02-21-risk")
+
+knitr::opts_chunk$set(echo = FALSE, fig.width=8, fig.height=3.5, fig.cap='', fig.align='center', dpi=72*2, echo=TRUE)#, global.par = TRUE)
+options(width=150, scipen=1e3)
+```
+```{r loadpackages, echo=FALSE}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(knitr))
+# Packages specific for the post
+suppressPackageStartupMessages(library(expm)) #matrix multiplication as power
+suppressPackageStartupMessages(library(kableExtra))
+
+# Non CRAN packages
+# devtools::install_github("hadley/emo")
+
+##Configuration
+options(knitr.table.format = "html")
+theme_set(theme_minimal())
+#if there are more than n rows in the tibble, print only the first m rows.
+options(tibble.print_max = 10, tibble.print_min = 5)
+
+# Fix seed value for the post
+set.seed(123)
+```
+
+## Abstract:
+
+We determine the probabilities of winning battles in the dice-based board game **Risk** by counting and using Markov chains. The results show that if the battle is executed with 5 or more armies, the attacker has a slight advantage when both the attacker and defender start with the same number of armies.
+
+<center>
+```{r abstractpicture,results='asis',echo=FALSE}
+cat(paste0("![]({{ site.baseurl }}/",knitr::opts_chunk$get("fig.path"),"Risk-dice-example.jpg"),")")
+```
+<br> Image source: [Wikipedia](https://en.wikipedia.org/wiki/Image:Risk-dice-example.jpg)
+</center>
+
+<br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>.
+The [R-markdown source code of this blog](`r str_c("https://raw.githubusercontent.com/mhoehle/hoehleatsu.github.io/master/_source/",current_input())`) is available under a [GNU General Public License (GPL v3)](https://www.gnu.org/licenses/gpl-3.0.html) license from GitHub.
+
+## Introduction
+
+While watching yet another [episode of Numberphile](https://www.youtube.com/watch?v=RdooKXXcWWc), I was puzzled by a statement from [Marcus du Sautoy](https://www.simonyi.ox.ac.uk/) about how people initially got the analysis of probabilities in the [game of Risk](https://en.wikipedia.org/wiki/Risk_(game)) wrong. Digging a little deeper, @dusautoy2023 on pp. 306-307 refers to erroneous probability calculations made by @tan1997, which were subsequently corrected by @osborne2003 using counting techniques. What surprised me was that @tan1997 could have easily spotted the error with a simple Monte Carlo simulation (see Appendix 1). This story about risky risk results for Risk has become a motivating example in my *Probability 101* 
+class on why Monte Carlo simulations are important.
+
+In what follows, I shall focus on computing the necessary probabilities by counting. Several literature sources, including the aforementioned @tan1997, @osborne2003, as well as @pierce_wooster2015 and @hendel_etal2015, calculate the probabilities. However, I was not able to find any publicly available programming code to verify their claims. Hence, the goal of this post is to provide literate programming style documented open-source R code to compute these probabilities.
+
+## Mathematical Description of a Single Battle
+
+In the [Game of Risk](https://en.wikipedia.org/wiki/Risk_(game)) a single battle between $a$ attacking armies and $d$ defending armies is carried out as follows: Both the attacker and the defender roll one six-sided die for each of their armies inolved in the battle. The highest die of the attacker is then compared to the highest die of the defender. If the attacker's die is higher, then the defender loses one army, otherwise the attacker loses one army. If both the attacker and the defender use more than one army, the next-highest dice are compared, and the process is repeated. The game imposes the restrictions $a \in {1,2,3}$ and $d \in {1,2}$ for a single battle.
+
+Denote by $Y_{1}, \ldots, Y_{a}$ independent random variables representing the outcomes of the $a$ dice rolled by the attacker. Similarly, denote by $Z_{1}, \ldots, Z_{d}$ independent random variables representing the outcomes of the defender's $d$ dice. Each of these $a+d$ random variables follows a discrete uniform distribution, i.e. $U(\{1,\ldots,6\})$. Furthermore, let $Y_{(1)}\geq \cdots \geq Y_{(a)}$ and
+$Z_{(1)}\geq \cdots \geq Z_{(d)}$ denote the ordered outcomes of the attacker's and defender's dice, respectively.
+
+The result of the first comparison is that the defender loses an army, if $Y_{(1)}>Z_{(1)}$; otherwise, the attacker loses an army. If a second comparison is to be made -- that is, if $\min(a,d)=2$ -- then the defender loses an army if $Y_{(2)}>Z_{(2)}$; otherwise the attacker loses an army. Hence, a random variable describing the number of armies the defender loses in an $a$ vs. $d$ battle is 
+$$
+D = \sum_{i=1}^{\min(a,d)} I(Y_{(i)}>Z_{(i)}),
+$$
+where $I(\cdot)$ is an indicator function that equals 1 if its argument is true and 0 otherwise. The variable $D$ has support on the integer values $0,\ldots,\min(a,d)$. Similarly, the number of armies the attacker loses is $A = \min(a,d) - D$.
+Example: In the splash picture of the abstract, the attacker rolled 4,3,3 (red dice) and the defender 3,2 (white dice). Since $4>3$ and $3>2$, the defender loses two armies in this specific battle.
+
+Denote by $p_{adk}$ the probability that a single battle between $a$ attacking armies and $d$ defending armies results in the defender losing $k$ armies, $k=0,\ldots,\min(a,d)$. This probability can be computed by dividing the number of favourable outcomes by the total number of possible outcomes:
+
+\begin{align}  
+p_{adk} = \frac{1}{6^{a+d}}\sum_{y_1=0}^6 \cdots \sum_{y_a=0}^6
+\sum_{z_1=0}^6 \cdots \sum_{z_d=0}^6
+I\left(\left\{\sum_{j=1}^{\min(a,d)} I(y_{(j)}>z_{(j)})\right\} = k\right)
+\end{align}
+
+Although this formula may look involved, the $6^{a+d}$ is just the number of possible outcomes when throwing $a+d$ dice and the summation over the indicator function is just a way to count all favourable configurations in the Cartesian product sample space $\{1,\ldots,6\}^{a+d}$.
+Since the maximum values for $a$ and $d$ in Risk are 3 and 2, respectively, the dimension of the product space will be no larger than $6^5=`6^5`$, which is tractable.
+
+## Computation
+
+We start the R code by defining that we look at outcomes of the dice D6, i.e. the sample space of one dice is $\Omega = \{1,\ldots,6\}$. 
+```{r Omega_D6}
+# Sample space for one dice throw
+Omega <- 1:6
+```
+
+We then write a function, which uses the `expand_grid()` function repeatedly in order to generate the Cartesian product $\Omega^\text{nDice}$ for $\text{nDice}\in\mathbb{N}$ dice.
+Furthermore, we add a column containing the probability for each element in this sample space, i.e. the probability is $1/|\Omega|^{\text{nDice}}=1/6^{\text{nDice}}$, since the dice are assumed to be fair.
+
+```{r CARTESIAN}
+# Do expand_grid on the \Omega set sequentially a given number of nDice times. 
+# At the end we have nDice columns.
+#
+# @param nDice (integer) We compute \Omega_{dice}^{nDice}
+# @param Omega (vector of integers) The faces on the dice.
+#
+# @return Tibble with nDice columns containing all |\Omega_{dice}|^{nDice} possible outcomes and a column stating the probability of each element in this sample space, i.e. 1/|\Omega_{dice}^{nDice}|.
+
+sample_space <- function(nDice, Omega=1:6) {
+ expand_grid(!!!replicate(nDice, Omega, simplify = FALSE)) %>% 
+   setNames(str_c("D", 1L:nDice)) %>% 
+    mutate(prob = 1/(length(Omega)^nDice))
+}
+```
+
+Instead of calculating a matrix containing all possible outcomes of the $a+d$ dice, as in the sum-formula above, and then handling the sorting, we divide the problem into two tasks: 
+
+1. Calculate all possible outcomes and their probabilities when sorting the outcome of the attacker's $a$ dices 
+2. Calculate all possible outcomes and their probabilities when sorting the outcome of the attacker's $d$ dices 
+
+Since the dice throws of the attacker and defender are independent, we can then compute the required joint distribution by multiplying the two marginal distributions found in 1. and 2. 
+
+As a consequence we write a function that returns all possible outcomes of $Y_{(1)} \leq \ldots \leq Y_{(\text{nCompare})}$ obtained after ordering the outcome
+of \texttt{nDice} dice, i.e. $Y_{(1)} \leq \ldots \leq Y_{(\text{nDice})}$ with $\text{nCompare} \leq \text{nDice}$. To be compatible with the game of risk
+$\text{nCompare}\in\{1,2\}$. We compute the associated probabilities by adding up the underlying entries of the Cartesian sample space.
+
+```{r COMBOS_SORTED}
+combos_sorted <- function(nDice=3, nCompare=min(2,nDice), base_name = "y") {
+  # Generate all outcomes and make a label
+  # which identifies which of the sorted bins the outcome belongs to
+  combos <- sample_space(nDice=nDice) %>%
+    rowwise() %>% 
+    mutate(combo_sorted = str_c(sort(c_across(all_of(paste0("D", 1:nDice))), decreasing=TRUE), collapse=""),
+           combo_label = str_sub(combo_sorted, 1, nCompare)) 
+  
+  # Count accoring
+  combos_summed <- combos %>% group_by(combo_label) %>%
+    summarise(n=n(), prob=sum(prob)) %>% 
+    arrange(desc(combo_label)) %>% 
+    # We use the notation by Osborn (2009) and denote the columns y^{(1)} \geq y^{(2)} \geq y^{(3)}
+    separate_wider_position(cols = combo_label, widths = set_names(rep(1, nCompare), nm= str_c(base_name, "_{(", 1:nCompare,")}")))
+
+  # Done
+  return(combos_summed)
+}
+```
+As an example:
+```{r SHOWCASE_COMBOS_SORTED}
+combos_sorted(nDice=3, nCompare=2)
+```
+This can then be combined to obtain the joint distribution of the sorted dice to be compared.
+
+```{r}
+joint_combos_sorted <- function(a, d) {
+  # Sort the throws of the attacker and defender
+  Y <- combos_sorted(nDice=a, base_name="y")
+  Z <- combos_sorted(nDice=d, base_name="z") 
+  
+  # Make a tibble with all combinations of the a vs. d armies fight
+  joint <- Y %>% cross_join(Z) %>%
+    mutate(prob = prob.x * prob.y,
+           n = n.x * n.y) %>% 
+    select(-n.x, -n.y, -prob.x, -prob.y)
+  
+  #Done
+  return(joint)
+}
+```
+Which for a single $a=3$ vs. $d=2$ battle would look like:
+```{r}
+head(joint_combos_sorted(a=3, d=2), n=3)
+```
+
+We can now compute $p_{adk}$ by comparing $Y_{(i)}>Z_{(i)}$ for all relevant $i=1,\ldots,\min(a,d)$ and summing all outcomes where the defender loses $k$ armies:
+
+```{r P_ADK}
+########################################################################
+# Distribution over the number of armies that defender is losing,
+# when attacker is using A armies and defender is using D armies.
+# 
+# @param A Number of armies (=dice) the attacker sends into the battle
+# @param D Number of armies (=dice) the defender sends into the fight
+#
+# @return A tibble containing all possible outcomes of the battle in terms
+#         of losses for attacker and defender.
+########################################################################
+p_lose_ad <- function(a=3, d=2) {
+  # All joint combinations of attacker and defender
+  joint <- joint_combos_sorted(a=a, d=d)
+  
+  # Number of dice to compare
+  nCompare <- pmin(a, d)
+  
+  # I find this loop version easier to understand
+  # than a corresponding tidyverse version
+  for (k in seq_len(nCompare)) {
+    joint[, str_c("lose_D_pos", k)] <- (joint[,str_c("y_{(",k,")}")] > joint[,str_c("z_{(",k,")}")])
+  }
+  
+  # Total sum of armies lost by defender and attacker, respectively
+  joint <- joint %>% 
+    mutate(lose_D = rowSums(select(., matches("^lose_D_pos[0-9]+"))),
+           lose_A = nCompare - lose_D)  %>% 
+    select(starts_with("y"), starts_with("z"), prob, lose_A, lose_D) 
+  
+  # Add up probabilities for all combos yielding a specific
+  # lose_A, lose_D combo
+  res <- joint %>% group_by(lose_A, lose_D) %>% 
+    summarise(prob = sum(prob), .groups="drop") %>% 
+    arrange(lose_D)
+
+  # Done
+  return(res)
+}
+```
+
+To test the function, we compute $(p_{320},p_{321},p_{322})$, which @osborne2003 found to be $(2275, 2611, 2890)/7776=(0.293,0.336,0.372)$:
+
+```{r}
+# 3 vs. 2 battle
+p_lose_ad(a=3, d=2)
+
+# Check that p_lose_ad is correct for p_{32k}, k=0,1,2
+all.equal(p_lose_ad(a=3, d=2) %>% pull(prob), c(2275, 2611, 2890)/7776)
+```
+
+An alternative verification is to use the [Troll dice roller and probability calculator](https://topps.diku.dk/torbenm/troll.msp) by [Torben Æ. Mogensen](http://hjemmesider.diku.dk/~torbenm/) using the following syntax:
+```
+a:=3d6;b:=2d6;
+count {(max a)>(max b),(min largest 2 a)>(min b)}
+```
+Troll computes the probability distribution as:
+
+<center>
+```{r trollprobs,results='asis',echo=FALSE}
+cat(paste0("![]({{ site.baseurl }}/",knitr::opts_chunk$get("fig.path"),"troll_riskroll.png"),")")
+```
+<br> Figure 1: Results for the 3 vs. 2 risk roll in Troll.
+</center>
+<p>
+Note that for the $p_{32k}, k=0,1,2$ setup, @tan1997 instead obtained $(0.237, 0.504, 0.259)$, which differs substantially from the correct result. See Appendix 2 for a discussion of his calculations. 
+
+The complete table of probabilities for all possible single battle attacker vs. defender configurations can now be computed as follows:
+
+```{r p_ad}
+state_change <- expand_grid(a=1:3, d=1:2) %>% rowwise() %>% 
+  mutate(prob = list(p_lose_ad(a=a, d=d))) %>% 
+  unnest(prob)
+```
+```{r print_p_ad, echo=FALSE}
+state_change %>% 
+  rename(k=`lose_D`) %>% select(-lose_A) %>% 
+  print(n=Inf, row.names = FALSE)
+```
+
+Voila! The values align with those in Table 2 of @osborne2003. 
+
+## Repeated Battles using Markov Chains
+
+Once the probabilities for army losses of a single battle have been computed, the natural follow-up question is: what happens if the attacker decides to continue the attack? Assume that the attacker continues to battle with as many armies as possible until either the attacker has no armies left to attack with or the defender is destroyed, i.e. has no armies left. What is the probability of an attacker with $A\geq 1$ armies winning such a repeated attack against a defender with $D\geq 1$ armies?
+
+As stated in @osborne2003, this is elegantly solved using Markov chains. Denote by $(A,D)$ the current state of the chain with $A$ attacking armies and $D$ defending armies. Assuming that both attacker and defender use as many dice possible, i.e. $a=\min(3,A)$ and $d=\min(2,D)$, the next battle would be a 3 vs. 2 battle if $A\geq 3$ and $D\geq 2$. Hence, the attacker can lose $0,1,2$ armies, while the defender can lose $0,1,2$ armies. No matter the outcome, 2 armies will be lost in the battle. Therefore, the new state is:
+$$
+(A,D) \longrightarrow \left\{
+\begin{array}{cl}
+(A-2, D) & \text{with probability } \pi_{320} \\
+(A-1, D-1) & \text{with probability } \pi_{321} \\
+(A, D-2) & \text{with probability } \pi_{322} 
+\end{array}
+\right.
+$$
+If $A$ and/or $D$ are smaller than 3 and 2 the transition and its probability changes accordingly. Note that once either $A$ or $D$ is zero, the state is absorbing, meaning it is no longer possible to continue the battle, and the state will remain the same. If after updating $A=0$, the attacker has lost the fight^[Since the rules of Risk only allow attacking with one army less than hosted in the country the attack originates from, the attacker would still have one army left once $A=0$. Thus, the country is not yet lost but could be vulnerable to subsequent attacks in future rounds.]. However, if $D = 0$, the defender loses, and the attacker conquers the country.
+
+```{r ARMIES_START}
+# Armies at the start of the battle
+A <- 10
+D <- 10
+size_state_space <- (A+1)*(D+1)
+```
+
+Suppose we start with $A=`r A`$ attacking armies and $D=`r D`$ defending armies. The corresponding state space of the Markov chain is $\{(A, D), A\in\{0,\ldots,`r A`\}, D\in \{0,\ldots,`r D`\}\}$. Mapping this to a vector means creating a vector of length $`r A+1` \times `r D+1`=`r (A+1)*(D+1)`$. Hence, the transition matrix $P$ will be $(`r size_state_space`\times`r size_state_space`)$ matrix. We implement this in the function `transition_matrix(A, D)`.
+
+```{r MARKOV, echo=FALSE}
+########################################################################
+
+# All possible configurations of A armies for the attacker and D for the defender
+states <- expand_grid(attacker=0:A, defender=0:D) %>% 
+  mutate(state=sprintf("%02d-%02d", attacker, defender))
+```
+  
+```{r helper_funcs, echo=FALSE}
+state_to_ad <- function(state_vec) {
+ states %>% filter(state %in% state_vec) %>% select(attacker, defender)  
+}
+state_to_idx <- function(state_vec) {
+  which(states$state %in% state_vec)
+}
+ad_to_idx <- Vectorize(function(a,d) {
+  with(states, which((attacker == a) & (defender == d)))
+})
+
+if (FALSE) {
+  #Test the function:
+  # which state does (A=0,D=0) correspond to?
+  state_to_idx(c("00-00"))
+  # which state does (A=10, D=10) correspond to?
+  state_to_idx(c("10-10"))
+}
+```
+
+
+```{r, echo=FALSE}
+# Build the transition matrix of the Markov chain
+transition_matrix <- function(A, D, verbose=FALSE) {
+  #Setup the matrix
+  P <- matrix(0, nrow=nrow(states), ncol=nrow(states), dimnames=list(states$state, states$state))
+  for (i in 1:nrow(states)) {
+    # Calculate p_{ij} 
+    
+    # Extract the number of attacker and defender armies
+    from_attacker <- states[i,] %>% pull(attacker)
+    from_defender <- states[i,] %>% pull(defender)
+    
+    # If we look at an absorbing state we stay in it.
+    if (from_attacker==0 | from_defender==0) {
+      P[i,i] <- 1
+    } else { 
+      # Transient states -> determine which states we can move to
+      
+      # Possible combinations for armies lost. Assume one always uses as many armies
+      # as possible.
+      loss <- state_change %>% 
+        filter(a == min(from_attacker,3) & d == min(from_defender,2)) %>% 
+        select(lose_A, lose_D, prob) 
+      
+      # New state after losses are accounted for
+      dummy <- loss %>% mutate(A=from_attacker, D=from_defender, prob=2*prob) %>% 
+        select(A,D,prob)
+      to_state <- dummy - loss 
+      
+      # Get idx of all potential new state
+      idx_set <- ad_to_idx(to_state %>% pull(A), to_state %>% pull(D))
+      
+      # Update transition probability of each "new" state
+      for (k in seq_len(length(idx_set))) {
+        # Get idx of the state
+        j <-  ad_to_idx(to_state[k,] %>% pull(A), to_state[k,] %>% pull(D))
+        # Assure we haven't touched the cell yet
+        stopifnot(all.equal(P[i, j], 0))
+        if (verbose) cat("i=",i, "j=", j, prob=to_state[k,] %>% pull(prob),"\n")
+        # Set transition prob
+        P[i, j] <- to_state[k,] %>% pull(prob) 
+      }
+    }
+  }
+  return(P)
+}
+
+P <- transition_matrix(A=A, D=D)
+P_times_AD <- (P %^% (A+D))
+```
+The vector representing the situation with $`r A`$ attacking armies and `r D` defending armies would be $\mathbf{x}_0=(0,\ldots,0, 1)^\top$. The development in  probabilities over the state space after a single battle can then be represented as $\mathbf{x}_1 = \mathbf{x}_0^\top\mathbf{P}$. Starting in state $(`r A`,`r D`)$ we can thus go to either $(`r A-2`,`r D`)$, $(`r A-1`,`r D-1`)$ or $(`r A`,`r D-2`)$ and we recognize $p_{320}$, $p_{321}$ and $p_{322}$ as the transition probabilities.
+
+```{r}
+x0 <- states$state == sprintf("%2d-%2d",A,D) # "10-10"
+x1 <- t(x0) %*% P
+x1[,x1>0]
+```
+
+Subsequent battles are implemented as $\mathbf{x}_{i+1} = \mathbf{x}_{i}^\top \mathbf{P}$. For each single battle, the total number of armies will decrease by at least 1 army (and most likely 2). Starting with $A+D$ armies means that after $A+D$ battles we are guaranteed to have reached an absorbing state^[Note: With this argument we take a more direct route than @osborne2003, who also arranges the transition matrix notationally into absorbing and transient states and looks at the steady state distribution.]. Considering 
+$$
+\mathbf{x}_{A+D} = \mathbf{x}_{0}^\top \mathbf{P}^{A+D} = \mathbf{x}_{0}^\top \underbrace{\mathbf{P} \cdots \mathbf{P}}_{\text{$A+D$ times}}
+$$
+we compute
+```{r x_AD}
+x_AD <- t(x0) %*% (P %^% (A+D))
+round(x_AD[,x_AD>0], digits=3)
+```
+Summing up all probabilities where the defender has zero armies gives us the probability that the attacker wins the battle, i.e.
+```{r p_A_win_x20}
+sum(x_AD[,str_detect(colnames(x_AD), "-00")])
+```
+
+This probability matches the value 0.568 reported in Table 3 of @osborne2003. By calculating $\mathbf{P}^{A+D}$ once, we can change the initial state vector $\mathbf{x}_0$ to compute the probability of the attacker winning for each of the $A \times D$ possible initial values. The values match those in Table 3 of @osborne2003. 
+
+```{r P_WIN_A, echo=FALSE}
+# Calculate the probability that the attacker wins from a given 
+# start configuration.
+#
+# @param A Number of armies that the attacker attacks with (total armies of attacker is A+1)
+# @param D Number of armies the defence has
+#
+# @return Prob that attacker wins the fight.
+p_A_wins <- function(A, D, P_times_AD=NULL) {
+  if (is.null(P_times_AD)) {
+    P <- transition_matrix(A=A, D=D)
+    P_times_AD <- (P %^% (A+D))
+  }
+  # check that states contain the config
+  stopifnot(nrow(states %>% filter(attacker == A & defender == D)) > 0)
+    
+  P_start <- states$state == sprintf("%02d-%02d", A, D)
+  P_end <- P_start %*% P_times_AD
+
+  # Probability that attacker wins (even for the combo attacker=0 & defender =0, the attacker wins, because he hold one army left)
+  prob <- sum(P_end[which(states$defender == 0)])
+  # Done
+  return(prob)
+}
+```
+
+```{r P_A_WINS_BATTLE, echo=FALSE}
+## Calculate the entire table
+tab <- expand_grid(A=1:A, D=1:D) %>% 
+  rowwise() %>% 
+  mutate(p_A_wins = p_A_wins(A=A, D=D, P=P_times_AD)) %>% 
+  pivot_wider(names_from=D, values_from = p_A_wins)
+```
+
+```{r, tab3osborne, echo=FALSE}
+tab %>% 
+  mutate(across(matches("[0-9]+"), ~ cell_spec(sprintf("%.3f",.x), background = ifelse(.x > 0.5, "lightgreen", "white")))) %>% 
+  kbl(escape = FALSE, align="c") %>%
+  add_header_above(header=c(" " = 1, "D" = D)) %>% 
+  column_spec(1, width="1cm", border_right = TRUE) %>%   # Add vertical line after column 1 (A)
+  column_spec(2:(D+1), width = "3cm") %>% 
+  kable_styling(bootstrap_options = c("striped"))
+```
+
+<p>All cells with a probability greater than 0.5 are colored green in the table. We observe that from 5 and beyond the attacker has a slight advantage when $A=D$.
+
+```{r CONFIG_BIGTABLE, echo=FALSE}
+# Configuration of A and D for the big table
+A <- 50
+D <- 50
+```
+
+Below, the situation for $A,D$ up to `r A` is illustrated a little differently: for any given value of $D$, the image shows in green all values of $A$, where the probability for the attacker to win is above 50%.
+
+```{r BIGTABLE, echo=FALSE, cache=TRUE}
+# All possible configurations of A armies for the attacker and D for the defender
+states <- expand_grid(attacker=0:A, defender=0:D) %>% 
+  mutate(state=sprintf("%02d-%02d", attacker, defender))
+
+P <- transition_matrix(A=A, D=D)
+P_times_AD <- (P %^% (A+D))
+
+tab <- expand_grid(A=1:A, D=1:D) %>% 
+  rowwise() %>% 
+  mutate(p_A_wins = p_A_wins(A=A, D=D, P=P_times_AD)) %>% 
+  pivot_wider(names_from=D, values_from = p_A_wins)
+
+# Convert to matrix
+M <- as.matrix(tab %>% select(-A))
+M <- M>0.5
+
+# For a given $D$. What's the smallest $A$ where the attacker still has a >50% probability of winning
+smallest_A <- apply(M, MARGIN=2, \(x) { idx <- which(x>0.5) ; if(length(idx)==0) NA else min(idx)})
+df <- tibble(D=as.numeric(names(smallest_A)), minA=smallest_A)
+
+# Fit regression line and add the prediction 
+m <- lm( minA ~ 1 + D, data=df)
+df$prob <- 0
+df$A <- predict(m)
+```
+```{r BIGTABLE_PLOT, echo=FALSE, fig.width=8, fig.height=6}
+# Illustrate table as an image
+tab_long <- tab  %>% 
+  pivot_longer(cols=-A, names_to="D", values_to = "prob") %>% 
+  mutate(D=as.numeric(D),
+         prob = if_else(prob>0.5, 1, 0))
+
+ggplot(tab_long, aes(x=D, y=A, fill=as.factor(prob))) +
+  geom_tile() +
+  scale_fill_manual(name="P(Attacker wins > 0.5)", values=c("gray95", "lightgreen")) +
+  geom_line(data=df) +
+  geom_abline(slope=1, intercept=0, lty=2, col="gray") +
+  coord_equal() +
+  theme(legend.position="bottom")
+```
+
+Looking at the smallest $A$ with a win probability of more than 50% for a given $D$, we see that this line is below the $A=D$ line. This shows that the attacker has a slight advantage. Furthermore, the smallest such $A$ can be found approximately as $A_{\min} \approx `r sprintf("%.4f + %.4f\\cdot D", coef(m)[1], coef(m)[2])`$.
+
+## Discussion
+
+Counting is a powerful technique in combinatorics and dice-based probabilities. The counting can be implemented on a computer by representing the full sample space using tables or arrays. The risk of making mistakes when counting in such structures is often lower than in more involved probability calculations, e.g. order statistics or conditional distributions. However, in many combinatorical problems the state space quickly exceeds manageable sizes. Monte Carlo simulation offers a quick alternative for verifying probability calculations, and is effective even in untractably large state spaces. 
+
+**TLDR**: For situations where $A \geq 5$, attack if $A \geq `r sprintf("%.4f + %.4f\\cdot D", coef(m)[1], coef(m)[2])`$.
+
+## Appendix 1: Monte Carlo Simulation
+
+Just for completeness: Below is a simulation function for determining the $p_{adk}$ probabilities by Monte Carlo simulation. It requires little thinking, is fast and accurate enough to spot the errors in the @tan1997 paper:
+
+```{r MONTE_CARLO_PROBS}
+# Simulate a single a vs. d army battle
+single_battle <- function(a = 3, d = 2) {
+  # Sort the dice
+  y_sorted <- sort(sample(Omega, size = a, replace = TRUE), dec = TRUE)
+  z_sorted <- sort(sample(Omega, size = d, replace = TRUE), dec = TRUE)
+
+  # Number of comparisons
+  nCompares <- min(a, d)
+
+  # Logischer Vektor mit Länge #Vergleiche, der TRUE enthält
+  #für A gewinnt Würfelvergleich und FALSE sonst
+  lose_D <- (y_sorted[1:nCompares] > z_sorted[1:nCompares])
+
+  return(sum(lose_D))
+}
+
+# Calc p_{32k}, k=0,1,2
+prop.table(table(replicate(1e5, single_battle(a=3, d=2))))
+```
+
+## Appendix 2
+
+@tan1997 calculated for example 
+\begin{align*}
+\pi_{322}
+&= P(Y_{(1)}>Z_{(1)} \cap Y_{(2)}>Z_{(2)}) \\
+&= P(Y_{(1)}>Z_{(1)}) P(Y_{(2)}>Z_{(2)}) \\
+&= \cdots,
+\end{align*}
+but the 2nd step is wrong, because it assumes independence of the events $Y_{(1)}>Z_{(1)}$ and $Y_{(2)}>Z_{(2)}$. This is not the case, as seen from the following R output:
+
+```{r}
+# Joint distribution of the two events
+f_Y12Z12 <- joint_combos_sorted(a=3, d=2) %>% 
+  mutate(`y_{(1)}>z_{(1)}`=`y_{(1)}`> `z_{(1)}`,
+         `y_{(2)}>z_{(2)}`=`y_{(2)}`> `z_{(2)}`) %>% 
+  group_by(`y_{(1)}>z_{(1)}`,`y_{(2)}>z_{(2)}`) %>% 
+  summarise(prob=sum(prob), .groups = "keep")
+
+# Marginal distribution of each event
+f_Y1Z1 <- f_Y12Z12 %>% group_by(`y_{(1)}>z_{(1)}`) %>% summarise(prob=sum(prob))
+f_Y2Z2 <- f_Y12Z12 %>% group_by(`y_{(2)}>z_{(2)}`) %>% summarise(prob=sum(prob))
+
+# Joint prob when **assuming independence**
+f_Y12Z12_indep <- cross_join(f_Y1Z1, f_Y2Z2) %>% 
+  mutate(prob_indep = prob.x * prob.y) %>% 
+  select(-prob.x,-prob.y)
+
+# Compare to the true joint distribution: this is definitely not the same!
+inner_join(f_Y12Z12, f_Y12Z12_indep, by=c("y_{(1)}>z_{(1)}", "y_{(2)}>z_{(2)}"))
+```
+From the above output we notice that the correct joint distribution^[Obtained by counting using the involved sum-sum-indicator formula from above.] of the two events cannot be computed by simply multiplying the marginals. Hence, the two events are not independent.
+
+The reason is that using order statistics induces dependencies. For example $P(Z_{(1)}=z_1, Z_{(2)}=z_2) \neq P(Z_{(1)}=z_1) P(Z_{(2)}=z_2)$. Although the dice $Z_1$ and $Z_2$ are independent, the corresponding variables of the order statistics are dependent: knowing something about the higher of the two dice gives you information about the lower of the two. For example if you know that $Z_{(1)}=1$, then you know for sure that $Z_{(2)}=1$. This dependence extends to comparisons with the attacker's dice.
+
+
+## Literature
