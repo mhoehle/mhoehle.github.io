@@ -83,14 +83,14 @@ grouping problem.</p>
 This work is licensed under a <a rel="license"
 href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
 Attribution-ShareAlike 4.0 International License</a>. The <a
-href="https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/2021-05-12-socroulette.Rmd">R-markdown
+href="https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/2021-05-12-socroulette.Rmd">R-markdown
 source code</a> of this blog is available under a <a
 href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
 License (GPL v3)</a> license from GitHub.</p>
 <h2 id="introduction">Introduction</h2>
 <p>Groupings are relevant when breakout rooms, mystery lunch partitions
 or student peer review groups are made. My last blog post <a
-href="https://staff.math.su.se/hoehle/blog/2021/04/04/socialsamp.html">Long
+href="https://mhoehle.github.io/blog/2021/04/04/socialsamp.html">Long
 time, no see: Virtual Lunch Roulette</a> considered the probability of
 being assigned into the same group as someone, you already were in the
 same group with the last time (aka. a re-union) when using simple random
@@ -98,7 +98,7 @@ sampling to assign the groups. This probability proved to be
 surprisingly high.</p>
 <p>In this post we develop the subject further by introducing the R
 package <a
-href="https://hoehleatsu.github.io/socialroulette/"><code>socialroulette</code></a>,
+href="https://mhoehle.github.io/socialroulette/"><code>socialroulette</code></a>,
 which aims at being helpful in making better group assignments based on
 solutions of the <a
 href="http://grafo.etsii.urjc.es/optsicom/mdgp/"><strong>maximally
@@ -137,14 +137,14 @@ diverse grouping problem</strong></a> (see appendix).</p>
 <p>We illustrate the package by considering a use-case, where a class of
 students repeatably for every lecture have be assigned into breakout
 rooms. First, we install and load the <a
-href="https://hoehleatsu.github.io/socialroulette/"><code>socialroulette</code></a>
+href="https://mhoehle.github.io/socialroulette/"><code>socialroulette</code></a>
 package available from <a
-href="https://github.com/hoehleatsu/socialroulette/">GitHub</a>.</p>
+href="https://github.com/mhoehle/socialroulette/">GitHub</a>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Install package</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;hoehleatsu/socialroulette&quot;</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;mhoehle/socialroulette&quot;</span>)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(socialroulette)</span></code></pre></div>
 <p>Note: A binary package version is available from my <a
-href="https://hoehleatsu.r-universe.dev">r-universe</a>, which is a
+href="https://mhoehle.r-universe.dev">r-universe</a>, which is a
 pipeline automatically compiling the package through GitHub actions.</p>
 <p>Say the class consists of 100 students, which for a weekly virtual
 lab exercise class need to be divided into groups of at least 4. Since
@@ -199,23 +199,23 @@ group.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>current_frame <span class="ot">&lt;-</span>  students <span class="sc">%&gt;%</span> </span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_sample</span>(<span class="at">n =</span> <span class="fu">rbinom</span>(<span class="dv">1</span>,<span class="fu">nrow</span>(.), <span class="at">prob=</span><span class="fl">0.7</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">date=</span><span class="fu">max</span>(partition_dates) <span class="sc">+</span> <span class="fu">diff</span>(partition_dates) <span class="sc">%&gt;%</span> <span class="fu">mean</span>())</span></code></pre></div>
-<p>Our goal is now to partition the 71 students in
+<p>Our goal is now to partition the 79 students in
 <code>current_frame</code>. For each of the <span
-class="math inline">\({71  \choose 2 }= 2485\)</span> possible pairs of
+class="math inline">\({79  \choose 2 }= 3081\)</span> possible pairs of
 students in that class, we determine how long ago it has been, since
 they were in the same group the last time. This can be done using the
 internal package function <code>partitions_to_distance</code>:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> socialroulette<span class="sc">::</span><span class="fu">partitions_to_distance</span>(current_frame, past_partitions)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>dist <span class="sc">%&gt;%</span> <span class="fu">head</span>()</span></code></pre></div>
-<pre><code>## # A tibble: 6 x 4
+<pre><code>## # A tibble: 6 × 4
 ##   id1                 id2                 date        dist
 ##   &lt;chr&gt;               &lt;chr&gt;               &lt;date&gt;     &lt;dbl&gt;
-## 1 id078@student.su.se id100@student.su.se 2021-04-28    35
-## 2 id078@student.su.se id092@student.su.se 2021-04-28    35
-## 3 id078@student.su.se id098@student.su.se 2021-04-28    35
-## 4 id078@student.su.se id093@student.su.se 2021-04-28    35
-## 5 id078@student.su.se id083@student.su.se 2021-04-28    35
-## 6 id078@student.su.se id095@student.su.se 2021-04-28    35</code></pre>
+## 1 id076@student.su.se id095@student.su.se 2021-04-28    35
+## 2 id076@student.su.se id088@student.su.se 2021-04-28    35
+## 3 id076@student.su.se id085@student.su.se 2021-04-28    35
+## 4 id076@student.su.se id081@student.su.se 2021-04-28    35
+## 5 id076@student.su.se id078@student.su.se 2021-04-28    35
+## 6 id076@student.su.se id092@student.su.se 2021-04-28    35</code></pre>
 <p><img src="/blog/figure/source/2021-05-12-socroulette/unnamed-chunk-11-1.png" style="display: block; margin: auto;" /></p>
 <p>Since the past partitions contain the last 4 weeks, students who have
 not been in a group so far are assigned a value of one time difference
@@ -257,7 +257,7 @@ href="http://www.info.univ-angers.fr/pub/hao/">Jin-Kao Hao</a> for
 contributing their C++ source code of the MDGP solver in <span
 class="citation" data-cites="lai_hao2016">Lai and Hao (2016)</span>
 under a GPL-3 license for the <a
-href="https://hoehleatsu.github.io/socialroulette/"><code>socialroulette</code></a>
+href="https://mhoehle.github.io/socialroulette/"><code>socialroulette</code></a>
 package.</p>
 <h2 id="appendix-maximally-diverse-grouping-problem">Appendix: Maximally
 diverse grouping problem</h2>

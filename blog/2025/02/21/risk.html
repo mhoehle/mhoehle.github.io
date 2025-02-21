@@ -379,6 +379,11 @@ attacker vs. defender configurations can now be computed as follows:</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>state_change <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(<span class="at">a=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>) <span class="sc">%&gt;%</span> <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> </span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob =</span> <span class="fu">list</span>(<span class="fu">p_lose_ad</span>(<span class="at">a=</span>a, <span class="at">d=</span>d))) <span class="sc">%&gt;%</span> </span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(prob)</span></code></pre></div>
+<pre><code>## Warning: `...` must be empty in `format.tbl()`
+## Caused by error in `format_tbl()`:
+## ! `...` must be empty.
+## ✖ Problematic argument:
+## • row.names = FALSE</code></pre>
 <pre><code>## # A tibble: 14 × 4
 ##        a     d     k  prob
 ##    &lt;int&gt; &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt;
@@ -442,10 +447,10 @@ href="#fn1" class="footnote-ref" id="fnref1"
 role="doc-noteref"><sup>1</sup></a>. However, if <span
 class="math inline">\(D = 0\)</span>, the defender loses, and the
 attacker conquers the country.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Armies at the start of the battle</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>D <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>size_state_space <span class="ot">&lt;-</span> (A<span class="sc">+</span><span class="dv">1</span>)<span class="sc">*</span>(D<span class="sc">+</span><span class="dv">1</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Armies at the start of the battle</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>D <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>size_state_space <span class="ot">&lt;-</span> (A<span class="sc">+</span><span class="dv">1</span>)<span class="sc">*</span>(D<span class="sc">+</span><span class="dv">1</span>)</span></code></pre></div>
 <p>Suppose we start with <span class="math inline">\(A=10\)</span>
 attacking armies and <span class="math inline">\(D=10\)</span> defending
 armies. The corresponding state space of the Markov chain is <span
@@ -470,9 +475,9 @@ class="math inline">\(p_{320}\)</span>, <span
 class="math inline">\(p_{321}\)</span> and <span
 class="math inline">\(p_{322}\)</span> as the transition
 probabilities.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>x0 <span class="ot">&lt;-</span> states<span class="sc">$</span>state <span class="sc">==</span> <span class="fu">sprintf</span>(<span class="st">&quot;%2d-%2d&quot;</span>,A,D) <span class="co"># &quot;10-10&quot;</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>x1 <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> P</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>x1[,x1<span class="sc">&gt;</span><span class="dv">0</span>]</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>x0 <span class="ot">&lt;-</span> states<span class="sc">$</span>state <span class="sc">==</span> <span class="fu">sprintf</span>(<span class="st">&quot;%2d-%2d&quot;</span>,A,D) <span class="co"># &quot;10-10&quot;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>x1 <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> P</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>x1[,x1<span class="sc">&gt;</span><span class="dv">0</span>]</span></code></pre></div>
 <pre><code>##     08-10     09-09     10-08 
 ## 0.2925669 0.3357767 0.3716564</code></pre>
 <p>Subsequent battles are implemented as <span
@@ -488,13 +493,13 @@ class="math display">\[
 \mathbf{x}_{0}^\top \underbrace{\mathbf{P} \cdots
 \mathbf{P}}_{\text{$A+D$ times}}
 \]</span> we compute</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>x_AD <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> (P <span class="sc">%^%</span> (A<span class="sc">+</span>D))</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(x_AD[,x_AD<span class="sc">&gt;</span><span class="dv">0</span>], <span class="at">digits=</span><span class="dv">3</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>x_AD <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> (P <span class="sc">%^%</span> (A<span class="sc">+</span>D))</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(x_AD[,x_AD<span class="sc">&gt;</span><span class="dv">0</span>], <span class="at">digits=</span><span class="dv">3</span>)</span></code></pre></div>
 <pre><code>## 00-01 00-02 00-03 00-04 00-05 00-06 00-07 00-08 00-09 00-10 01-00 02-00 03-00 04-00 05-00 06-00 07-00 08-00 09-00 10-00 
 ## 0.042 0.081 0.072 0.070 0.056 0.047 0.031 0.021 0.009 0.003 0.030 0.059 0.092 0.096 0.087 0.077 0.059 0.039 0.021 0.007</code></pre>
 <p>Summing up all probabilities where the defender has zero armies gives
 us the probability that the attacker wins the battle, i.e.</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(x_AD[,<span class="fu">str_detect</span>(<span class="fu">colnames</span>(x_AD), <span class="st">&quot;-00&quot;</span>)])</span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(x_AD[,<span class="fu">str_detect</span>(<span class="fu">colnames</span>(x_AD), <span class="st">&quot;-00&quot;</span>)])</span></code></pre></div>
 <pre><code>## [1] 0.5675929</code></pre>
 <p>This probability matches the value 0.568 reported in Table 3 of <span
 class="citation" data-cites="osborne2003">Osborne (2003)</span>. By
@@ -1043,24 +1048,23 @@ the <span class="math inline">\(p_{adk}\)</span> probabilities by Monte
 Carlo simulation. It requires little thinking, is fast and accurate
 enough to spot the errors in the <span class="citation"
 data-cites="tan1997">Tan (1997)</span> paper:</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate a single a vs. d army battle</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>single_battle <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">a =</span> <span class="dv">3</span>, <span class="at">d =</span> <span class="dv">2</span>) {</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sort the dice</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  y_sorted <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample</span>(Omega, <span class="at">size =</span> a, <span class="at">replace =</span> <span class="cn">TRUE</span>), <span class="at">dec =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  z_sorted <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample</span>(Omega, <span class="at">size =</span> d, <span class="at">replace =</span> <span class="cn">TRUE</span>), <span class="at">dec =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Number of comparisons</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  nCompares <span class="ot">&lt;-</span> <span class="fu">min</span>(a, d)</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Logischer Vektor mit Länge #Vergleiche, der TRUE enthält</span></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">#für A gewinnt Würfelvergleich und FALSE sonst</span></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  lose_D <span class="ot">&lt;-</span> (y_sorted[<span class="dv">1</span><span class="sc">:</span>nCompares] <span class="sc">&gt;</span> z_sorted[<span class="dv">1</span><span class="sc">:</span>nCompares])</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">sum</span>(lose_D))</span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Calc p_{32k}, k=0,1,2</span></span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="fu">prop.table</span>(<span class="fu">table</span>(<span class="fu">replicate</span>(<span class="fl">1e5</span>, <span class="fu">single_battle</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>))))</span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate a single a vs. d army battle</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>single_battle <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">a =</span> <span class="dv">3</span>, <span class="at">d =</span> <span class="dv">2</span>) {</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sort the dice</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  y_sorted <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample</span>(Omega, <span class="at">size =</span> a, <span class="at">replace =</span> <span class="cn">TRUE</span>), <span class="at">dec =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  z_sorted <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample</span>(Omega, <span class="at">size =</span> d, <span class="at">replace =</span> <span class="cn">TRUE</span>), <span class="at">dec =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Number of comparisons</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  nCompares <span class="ot">&lt;-</span> <span class="fu">min</span>(a, d)</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># For each position to compare, see if defender looses an army.</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  lose_D <span class="ot">&lt;-</span> (y_sorted[<span class="dv">1</span><span class="sc">:</span>nCompares] <span class="sc">&gt;</span> z_sorted[<span class="dv">1</span><span class="sc">:</span>nCompares])</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">sum</span>(lose_D))</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Calc p_{32k}, k=0,1,2</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="fu">prop.table</span>(<span class="fu">table</span>(<span class="fu">replicate</span>(<span class="fl">1e5</span>, <span class="fu">single_battle</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>))))</span></code></pre></div>
 <pre><code>## 
 ##       0       1       2 
 ## 0.29136 0.33852 0.37012</code></pre>
@@ -1076,24 +1080,24 @@ independence of the events <span
 class="math inline">\(Y_{(1)}&gt;Z_{(1)}\)</span> and <span
 class="math inline">\(Y_{(2)}&gt;Z_{(2)}\)</span>. This is not the case,
 as seen from the following R output:</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint distribution of the two events</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>f_Y12Z12 <span class="ot">&lt;-</span> <span class="fu">joint_combos_sorted</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span><span class="ot">=</span><span class="st">`</span><span class="at">y_{(1)}</span><span class="st">`</span><span class="sc">&gt;</span> <span class="st">`</span><span class="at">z_{(1)}</span><span class="st">`</span>,</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span><span class="ot">=</span><span class="st">`</span><span class="at">y_{(2)}</span><span class="st">`</span><span class="sc">&gt;</span> <span class="st">`</span><span class="at">z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span>,<span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob), <span class="at">.groups =</span> <span class="st">&quot;keep&quot;</span>)</span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Marginal distribution of each event</span></span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>f_Y1Z1 <span class="ot">&lt;-</span> f_Y12Z12 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob))</span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>f_Y2Z2 <span class="ot">&lt;-</span> f_Y12Z12 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob))</span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint prob when **assuming independence**</span></span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>f_Y12Z12_indep <span class="ot">&lt;-</span> <span class="fu">cross_join</span>(f_Y1Z1, f_Y2Z2) <span class="sc">%&gt;%</span> </span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob_indep =</span> prob.x <span class="sc">*</span> prob.y) <span class="sc">%&gt;%</span> </span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>prob.x,<span class="sc">-</span>prob.y)</span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare to the true joint distribution: this is definitely not the same!</span></span>
-<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a><span class="fu">inner_join</span>(f_Y12Z12, f_Y12Z12_indep, <span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;y_{(1)}&gt;z_{(1)}&quot;</span>, <span class="st">&quot;y_{(2)}&gt;z_{(2)}&quot;</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint distribution of the two events</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>f_Y12Z12 <span class="ot">&lt;-</span> <span class="fu">joint_combos_sorted</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span><span class="ot">=</span><span class="st">`</span><span class="at">y_{(1)}</span><span class="st">`</span><span class="sc">&gt;</span> <span class="st">`</span><span class="at">z_{(1)}</span><span class="st">`</span>,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span><span class="ot">=</span><span class="st">`</span><span class="at">y_{(2)}</span><span class="st">`</span><span class="sc">&gt;</span> <span class="st">`</span><span class="at">z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span>,<span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob), <span class="at">.groups =</span> <span class="st">&quot;keep&quot;</span>)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Marginal distribution of each event</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>f_Y1Z1 <span class="ot">&lt;-</span> f_Y12Z12 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob))</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>f_Y2Z2 <span class="ot">&lt;-</span> f_Y12Z12 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob))</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint prob when **assuming independence**</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>f_Y12Z12_indep <span class="ot">&lt;-</span> <span class="fu">cross_join</span>(f_Y1Z1, f_Y2Z2) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob_indep =</span> prob.x <span class="sc">*</span> prob.y) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>prob.x,<span class="sc">-</span>prob.y)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare to the true joint distribution: this is definitely not the same!</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a><span class="fu">inner_join</span>(f_Y12Z12, f_Y12Z12_indep, <span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;y_{(1)}&gt;z_{(1)}&quot;</span>, <span class="st">&quot;y_{(2)}&gt;z_{(2)}&quot;</span>))</span></code></pre></div>
 <pre><code>## # A tibble: 4 × 4
 ## # Groups:   y_{(1)}&gt;z_{(1)}, y_{(2)}&gt;z_{(2)} [4]
 ##   `y_{(1)}&gt;z_{(1)}` `y_{(2)}&gt;z_{(2)}`   prob prob_indep
