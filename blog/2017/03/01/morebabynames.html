@@ -146,7 +146,7 @@ more kids in a class of <span class="math inline">\(n\in
 \{20,25,30\}\)</span> kids all born in a given year YYYY will have same
 first name:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>collision <span class="ot">&lt;-</span> babynames <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(year) <span class="sc">%&gt;%</span> <span class="fu">do</span>({</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">c</span>(20L,25L,30L)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">20</span><span class="dt">L</span>,<span class="dv">25</span><span class="dt">L</span>,<span class="dv">30</span><span class="dt">L</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">sapply</span>(n, <span class="cf">function</span>(n) <span class="fu">pbirthday_up</span>(<span class="at">n=</span>n, .<span class="sc">$</span>p ,<span class="at">method=</span><span class="st">&quot;mase1992&quot;</span>)<span class="sc">$</span>prob)</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">n=</span>n, <span class="at">p=</span>p)</span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div>

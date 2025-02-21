@@ -295,7 +295,7 @@ which here is the negative binomial offspring distribution.</p>
 <span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (verbose) { <span class="fu">setpb</span>(pb, i) }</span>
 <span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    serial_time <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(t <span class="sc">-</span> linelist<span class="sc">$</span>Date.of.symptoms.onset[i])</span>
 <span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    cdf <span class="ot">&lt;-</span> <span class="fu">pgamma</span>(serial_time, theta_serial[<span class="dv">1</span>], theta_serial[<span class="dv">2</span>])</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">&lt;-</span> 0L<span class="sc">:</span>yMax</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">&lt;-</span> <span class="dv">0</span><span class="dt">L</span><span class="sc">:</span>yMax</span>
 <span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    ysum <span class="ot">&lt;-</span> <span class="fu">sum</span>( <span class="fu">doffspring</span>(<span class="at">y=</span>y,<span class="at">R_0=</span>R_0,<span class="at">k=</span>k)<span class="sc">*</span>cdf<span class="sc">^</span>y)</span>
 <span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    res <span class="ot">&lt;-</span> res <span class="sc">*</span> ysum</span>
 <span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  }</span>
@@ -336,7 +336,7 @@ src="/blog/figure/source/2016-08-04-outbreakEnd/unnamed-chunk-8-1.png" /></p>
 <p>Altogether, the date where we would declare the outbreak to be over
 is found as:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>c_threshold <span class="ot">&lt;-</span> <span class="fl">0.05</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>(tEnd <span class="ot">&lt;-</span> df2 <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">quantile.97.5%</span><span class="st">`</span> <span class="sc">&lt;</span> c_threshold) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(1L))</span></code></pre></div>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>(tEnd <span class="ot">&lt;-</span> df2 <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">quantile.97.5%</span><span class="st">`</span> <span class="sc">&lt;</span> c_threshold) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span><span class="dt">L</span>))</span></code></pre></div>
 <pre><code>## # A tibble: 1 x 4
 ##   t              pi `quantile.2.5%` `quantile.97.5%`
 ##   &lt;date&gt;      &lt;dbl&gt;           &lt;dbl&gt;            &lt;dbl&gt;
@@ -455,7 +455,7 @@ src="https://openclipart.org/image/300px/svg_to_png/169987/copy.png&amp;disposit
 paper.</p>
 <h1 class="unnumbered" id="references">References</h1>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-brookmeyer_you2006" class="csl-entry" role="listitem">
 Brookmeyer, R., and X. You. 2006. <span>“<span
 class="nocase"><span>A</span> hypothesis test for the end of a common

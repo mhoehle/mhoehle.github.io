@@ -278,7 +278,7 @@ larger <span class="math inline">\(n\)</span> the approximation is to be
 recommended if you don’t like waiting.</p>
 <p>With all code in place we finally can provide Maëlle with the correct
 answer to her question:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> 26L</span>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">26</span><span class="dt">L</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>(p_theAnswer <span class="ot">&lt;-</span> birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>n, <span class="at">prob=</span>newborn <span class="sc">%$%</span> p)<span class="sc">$</span>prob)</span></code></pre></div>
 <pre><code>## [1] 0.3399286</code></pre>
 <p>In other words, the probability of having a name collision in a class
@@ -292,10 +292,10 @@ class size</a>?</p>
 <p>We first test the <code>birthdayproblem</code> package’s
 <code>pbirthday_up</code> function on the classical birthday problem
 with equal probabilities:</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">pbirthday=</span><span class="fu">pbirthday</span>(<span class="at">n=</span>26L, <span class="dv">365</span>),</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">klotz1979_R=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>26L, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;R&quot;</span>)<span class="sc">$</span>prob,</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">klotz1979_Rcpp=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>26L, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;Rcpp&quot;</span>)<span class="sc">$</span>prob,</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">mase1992=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span>26L, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;mase1992&quot;</span>)<span class="sc">$</span>prob)</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">pbirthday=</span><span class="fu">pbirthday</span>(<span class="at">n=</span><span class="dv">26</span><span class="dt">L</span>, <span class="dv">365</span>),</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">klotz1979_R=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span><span class="dv">26</span><span class="dt">L</span>, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;R&quot;</span>)<span class="sc">$</span>prob,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">klotz1979_Rcpp=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span><span class="dv">26</span><span class="dt">L</span>, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;Rcpp&quot;</span>)<span class="sc">$</span>prob,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">mase1992=</span>birthdayproblem<span class="sc">::</span><span class="fu">pbirthday_up</span>(<span class="at">n=</span><span class="dv">26</span><span class="dt">L</span>, <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">365</span>, <span class="dv">365</span>), <span class="at">method=</span><span class="st">&quot;mase1992&quot;</span>)<span class="sc">$</span>prob)</span></code></pre></div>
 <pre><code>##      pbirthday    klotz1979_R klotz1979_Rcpp       mase1992
 ##      0.5982408      0.5982408      0.5982408      0.5981971</code></pre>
 <p>works like a <strong>dream</strong>!</p>
@@ -329,7 +329,7 @@ report:</p>
 <p>
 <h2 class="unnumbered" id="literature">Literature</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-klotz1979" class="csl-entry" role="listitem">
 Klotz, J. 1979. <span>“The Birthday Problem with Unequal
 Probabilities.”</span> 591. Department of Statistics, University of

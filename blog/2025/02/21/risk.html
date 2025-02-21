@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Risky Risk Results</title>
+  <meta name="description" content="Abstract:">
+
+  <link rel="stylesheet" href="/blog/css/main.css">
+  <link rel="canonical" href="https://mhoehle.github.io/blog/2025/02/21/risk.html">
+  <link rel="alternate" type="application/rss+xml" title="Theory meets practice..." href="https://mhoehle.github.io/blog/feed.xml">
+</head>
+
+<!-- https://docs.mathjax.org/en/v2.7-latest/start.html -->
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/blog/">Theory meets practice...</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/blog/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Risky Risk Results</h1>
+    <p class="post-meta"><time datetime="2025-02-21T00:00:00+01:00" itemprop="datePublished">Feb 21, 2025</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h2 id="abstract">Abstract:</h2>
+<p>We determine the probabilities of winning battles in the dice-based
+board game <strong>Risk</strong> by counting and using Markov chains.
+The results show that if the battle is executed with 5 or more armies,
+the attacker has a slight advantage when both the attacker and defender
+start with the same number of armies.</p>
+<center>
+<img src="/blog/figure/source/2025-02-21-risk/Risk-dice-example.jpg" />
+<br> Image source: <a
+href="https://en.wikipedia.org/wiki/Image:Risk-dice-example.jpg">Wikipedia</a>
+</center>
+<p><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons
+Attribution-ShareAlike 4.0 International License</a>. The <a
+href="https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/2025-02-21-risk.Rmd">R-markdown
+source code of this blog</a> is available under a <a
+href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public
+License (GPL v3)</a> license from GitHub.</p>
+<h2 id="introduction">Introduction</h2>
+<p>While watching yet another <a
+href="https://www.youtube.com/watch?v=RdooKXXcWWc">episode of
+Numberphile</a>, I was puzzled by a statement from <a
+href="https://www.simonyi.ox.ac.uk/">Marcus du Sautoy</a> about how
+people initially got the analysis of probabilities in the <a
+href="https://en.wikipedia.org/wiki/Risk_(game)">game of Risk</a> wrong.
+Digging a little deeper, <span class="citation"
+data-cites="dusautoy2023">du Sautoy (2023)</span> on pp. 306-307 refers
+to erroneous probability calculations made by <span class="citation"
+data-cites="tan1997">Tan (1997)</span>, which were subsequently
+corrected by <span class="citation" data-cites="osborne2003">Osborne
+(2003)</span> using counting techniques. What surprised me was that
+<span class="citation" data-cites="tan1997">Tan (1997)</span> could have
+easily spotted the error with a simple Monte Carlo simulation (see
+Appendix 1). This story about risky risk results for Risk has become a
+motivating example in my <em>Probability 101</em> class on why Monte
+Carlo simulations are important.</p>
+<p>In what follows, I shall focus on computing the necessary
+probabilities by counting. Several literature sources, including the
+aforementioned <span class="citation" data-cites="tan1997">Tan
+(1997)</span>, <span class="citation" data-cites="osborne2003">Osborne
+(2003)</span>, as well as <span class="citation"
+data-cites="pierce_wooster2015">Pierce and Wooster (2015)</span> and
+<span class="citation" data-cites="hendel_etal2015">Hendel et al.
+(2015)</span>, calculate the probabilities. However, I was not able to
+find any publicly available programming code to verify their claims.
+Hence, the goal of this post is to provide literate programming style
+documented open-source R code to compute these probabilities.</p>
+<h2 id="mathematical-description-of-a-single-battle">Mathematical
+Description of a Single Battle</h2>
+<p>In the <a href="https://en.wikipedia.org/wiki/Risk_(game)">Game of
+Risk</a> a single battle between <span class="math inline">\(a\)</span>
+attacking armies and <span class="math inline">\(d\)</span> defending
+armies is carried out as follows: Both the attacker and the defender
+roll one six-sided die for each of their armies inolved in the battle.
+The highest die of the attacker is then compared to the highest die of
+the defender. If the attacker’s die is higher, then the defender loses
+one army, otherwise the attacker loses one army. If both the attacker
+and the defender use more than one army, the next-highest dice are
+compared, and the process is repeated. The game imposes the restrictions
+<span class="math inline">\(a \in {1,2,3}\)</span> and <span
+class="math inline">\(d \in {1,2}\)</span> for a single battle.</p>
+<p>Denote by <span class="math inline">\(Y_{1}, \ldots, Y_{a}\)</span>
+independent random variables representing the outcomes of the <span
+class="math inline">\(a\)</span> dice rolled by the attacker. Similarly,
+denote by <span class="math inline">\(Z_{1}, \ldots, Z_{d}\)</span>
+independent random variables representing the outcomes of the defender’s
+<span class="math inline">\(d\)</span> dice. Each of these <span
+class="math inline">\(a+d\)</span> random variables follows a discrete
+uniform distribution, i.e. <span
+class="math inline">\(U(\{1,\ldots,6\})\)</span>. Furthermore, let <span
+class="math inline">\(Y_{(1)}\geq \cdots \geq Y_{(a)}\)</span> and <span
+class="math inline">\(Z_{(1)}\geq \cdots \geq Z_{(d)}\)</span> denote
+the ordered outcomes of the attacker’s and defender’s dice,
+respectively.</p>
+<p>The result of the first comparison is that the defender loses an
+army, if <span class="math inline">\(Y_{(1)}&gt;Z_{(1)}\)</span>;
+otherwise, the attacker loses an army. If a second comparison is to be
+made – that is, if <span class="math inline">\(\min(a,d)=2\)</span> –
+then the defender loses an army if <span
+class="math inline">\(Y_{(2)}&gt;Z_{(2)}\)</span>; otherwise the
+attacker loses an army. Hence, a random variable describing the number
+of armies the defender loses in an <span
+class="math inline">\(a\)</span> vs. <span
+class="math inline">\(d\)</span> battle is <span class="math display">\[
+D = \sum_{i=1}^{\min(a,d)} I(Y_{(i)}&gt;Z_{(i)}),
+\]</span> where <span class="math inline">\(I(\cdot)\)</span> is an
+indicator function that equals 1 if its argument is true and 0
+otherwise. The variable <span class="math inline">\(D\)</span> has
+support on the integer values <span
+class="math inline">\(0,\ldots,\min(a,d)\)</span>. Similarly, the number
+of armies the attacker loses is <span class="math inline">\(A =
+\min(a,d) - D\)</span>. Example: In the splash picture of the abstract,
+the attacker rolled 4,3,3 (red dice) and the defender 3,2 (white dice).
+Since <span class="math inline">\(4&gt;3\)</span> and <span
+class="math inline">\(3&gt;2\)</span>, the defender loses two armies in
+this specific battle.</p>
+<p>Denote by <span class="math inline">\(p_{adk}\)</span> the
+probability that a single battle between <span
+class="math inline">\(a\)</span> attacking armies and <span
+class="math inline">\(d\)</span> defending armies results in the
+defender losing <span class="math inline">\(k\)</span> armies, <span
+class="math inline">\(k=0,\ldots,\min(a,d)\)</span>. This probability
+can be computed by dividing the number of favourable outcomes by the
+total number of possible outcomes:</p>
+<p><span class="math display">\[\begin{align}  
+p_{adk} = \frac{1}{6^{a+d}}\sum_{y_1=0}^6 \cdots \sum_{y_a=0}^6
+\sum_{z_1=0}^6 \cdots \sum_{z_d=0}^6
+I\left(\left\{\sum_{j=1}^{\min(a,d)} I(y_{(j)}&gt;z_{(j)})\right\} =
+k\right)
+\end{align}\]</span></p>
+<p>Although this formula may look involved, the <span
+class="math inline">\(6^{a+d}\)</span> is just the number of possible
+outcomes when throwing <span class="math inline">\(a+d\)</span> dice and
+the summation over the indicator function is just a way to count all
+favourable configurations in the Cartesian product sample space <span
+class="math inline">\(\{1,\ldots,6\}^{a+d}\)</span>. Since the maximum
+values for <span class="math inline">\(a\)</span> and <span
+class="math inline">\(d\)</span> in Risk are 3 and 2, respectively, the
+dimension of the product space will be no larger than <span
+class="math inline">\(6^5=`6^5`\)</span>, which is tractable.</p>
+<h2 id="computation">Computation</h2>
+<p>We start the R code by defining that we look at outcomes of the dice
+D6, i.e. the sample space of one dice is <span
+class="math inline">\(\Omega = \{1,\ldots,6\}\)</span>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample space for one dice throw</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>Omega <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span></span></code></pre></div>
+<p>We then write a function, which uses the <code>expand_grid()</code>
+function repeatedly in order to generate the Cartesian product <span
+class="math inline">\(\Omega^\text{nDice}\)</span> for <span
+class="math inline">\(\text{nDice}\in\mathbb{N}\)</span> dice.
+Furthermore, we add a column containing the probability for each element
+in this sample space, i.e. the probability is <span
+class="math inline">\(1/|\Omega|^{\text{nDice}}=1/6^{\text{nDice}}\)</span>,
+since the dice are assumed to be fair.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Do expand_grid on the \Omega set sequentially a given number of nDice times. </span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># At the end we have nDice columns.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># @param nDice (integer) We compute \Omega_{dice}^{nDice}</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># @param Omega (vector of integers) The faces on the dice.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># @return Tibble with nDice columns containing all |\Omega_{dice}|^{nDice} possible outcomes and a column stating the probability of each element in this sample space, i.e. 1/|\Omega_{dice}^{nDice}|.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>sample_space <span class="ot">&lt;-</span> <span class="cf">function</span>(nDice, <span class="at">Omega=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) {</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a> <span class="fu">expand_grid</span>(<span class="sc">!!!</span><span class="fu">replicate</span>(nDice, Omega, <span class="at">simplify =</span> <span class="cn">FALSE</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>   <span class="fu">setNames</span>(<span class="fu">str_c</span>(<span class="st">&quot;D&quot;</span>, <span class="dv">1</span><span class="dt">L</span><span class="sc">:</span>nDice)) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">prob =</span> <span class="dv">1</span><span class="sc">/</span>(<span class="fu">length</span>(Omega)<span class="sc">^</span>nDice))</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Instead of calculating a matrix containing all possible outcomes of
+the <span class="math inline">\(a+d\)</span> dice, as in the sum-formula
+above, and then handling the sorting, we divide the problem into two
+tasks:</p>
+<ol type="1">
+<li>Calculate all possible outcomes and their probabilities when sorting
+the outcome of the attacker’s <span class="math inline">\(a\)</span>
+dices</li>
+<li>Calculate all possible outcomes and their probabilities when sorting
+the outcome of the attacker’s <span class="math inline">\(d\)</span>
+dices</li>
+</ol>
+<p>Since the dice throws of the attacker and defender are independent,
+we can then compute the required joint distribution by multiplying the
+two marginal distributions found in 1. and 2.</p>
+<p>As a consequence we write a function that returns all possible
+outcomes of <span class="math inline">\(Y_{(1)} \leq \ldots \leq
+Y_{(\text{nCompare})}\)</span> obtained after ordering the outcome of
+dice, i.e. <span class="math inline">\(Y_{(1)} \leq \ldots \leq
+Y_{(\text{nDice})}\)</span> with <span
+class="math inline">\(\text{nCompare} \leq \text{nDice}\)</span>. To be
+compatible with the game of risk <span
+class="math inline">\(\text{nCompare}\in\{1,2\}\)</span>. We compute the
+associated probabilities by adding up the underlying entries of the
+Cartesian sample space.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>combos_sorted <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">nDice=</span><span class="dv">3</span>, <span class="at">nCompare=</span><span class="fu">min</span>(<span class="dv">2</span>,nDice), <span class="at">base_name =</span> <span class="st">&quot;y&quot;</span>) {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Generate all outcomes and make a label</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># which identifies which of the sorted bins the outcome belongs to</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  combos <span class="ot">&lt;-</span> <span class="fu">sample_space</span>(<span class="at">nDice=</span>nDice) <span class="sc">%&gt;%</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">combo_sorted =</span> <span class="fu">str_c</span>(<span class="fu">sort</span>(<span class="fu">c_across</span>(<span class="fu">all_of</span>(<span class="fu">paste0</span>(<span class="st">&quot;D&quot;</span>, <span class="dv">1</span><span class="sc">:</span>nDice))), <span class="at">decreasing=</span><span class="cn">TRUE</span>), <span class="at">collapse=</span><span class="st">&quot;&quot;</span>),</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">combo_label =</span> <span class="fu">str_sub</span>(combo_sorted, <span class="dv">1</span>, nCompare)) </span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Count accoring</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  combos_summed <span class="ot">&lt;-</span> combos <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(combo_label) <span class="sc">%&gt;%</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">n=</span><span class="fu">n</span>(), <span class="at">prob=</span><span class="fu">sum</span>(prob)) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(<span class="fu">desc</span>(combo_label)) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># We use the notation by Osborn (2009) and denote the columns y^{(1)} \geq y^{(2)} \geq y^{(3)}</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">separate_wider_position</span>(<span class="at">cols =</span> combo_label, <span class="at">widths =</span> <span class="fu">set_names</span>(<span class="fu">rep</span>(<span class="dv">1</span>, nCompare), <span class="at">nm=</span> <span class="fu">str_c</span>(base_name, <span class="st">&quot;_{(&quot;</span>, <span class="dv">1</span><span class="sc">:</span>nCompare,<span class="st">&quot;)}&quot;</span>)))</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Done</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(combos_summed)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>As an example:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">combos_sorted</span>(<span class="at">nDice=</span><span class="dv">3</span>, <span class="at">nCompare=</span><span class="dv">2</span>)</span></code></pre></div>
+<pre><code>## # A tibble: 21 × 4
+##   `y_{(1)}` `y_{(2)}`     n   prob
+##   &lt;chr&gt;     &lt;chr&gt;     &lt;int&gt;  &lt;dbl&gt;
+## 1 6         6            16 0.0741
+## 2 6         5            27 0.125 
+## 3 6         4            21 0.0972
+## 4 6         3            15 0.0694
+## 5 6         2             9 0.0417
+## # ℹ 16 more rows</code></pre>
+<p>This can then be combined to obtain the joint distribution of the
+sorted dice to be compared.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>joint_combos_sorted <span class="ot">&lt;-</span> <span class="cf">function</span>(a, d) {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sort the throws of the attacker and defender</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  Y <span class="ot">&lt;-</span> <span class="fu">combos_sorted</span>(<span class="at">nDice=</span>a, <span class="at">base_name=</span><span class="st">&quot;y&quot;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  Z <span class="ot">&lt;-</span> <span class="fu">combos_sorted</span>(<span class="at">nDice=</span>d, <span class="at">base_name=</span><span class="st">&quot;z&quot;</span>) </span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Make a tibble with all combinations of the a vs. d armies fight</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  joint <span class="ot">&lt;-</span> Y <span class="sc">%&gt;%</span> <span class="fu">cross_join</span>(Z) <span class="sc">%&gt;%</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">prob =</span> prob.x <span class="sc">*</span> prob.y,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>           <span class="at">n =</span> n.x <span class="sc">*</span> n.y) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span>n.x, <span class="sc">-</span>n.y, <span class="sc">-</span>prob.x, <span class="sc">-</span>prob.y)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Done</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(joint)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Which for a single <span class="math inline">\(a=3\)</span> vs. <span
+class="math inline">\(d=2\)</span> battle would look like:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">joint_combos_sorted</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>), <span class="at">n=</span><span class="dv">3</span>)</span></code></pre></div>
+<pre><code>## # A tibble: 3 × 6
+##   `y_{(1)}` `y_{(2)}` `z_{(1)}` `z_{(2)}`    prob     n
+##   &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;       &lt;dbl&gt; &lt;int&gt;
+## 1 6         6         6         6         0.00206    16
+## 2 6         6         6         5         0.00412    32
+## 3 6         6         6         4         0.00412    32</code></pre>
+<p>We can now compute <span class="math inline">\(p_{adk}\)</span> by
+comparing <span class="math inline">\(Y_{(i)}&gt;Z_{(i)}\)</span> for
+all relevant <span class="math inline">\(i=1,\ldots,\min(a,d)\)</span>
+and summing all outcomes where the defender loses <span
+class="math inline">\(k\)</span> armies:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">########################################################################</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Distribution over the number of armies that defender is losing,</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># when attacker is using A armies and defender is using D armies.</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># @param A Number of armies (=dice) the attacker sends into the battle</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># @param D Number of armies (=dice) the defender sends into the fight</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># @return A tibble containing all possible outcomes of the battle in terms</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#         of losses for attacker and defender.</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="do">########################################################################</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>p_lose_ad <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>) {</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># All joint combinations of attacker and defender</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  joint <span class="ot">&lt;-</span> <span class="fu">joint_combos_sorted</span>(<span class="at">a=</span>a, <span class="at">d=</span>d)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Number of dice to compare</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  nCompare <span class="ot">&lt;-</span> <span class="fu">pmin</span>(a, d)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># I find this loop version easier to understand</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># than a corresponding tidyverse version</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_len</span>(nCompare)) {</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    joint[, <span class="fu">str_c</span>(<span class="st">&quot;lose_D_pos&quot;</span>, k)] <span class="ot">&lt;-</span> (joint[,<span class="fu">str_c</span>(<span class="st">&quot;y_{(&quot;</span>,k,<span class="st">&quot;)}&quot;</span>)] <span class="sc">&gt;</span> joint[,<span class="fu">str_c</span>(<span class="st">&quot;z_{(&quot;</span>,k,<span class="st">&quot;)}&quot;</span>)])</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Total sum of armies lost by defender and attacker, respectively</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  joint <span class="ot">&lt;-</span> joint <span class="sc">%&gt;%</span> </span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">lose_D =</span> <span class="fu">rowSums</span>(<span class="fu">select</span>(., <span class="fu">matches</span>(<span class="st">&quot;^lose_D_pos[0-9]+&quot;</span>))),</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>           <span class="at">lose_A =</span> nCompare <span class="sc">-</span> lose_D)  <span class="sc">%&gt;%</span> </span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="fu">starts_with</span>(<span class="st">&quot;y&quot;</span>), <span class="fu">starts_with</span>(<span class="st">&quot;z&quot;</span>), prob, lose_A, lose_D) </span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add up probabilities for all combos yielding a specific</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  <span class="co"># lose_A, lose_D combo</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">&lt;-</span> joint <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(lose_A, lose_D) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">prob =</span> <span class="fu">sum</span>(prob), <span class="at">.groups=</span><span class="st">&quot;drop&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(lose_D)</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Done</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(res)</span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>To test the function, we compute <span
+class="math inline">\((p_{320},p_{321},p_{322})\)</span>, which <span
+class="citation" data-cites="osborne2003">Osborne (2003)</span> found to
+be <span class="math inline">\((2275, 2611,
+2890)/7776=(0.293,0.336,0.372)\)</span>:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 3 vs. 2 battle</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">p_lose_ad</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>)</span></code></pre></div>
+<pre><code>## # A tibble: 3 × 3
+##   lose_A lose_D  prob
+##    &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;
+## 1      2      0 0.293
+## 2      1      1 0.336
+## 3      0      2 0.372</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check that p_lose_ad is correct for p_{32k}, k=0,1,2</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(<span class="fu">p_lose_ad</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(prob), <span class="fu">c</span>(<span class="dv">2275</span>, <span class="dv">2611</span>, <span class="dv">2890</span>)<span class="sc">/</span><span class="dv">7776</span>)</span></code></pre></div>
+<pre><code>## [1] TRUE</code></pre>
+<p>An alternative verification is to use the <a
+href="https://topps.diku.dk/torbenm/troll.msp">Troll dice roller and
+probability calculator</a> by <a
+href="http://hjemmesider.diku.dk/~torbenm/">Torben Æ. Mogensen</a> using
+the following syntax:</p>
+<pre><code>a:=3d6;b:=2d6;
+count {(max a)&gt;(max b),(min largest 2 a)&gt;(min b)}</code></pre>
+<p>Troll computes the probability distribution as:</p>
+<center>
+<img src="/blog/figure/source/2025-02-21-risk/troll_riskroll.png" />
+<br> Figure 1: Results for the 3 vs. 2 risk roll in Troll.
+</center>
+<p>
+<p>Note that for the <span class="math inline">\(p_{32k},
+k=0,1,2\)</span> setup, <span class="citation" data-cites="tan1997">Tan
+(1997)</span> instead obtained <span class="math inline">\((0.237,
+0.504, 0.259)\)</span>, which differs substantially from the correct
+result. See Appendix 2 for a discussion of his calculations.</p>
+<p>The complete table of probabilities for all possible single battle
+attacker vs. defender configurations can now be computed as follows:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>state_change <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(<span class="at">a=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>) <span class="sc">%&gt;%</span> <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob =</span> <span class="fu">list</span>(<span class="fu">p_lose_ad</span>(<span class="at">a=</span>a, <span class="at">d=</span>d))) <span class="sc">%&gt;%</span> </span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(prob)</span></code></pre></div>
+<pre><code>## # A tibble: 14 × 4
+##        a     d     k  prob
+##    &lt;int&gt; &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1     1     1     0 0.583
+##  2     1     1     1 0.417
+##  3     1     2     0 0.745
+##  4     1     2     1 0.255
+##  5     2     1     0 0.421
+##  6     2     1     1 0.579
+##  7     2     2     0 0.448
+##  8     2     2     1 0.324
+##  9     2     2     2 0.228
+## 10     3     1     0 0.340
+## 11     3     1     1 0.660
+## 12     3     2     0 0.293
+## 13     3     2     1 0.336
+## 14     3     2     2 0.372</code></pre>
+<p>Voila! The values align with those in Table 2 of <span
+class="citation" data-cites="osborne2003">Osborne (2003)</span>.</p>
+<h2 id="repeated-battles-using-markov-chains">Repeated Battles using
+Markov Chains</h2>
+<p>Once the probabilities for army losses of a single battle have been
+computed, the natural follow-up question is: what happens if the
+attacker decides to continue the attack? Assume that the attacker
+continues to battle with as many armies as possible until either the
+attacker has no armies left to attack with or the defender is destroyed,
+i.e. has no armies left. What is the probability of an attacker with
+<span class="math inline">\(A\geq 1\)</span> armies winning such a
+repeated attack against a defender with <span
+class="math inline">\(D\geq 1\)</span> armies?</p>
+<p>As stated in <span class="citation" data-cites="osborne2003">Osborne
+(2003)</span>, this is elegantly solved using Markov chains. Denote by
+<span class="math inline">\((A,D)\)</span> the current state of the
+chain with <span class="math inline">\(A\)</span> attacking armies and
+<span class="math inline">\(D\)</span> defending armies. Assuming that
+both attacker and defender use as many dice possible, i.e. <span
+class="math inline">\(a=\min(3,A)\)</span> and <span
+class="math inline">\(d=\min(2,D)\)</span>, the next battle would be a 3
+vs. 2 battle if <span class="math inline">\(A\geq 3\)</span> and <span
+class="math inline">\(D\geq 2\)</span>. Hence, the attacker can lose
+<span class="math inline">\(0,1,2\)</span> armies, while the defender
+can lose <span class="math inline">\(0,1,2\)</span> armies. No matter
+the outcome, 2 armies will be lost in the battle. Therefore, the new
+state is: <span class="math display">\[
+(A,D) \longrightarrow \left\{
+\begin{array}{cl}
+(A-2, D) &amp; \text{with probability } \pi_{320} \\
+(A-1, D-1) &amp; \text{with probability } \pi_{321} \\
+(A, D-2) &amp; \text{with probability } \pi_{322}
+\end{array}
+\right.
+\]</span> If <span class="math inline">\(A\)</span> and/or <span
+class="math inline">\(D\)</span> are smaller than 3 and 2 the transition
+and its probability changes accordingly. Note that once either <span
+class="math inline">\(A\)</span> or <span
+class="math inline">\(D\)</span> is zero, the state is absorbing,
+meaning it is no longer possible to continue the battle, and the state
+will remain the same. If after updating <span
+class="math inline">\(A=0\)</span>, the attacker has lost the fight<a
+href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a>. However, if <span
+class="math inline">\(D = 0\)</span>, the defender loses, and the
+attacker conquers the country.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Armies at the start of the battle</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>D <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>size_state_space <span class="ot">&lt;-</span> (A<span class="sc">+</span><span class="dv">1</span>)<span class="sc">*</span>(D<span class="sc">+</span><span class="dv">1</span>)</span></code></pre></div>
+<p>Suppose we start with <span class="math inline">\(A=10\)</span>
+attacking armies and <span class="math inline">\(D=10\)</span> defending
+armies. The corresponding state space of the Markov chain is <span
+class="math inline">\(\{(A, D), A\in\{0,\ldots,10\}, D\in
+\{0,\ldots,10\}\}\)</span>. Mapping this to a vector means creating a
+vector of length <span class="math inline">\(11 \times 11=121\)</span>.
+Hence, the transition matrix <span class="math inline">\(P\)</span> will
+be <span class="math inline">\((121\times121)\)</span> matrix. We
+implement this in the function <code>transition_matrix(A, D)</code>.</p>
+<p>The vector representing the situation with <span
+class="math inline">\(10\)</span> attacking armies and 10 defending
+armies would be <span class="math inline">\(\mathbf{x}_0=(0,\ldots,0,
+1)^\top\)</span>. The development in probabilities over the state space
+after a single battle can then be represented as <span
+class="math inline">\(\mathbf{x}_1 =
+\mathbf{x}_0^\top\mathbf{P}\)</span>. Starting in state <span
+class="math inline">\((10,10)\)</span> we can thus go to either <span
+class="math inline">\((8,10)\)</span>, <span
+class="math inline">\((9,9)\)</span> or <span
+class="math inline">\((10,8)\)</span> and we recognize <span
+class="math inline">\(p_{320}\)</span>, <span
+class="math inline">\(p_{321}\)</span> and <span
+class="math inline">\(p_{322}\)</span> as the transition
+probabilities.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>x0 <span class="ot">&lt;-</span> states<span class="sc">$</span>state <span class="sc">==</span> <span class="fu">sprintf</span>(<span class="st">&quot;%2d-%2d&quot;</span>,A,D) <span class="co"># &quot;10-10&quot;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>x1 <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> P</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>x1[,x1<span class="sc">&gt;</span><span class="dv">0</span>]</span></code></pre></div>
+<pre><code>##     08-10     09-09     10-08 
+## 0.2925669 0.3357767 0.3716564</code></pre>
+<p>Subsequent battles are implemented as <span
+class="math inline">\(\mathbf{x}_{i+1} = \mathbf{x}_{i}^\top
+\mathbf{P}\)</span>. For each single battle, the total number of armies
+will decrease by at least 1 army (and most likely 2). Starting with
+<span class="math inline">\(A+D\)</span> armies means that after <span
+class="math inline">\(A+D\)</span> battles we are guaranteed to have
+reached an absorbing state<a href="#fn2" class="footnote-ref"
+id="fnref2" role="doc-noteref"><sup>2</sup></a>. Considering <span
+class="math display">\[
+\mathbf{x}_{A+D} = \mathbf{x}_{0}^\top \mathbf{P}^{A+D} =
+\mathbf{x}_{0}^\top \underbrace{\mathbf{P} \cdots
+\mathbf{P}}_{\text{$A+D$ times}}
+\]</span> we compute</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>x_AD <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> (P <span class="sc">%^%</span> (A<span class="sc">+</span>D))</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(x_AD[,x_AD<span class="sc">&gt;</span><span class="dv">0</span>], <span class="at">digits=</span><span class="dv">3</span>)</span></code></pre></div>
+<pre><code>## 00-01 00-02 00-03 00-04 00-05 00-06 00-07 00-08 00-09 00-10 01-00 02-00 03-00 04-00 05-00 06-00 07-00 08-00 09-00 10-00 
+## 0.042 0.081 0.072 0.070 0.056 0.047 0.031 0.021 0.009 0.003 0.030 0.059 0.092 0.096 0.087 0.077 0.059 0.039 0.021 0.007</code></pre>
+<p>Summing up all probabilities where the defender has zero armies gives
+us the probability that the attacker wins the battle, i.e.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(x_AD[,<span class="fu">str_detect</span>(<span class="fu">colnames</span>(x_AD), <span class="st">&quot;-00&quot;</span>)])</span></code></pre></div>
+<pre><code>## [1] 0.5675929</code></pre>
+<p>This probability matches the value 0.568 reported in Table 3 of <span
+class="citation" data-cites="osborne2003">Osborne (2003)</span>. By
+calculating <span class="math inline">\(\mathbf{P}^{A+D}\)</span> once,
+we can change the initial state vector <span
+class="math inline">\(\mathbf{x}_0\)</span> to compute the probability
+of the attacker winning for each of the <span class="math inline">\(A
+\times D\)</span> possible initial values. The values match those in
+Table 3 of <span class="citation" data-cites="osborne2003">Osborne
+(2003)</span>.</p>
+<table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="empty-cells: hide;border-bottom:hidden;" colspan="1">
+</th>
+<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="10">
+<div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">
+D
+</div>
+</th>
+</tr>
+<tr>
+<th style="text-align:center;">
+A
+</th>
+<th style="text-align:center;">
+1
+</th>
+<th style="text-align:center;">
+2
+</th>
+<th style="text-align:center;">
+3
+</th>
+<th style="text-align:center;">
+4
+</th>
+<th style="text-align:center;">
+5
+</th>
+<th style="text-align:center;">
+6
+</th>
+<th style="text-align:center;">
+7
+</th>
+<th style="text-align:center;">
+8
+</th>
+<th style="text-align:center;">
+9
+</th>
+<th style="text-align:center;">
+10
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+1
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.417</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.106</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.027</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.007</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.002</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.000</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.000</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.000</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.000</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.000</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+2
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.754</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.363</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.206</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.091</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.049</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.021</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.011</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.005</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.003</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.001</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+3
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.916</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.656</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.470</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.315</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.206</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.134</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.084</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.054</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.033</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.021</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+4
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.972</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.785</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.642</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.477</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.359</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.253</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.181</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.123</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.086</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.057</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+5
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.990</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.890</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.769</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.638</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.506</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.397</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.297</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.224</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.162</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.118</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+6
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.997</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.934</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.857</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.745</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.638</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.521</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.423</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.329</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.258</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.193</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+7
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.999</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.967</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.910</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.834</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.736</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.640</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.536</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.446</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.357</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.287</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+8
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">1.000</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.980</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.947</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.888</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.818</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.730</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.643</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.547</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.464</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.380</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+9
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">1.000</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.990</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.967</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.930</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.873</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.808</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.726</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.646</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.558</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;">0.480</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 1cm; border-right:1px solid;">
+10
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">1.000</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.994</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.981</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.954</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.916</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.861</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.800</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.724</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.650</span>
+</td>
+<td style="text-align:center;width: 3cm; ">
+<span
+style="     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;">0.568</span>
+</td>
+</tr>
+</tbody>
+</table>
+<p>
+<p>All cells with a probability greater than 0.5 are colored green in
+the table. We observe that from 5 and beyond the attacker has a slight
+advantage when <span class="math inline">\(A=D\)</span>.</p>
+<p>Below, the situation for <span class="math inline">\(A,D\)</span> up
+to 50 is illustrated a little differently: for any given value of <span
+class="math inline">\(D\)</span>, the image shows in green all values of
+<span class="math inline">\(A\)</span>, where the probability for the
+attacker to win is above 50%.</p>
+<p><img src="/blog/figure/source/2025-02-21-risk/BIGTABLE_PLOT-1.png" style="display: block; margin: auto;" /></p>
+<p>Looking at the smallest <span class="math inline">\(A\)</span> with a
+win probability of more than 50% for a given <span
+class="math inline">\(D\)</span>, we see that this line is below the
+<span class="math inline">\(A=D\)</span> line. This shows that the
+attacker has a slight advantage. Furthermore, the smallest such <span
+class="math inline">\(A\)</span> can be found approximately as <span
+class="math inline">\(A_{\min} \approx 1.2204 + 0.8525\cdot
+D\)</span>.</p>
+<h2 id="discussion">Discussion</h2>
+<p>Counting is a powerful technique in combinatorics and dice-based
+probabilities. The counting can be implemented on a computer by
+representing the full sample space using tables or arrays. The risk of
+making mistakes when counting in such structures is often lower than in
+more involved probability calculations, e.g. order statistics or
+conditional distributions. However, in many combinatorical problems the
+state space quickly exceeds manageable sizes. Monte Carlo simulation
+offers a quick alternative for verifying probability calculations, and
+is effective even in untractably large state spaces.</p>
+<p><strong>TLDR</strong>: For situations where <span
+class="math inline">\(A \geq 5\)</span>, attack if <span
+class="math inline">\(A \geq 1.2204 + 0.8525\cdot D\)</span>.</p>
+<h2 id="appendix-1-monte-carlo-simulation">Appendix 1: Monte Carlo
+Simulation</h2>
+<p>Just for completeness: Below is a simulation function for determining
+the <span class="math inline">\(p_{adk}\)</span> probabilities by Monte
+Carlo simulation. It requires little thinking, is fast and accurate
+enough to spot the errors in the <span class="citation"
+data-cites="tan1997">Tan (1997)</span> paper:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate a single a vs. d army battle</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>single_battle <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">a =</span> <span class="dv">3</span>, <span class="at">d =</span> <span class="dv">2</span>) {</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sort the dice</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  y_sorted <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample</span>(Omega, <span class="at">size =</span> a, <span class="at">replace =</span> <span class="cn">TRUE</span>), <span class="at">dec =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  z_sorted <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample</span>(Omega, <span class="at">size =</span> d, <span class="at">replace =</span> <span class="cn">TRUE</span>), <span class="at">dec =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Number of comparisons</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  nCompares <span class="ot">&lt;-</span> <span class="fu">min</span>(a, d)</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Logischer Vektor mit Länge #Vergleiche, der TRUE enthält</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">#für A gewinnt Würfelvergleich und FALSE sonst</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  lose_D <span class="ot">&lt;-</span> (y_sorted[<span class="dv">1</span><span class="sc">:</span>nCompares] <span class="sc">&gt;</span> z_sorted[<span class="dv">1</span><span class="sc">:</span>nCompares])</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">sum</span>(lose_D))</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Calc p_{32k}, k=0,1,2</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="fu">prop.table</span>(<span class="fu">table</span>(<span class="fu">replicate</span>(<span class="fl">1e5</span>, <span class="fu">single_battle</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>))))</span></code></pre></div>
+<pre><code>## 
+##       0       1       2 
+## 0.29136 0.33852 0.37012</code></pre>
+<h2 id="appendix-2">Appendix 2</h2>
+<p><span class="citation" data-cites="tan1997">Tan (1997)</span>
+calculated for example <span class="math display">\[\begin{align*}
+\pi_{322}
+&amp;= P(Y_{(1)}&gt;Z_{(1)} \cap Y_{(2)}&gt;Z_{(2)}) \\
+&amp;= P(Y_{(1)}&gt;Z_{(1)}) P(Y_{(2)}&gt;Z_{(2)}) \\
+&amp;= \cdots,
+\end{align*}\]</span> but the 2nd step is wrong, because it assumes
+independence of the events <span
+class="math inline">\(Y_{(1)}&gt;Z_{(1)}\)</span> and <span
+class="math inline">\(Y_{(2)}&gt;Z_{(2)}\)</span>. This is not the case,
+as seen from the following R output:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint distribution of the two events</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>f_Y12Z12 <span class="ot">&lt;-</span> <span class="fu">joint_combos_sorted</span>(<span class="at">a=</span><span class="dv">3</span>, <span class="at">d=</span><span class="dv">2</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span><span class="ot">=</span><span class="st">`</span><span class="at">y_{(1)}</span><span class="st">`</span><span class="sc">&gt;</span> <span class="st">`</span><span class="at">z_{(1)}</span><span class="st">`</span>,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span><span class="ot">=</span><span class="st">`</span><span class="at">y_{(2)}</span><span class="st">`</span><span class="sc">&gt;</span> <span class="st">`</span><span class="at">z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span>,<span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob), <span class="at">.groups =</span> <span class="st">&quot;keep&quot;</span>)</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Marginal distribution of each event</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>f_Y1Z1 <span class="ot">&lt;-</span> f_Y12Z12 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(1)}&gt;z_{(1)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob))</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>f_Y2Z2 <span class="ot">&lt;-</span> f_Y12Z12 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(<span class="st">`</span><span class="at">y_{(2)}&gt;z_{(2)}</span><span class="st">`</span>) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">prob=</span><span class="fu">sum</span>(prob))</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint prob when **assuming independence**</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>f_Y12Z12_indep <span class="ot">&lt;-</span> <span class="fu">cross_join</span>(f_Y1Z1, f_Y2Z2) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob_indep =</span> prob.x <span class="sc">*</span> prob.y) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>prob.x,<span class="sc">-</span>prob.y)</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare to the true joint distribution: this is definitely not the same!</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a><span class="fu">inner_join</span>(f_Y12Z12, f_Y12Z12_indep, <span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;y_{(1)}&gt;z_{(1)}&quot;</span>, <span class="st">&quot;y_{(2)}&gt;z_{(2)}&quot;</span>))</span></code></pre></div>
+<pre><code>## # A tibble: 4 × 4
+## # Groups:   y_{(1)}&gt;z_{(1)}, y_{(2)}&gt;z_{(2)} [4]
+##   `y_{(1)}&gt;z_{(1)}` `y_{(2)}&gt;z_{(2)}`   prob prob_indep
+##   &lt;lgl&gt;             &lt;lgl&gt;              &lt;dbl&gt;      &lt;dbl&gt;
+## 1 FALSE             FALSE             0.293       0.207
+## 2 FALSE             TRUE              0.236       0.321
+## 3 TRUE              FALSE             0.0999      0.185
+## 4 TRUE              TRUE              0.372       0.286</code></pre>
+<p>From the above output we notice that the correct joint distribution<a
+href="#fn3" class="footnote-ref" id="fnref3"
+role="doc-noteref"><sup>3</sup></a> of the two events cannot be computed
+by simply multiplying the marginals. Hence, the two events are not
+independent.</p>
+<p>The reason is that using order statistics induces dependencies. For
+example <span class="math inline">\(P(Z_{(1)}=z_1, Z_{(2)}=z_2) \neq
+P(Z_{(1)}=z_1) P(Z_{(2)}=z_2)\)</span>. Although the dice <span
+class="math inline">\(Z_1\)</span> and <span
+class="math inline">\(Z_2\)</span> are independent, the corresponding
+variables of the order statistics are dependent: knowing something about
+the higher of the two dice gives you information about the lower of the
+two. For example if you know that <span
+class="math inline">\(Z_{(1)}=1\)</span>, then you know for sure that
+<span class="math inline">\(Z_{(2)}=1\)</span>. This dependence extends
+to comparisons with the attacker’s dice.</p>
+<h2 class="unnumbered" id="literature">Literature</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+data-entry-spacing="0" role="list">
+<div id="ref-dusautoy2023" class="csl-entry" role="listitem">
+du Sautoy, M. 2023. <em>Around the World in 80 Games</em>. 4th Estate.
+<a
+href="https://www.simonyi.ox.ac.uk/books/around-the-world-in-80-games/">https://www.simonyi.ox.ac.uk/books/around-the-world-in-80-games/</a>.
+</div>
+<div id="ref-hendel_etal2015" class="csl-entry" role="listitem">
+Hendel, S., C. Hoffman, C. Manack, and A. Wagaman. 2015. <span>“Taking
+the Risk Out of RISK: Conquer Odds in the Board Game RISK.”</span> <a
+href="https://arxiv.org/abs/1512.04333">https://arxiv.org/abs/1512.04333</a>.
+</div>
+<div id="ref-osborne2003" class="csl-entry" role="listitem">
+Osborne, Jason A. 2003. <span>“Markov Chains for the RISK Board Game
+Revisited.”</span> <em>Mathematics Magazine</em> 76 (2): 129–35. <a
+href="http://www.jstor.org/stable/3219306">http://www.jstor.org/stable/3219306</a>.
+</div>
+<div id="ref-pierce_wooster2015" class="csl-entry" role="listitem">
+Pierce, P., and R. Wooster. 2015. <span>“Conquer the World with Markov
+Chains.”</span> <em>Math Horizons</em> 22 (4): pp. 18–21. <a
+href="https://www.jstor.org/stable/10.4169/mathhorizons.22.4.18">https://www.jstor.org/stable/10.4169/mathhorizons.22.4.18</a>.
+</div>
+<div id="ref-tan1997" class="csl-entry" role="listitem">
+Tan, Bariş. 1997. <span>“Markov Chains and the RISK Board Game.”</span>
+<em>Mathematics Magazine</em> 70 (5): 349–57. <a
+href="http://www.jstor.org/stable/2691171">http://www.jstor.org/stable/2691171</a>.
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Since the rules of Risk only allow attacking with one
+army less than hosted in the country the attack originates from, the
+attacker would still have one army left once <span
+class="math inline">\(A=0\)</span>. Thus, the country is not yet lost
+but could be vulnerable to subsequent attacks in future rounds.<a
+href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Note: With this argument we take a more direct route
+than <span class="citation" data-cites="osborne2003">Osborne
+(2003)</span>, who also arranges the transition matrix notationally into
+absorbing and transient states and looks at the steady state
+distribution.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Obtained by counting using the involved
+sum-sum-indicator formula from above.<a href="#fnref3"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+  </div>
+
+</article>
+
+	
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Theory meets practice...</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Theory meets practice...</li>
+          <li><a href="https://math-inf.uni-greifswald.de/en/michael-hoehle/">Michael Höhle</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mhoehle"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">mhoehle</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/m_hoehle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">m_hoehle</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about statistics in theory and practice. Not always serious, not always flawless, but definitely a statistically flavoured bean.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

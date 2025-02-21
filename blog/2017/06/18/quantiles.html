@@ -182,9 +182,10 @@ are removed. For this blog entry, we will, however, work with the full
 selected sample, which in our case is <span
 class="math inline">\(n=71\)</span>. If more than 10% of the sample is
 to be above 15 ppb, this means that <span class="math inline">\(\lfloor
-0.1\cdot n + 1\rfloor\)</span> of the samples need to be above 15 ppb,
-where <span class="math inline">\(\lfloor y \rfloor\)</span> denotes the
-largest integer less than or equal to <span
+0.1\cdot n +
+1\rfloor\)</span> of the samples need to be above 15 ppb, where <span
+class="math inline">\(\lfloor y
+\rfloor\)</span> denotes the largest integer less than or equal to <span
 class="math inline">\(y\)</span>. We shall denote this the
 <strong>number of critical samples</strong>. If we divide this number by
 <span class="math inline">\(n\)</span> we get the actual proportion of
@@ -233,7 +234,8 @@ in this situation is <span class="math display">\[ \frac{n - \lceil n
 \cdot 0.9\rceil + 1}{n}.\]</span> To show the duality between the
 <em>more than 10% critical samples</em> and the 90% quantile being above
 15 ppm we thus need to show that <span class="math inline">\((n - \lceil
-n \cdot 0.9\rceil + 1)/n = (\lfloor 0.1\cdot n + 1\rfloor)/n\)</span>.
+n
+\cdot 0.9\rceil + 1)/n = (\lfloor 0.1\cdot n + 1\rfloor)/n\)</span>.
 This is possible since the following <a
 href="https://en.wikipedia.org/wiki/Floor_and_ceiling_functions">relations
 hold for the floor and ceiling functions</a>: <span
@@ -446,7 +448,7 @@ providing additional information about the quantile computation of the
 (2017)</span> article and for pointing out the Gardiner video.</p>
 <h2 class="unnumbered" id="references">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-dielman_etal1994" class="csl-entry" role="listitem">
 Dielman, T., C. Lowry, and R. Pfaffenberger. 1994. <span>“A Comparison
 of Quantile Estimators.”</span> <em>Communications in Statistics -

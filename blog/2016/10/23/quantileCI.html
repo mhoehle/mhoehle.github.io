@@ -418,7 +418,7 @@ each confidence interval covers the true value or not.</p>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  lapplyFun <span class="ot">&lt;-</span> parallel<span class="sc">::</span>mclapply</span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  sims <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapplyFun</span>(1L<span class="sc">:</span>nSim, <span class="cf">function</span>(i) {</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapplyFun</span>(<span class="dv">1</span><span class="dt">L</span><span class="sc">:</span>nSim, <span class="cf">function</span>(i) {</span>
 <span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>      quantileCI<span class="sc">::</span><span class="fu">qci_coverage_one_sim</span>(<span class="at">qci_fun=</span>quantile_confints, <span class="at">n=</span>n,<span class="at">p=</span>p,<span class="at">conf.level=</span>conf.level,...)</span>
 <span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    }, <span class="at">mc.cores =</span> parallel<span class="sc">::</span><span class="fu">detectCores</span>() <span class="sc">-</span> <span class="dv">1</span>)</span>
 <span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), mean))</span>
@@ -542,11 +542,12 @@ class="math inline">\((1-\alpha/2)\cdot 100\%\)</span> confidence
 interval <span class="math inline">\((1-\lambda) x_{(r)} + \lambda
 x_{(r+1)}\)</span> for <span class="math inline">\(x_p\)</span> can be
 found as follows: Let <span class="math inline">\(z = (1-\lambda)
-x_{(r)} + \lambda x_{(r+1)}\)</span>. If the considered interval is a
-lower-confidence interval, we are interested in finding <span
-class="math inline">\(P( z \leq x_p)=\int_{-\infty}^{x_p} f_z(z)
-dz\)</span>. Here, the PDF of <span class="math inline">\(z\)</span> is
-found as</p>
+x_{(r)} + \lambda
+x_{(r+1)}\)</span>. If the considered interval is a lower-confidence
+interval, we are interested in finding <span class="math inline">\(P( z
+\leq x_p)=\int_{-\infty}^{x_p}
+f_z(z) dz\)</span>. Here, the PDF of <span
+class="math inline">\(z\)</span> is found as</p>
 <p><span class="math display">\[
 f_z(z) = \int_{-\infty}^{z} f_{x_{(r)},x_{(r+1)}}( x_{(r)},
 x_{(r+1)}^*) dx_{(r)}, \quad\text{where}\quad x_{(r+1)}^* =
@@ -563,7 +564,7 @@ x_{(r+1)}) = \frac{n!}{(r-1)!(n-r-1)!} F(x_{(r)})^{r-1}
 integration using, e.g., the <code>integral</code> function.</p>
 <h1 class="unnumbered" id="references">References</h1>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-deangelis_etal1993" class="csl-entry" role="listitem">
 De Angelis, D., P. Hall, and G. A. Young. 1993. <span>“A Note on
 Coverage Error of Bootstrap Confidence Intervals for Quantiles.”</span>

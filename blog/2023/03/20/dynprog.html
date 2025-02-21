@@ -227,7 +227,7 @@ U(i/j-1/k/0)]}_{\text{stick into hole}} \\
 +  U(i-1/k/j+1/1)]}_{\text{take stick from lid}}
 \end{align*}
 \]</span> and the action to stop has value <span
-class="math inline">\(R(i-1/k/j+1/1) + U(i-1/k/j+1/1)\)</span>.</p>
+class="math inline">\(R(i-1/k/j+1/1) +  U(i-1/k/j+1/1)\)</span>.</p>
 <h2 id="value-iteration">Value Iteration</h2>
 <p>We use <strong>value iteration</strong> <span class="citation"
 data-cites="russell_norvig2020">(Sect. 17.2.1, Russell and Norvig
@@ -264,8 +264,8 @@ class="math inline">\(\delta \gets |U(s&#39;)-U(s)|\)</span></li>
 <p>The optimal action for state <span class="math inline">\(s\)</span>
 is thus the action maximing the sum term in Step 2a, i.e. <span
 class="math inline">\(\pi(s) = \operatorname{argmax}_{a\in
-\mathcal{A}(s)} \sum_{s&#39;}P(s&#39;| s,a) \left[ R(s,a,s&#39;) +
-\max_{a&#39;} U(s&#39;) \right]\)</span>. Either one computes this at
+\mathcal{A}(s)} \sum_{s&#39;}P(s&#39;| s,a) \left[ R(s,a,s&#39;)
++  \max_{a&#39;} U(s&#39;) \right]\)</span>. Either one computes this at
 the end of the algorithm or one adds this book-keeping step as part of
 step 2a in the value iteration algorithm. Technically, <span
 class="math inline">\(\pi\approx \pi^*\)</span>, i.e. we only obtain an
@@ -620,7 +620,7 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a hr
 <span id="cb4-217"><a href="#cb4-217" aria-hidden="true" tabindex="-1"></a><span class="co"># print(s_best.to_string(index=False))</span></span></code></pre></div>
 <h2 class="unnumbered" id="references">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-jehn2021" class="csl-entry" role="listitem">
 Jehn, Rüdiger. 2021. <span>“Optimum Strategies for the Game Super
 Six.”</span> arXiv. <a

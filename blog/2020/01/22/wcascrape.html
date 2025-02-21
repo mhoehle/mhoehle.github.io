@@ -142,7 +142,7 @@ href="https://cran.r-project.org/web/packages/RSelenium/index.html"><code>Rselen
 based scraping code to get the above table looks as follows.</p>
 <!-- Note: Open ~/Programs/chromedriver -->
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RSelenium)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>driver <span class="ot">&lt;-</span> <span class="fu">rsDriver</span>(<span class="at">browser =</span> <span class="fu">c</span>(<span class="st">&quot;chrome&quot;</span>), <span class="at">chromever =</span> <span class="st">&quot;79.0.3945.36&quot;</span>, <span class="at">port =</span> 4568L)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>driver <span class="ot">&lt;-</span> <span class="fu">rsDriver</span>(<span class="at">browser =</span> <span class="fu">c</span>(<span class="st">&quot;chrome&quot;</span>), <span class="at">chromever =</span> <span class="st">&quot;79.0.3945.36&quot;</span>, <span class="at">port =</span> <span class="dv">4568</span><span class="dt">L</span>)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>remote_driver <span class="ot">&lt;-</span> driver[[<span class="st">&quot;client&quot;</span>]] </span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Fetch WCA live results of the 3x3x3 round 1 from the Berlin Winter Cubing 2020 competition</span></span>

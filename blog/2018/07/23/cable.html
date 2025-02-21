@@ -224,7 +224,8 @@ y_2(a,x)
 <span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>To ensure <span class="math inline">\(x&gt;0\)</span> we
 re-parametrized the equations with <span class="math inline">\(\theta_2
-= \log(x)\)</span> and provide the function <code>theta2ax</code> to
+=
+\log(x)\)</span> and provide the function <code>theta2ax</code> to
 backtransform the result. We can now use the <a
 href="https://cran.r-project.org/web/packages/nleqslv/index.html"><code>nleqslv</code></a>
 package to solve the non-linear equation system using a one-liner:</p>
@@ -393,15 +394,15 @@ equation system manually:</p>
 ## [6,] 0.05355207 23.66860
 ## [7,] 0.05355207 23.66860</code></pre>
 <p>We show the moves of the algorithm in a 2D contour plot for <span
-class="math inline">\(r(a,x) = \sqrt{y_1(a,x)^2 + y_2(a,x)^2}\)</span>.
-The solution to the system has <span
-class="math inline">\(r(a,x)=0\)</span>. See the <a
+class="math inline">\(r(a,x) =
+\sqrt{y_1(a,x)^2 + y_2(a,x)^2}\)</span>. The solution to the system has
+<span class="math inline">\(r(a,x)=0\)</span>. See the <a
 href="%60r%20paste0(%22https://raw.githubusercontent.com/hoehleatsu/hoehleatsu.github.io/master/_source/%22,current_input())%60">code</a>
 on github for details.</p>
 <p><img src="/blog/figure/source/2018-07-23-cable/NRSTEPSPLOT-1.png" style="display: block; margin: auto;" /></p>
 <h2 class="unnumbered" id="literature">Literature</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-chatterjee_nita2010" class="csl-entry" role="listitem">
 Chatterjee, N., and B. G. Nita. 2010. <span>“The Hanging Cable Problem
 for Practical Applications.”</span> <em>Atlantic Electronic Journal of

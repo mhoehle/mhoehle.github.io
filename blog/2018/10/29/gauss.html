@@ -110,12 +110,13 @@ of the particular syndrome out of all syndrome reports is calculated. In
 other words: given that the counts for a particular day <span
 class="math inline">\(t\)</span> are <span class="math inline">\(y_{it},
 i=1, \ldots, 14\)</span>, the monitored proportion is <span
-class="math inline">\(p_{it} = y_{it}/\sum_{j=1}^{14} y_{jt}\)</span>.
-It is thus clear that it’s impossible to get beyond 100%. The more
-surprising was that the upper level in the figure goes beyond it - a
-sign of an inadequate statistical method. What the authors do is to
-compute an upper threshold for a particular day <span
-class="math inline">\(t_{0}\)</span> as follows:</p>
+class="math inline">\(p_{it}
+= y_{it}/\sum_{j=1}^{14} y_{jt}\)</span>. It is thus clear that it’s
+impossible to get beyond 100%. The more surprising was that the upper
+level in the figure goes beyond it - a sign of an inadequate statistical
+method. What the authors do is to compute an upper threshold for a
+particular day <span class="math inline">\(t_{0}\)</span> as
+follows:</p>
 <p><span class="math display">\[
 U_{t_0} = \overline{p}_{t_0}(d) + k \cdot s_{t_0}(d), \quad
 \text{where}\\
@@ -272,8 +273,9 @@ baseline data, we assume a <span
 class="math inline">\(\operatorname{Be}(0.5, 0.5)\)</span> prior for it
 initially. Observing <span class="math inline">\(y_{t} \sim
 \operatorname{Bin}(n_t, \pi_{t_0})\)</span> for <span
-class="math inline">\(t=t_0-d, \ldots, t_0-1\)</span>, the posterior for
-<span class="math inline">\(\pi_{t_0}\)</span> will be <span
+class="math inline">\(t=t_0-d,
+\ldots, t_0-1\)</span>, the posterior for <span
+class="math inline">\(\pi_{t_0}\)</span> will be <span
 class="math display">\[
 \pi_{t_0} | y_{t_0-d},
 \ldots, y_{t_0-1} \sim
@@ -410,17 +412,18 @@ looks awfully conservative!</p>
 class="math inline">\(\pi\)</span> near 100%, which means no alarms are
 sounded here. This is related to the fact that if <span
 class="math inline">\(U_{t_0}=n_{t_0}\)</span> then, because <span
-class="math inline">\(p_{t_0} &gt; U_{t_0}\)</span> is required before
-an alarm will be sounded, no alarm is possible. Furthermore, both the
-beta-binomial, the binomial variant and the non-parametric procedure
-have FAPs slightly lower than the nominal 2.5%. This is again related to
-the discreteness of the problem: It might not be possible to find an
-integer limit <span class="math inline">\(U\)</span> such that the CDF
-at <span class="math inline">\(U\)</span> is exactly 97.5%, i.e. usually
-<span class="math inline">\(F(q_{0.975})&gt;0.975\)</span>. Because we
-only sound alarms if <span class="math inline">\(y_{t_0} &gt;
-U\)</span>, i.e. the probability for this to occur is even smaller,
-namely, <span class="math inline">\(1-F(q_{0.975}+1)\)</span>.</p>
+class="math inline">\(p_{t_0} &gt;
+U_{t_0}\)</span> is required before an alarm will be sounded, no alarm
+is possible. Furthermore, both the beta-binomial, the binomial variant
+and the non-parametric procedure have FAPs slightly lower than the
+nominal 2.5%. This is again related to the discreteness of the problem:
+It might not be possible to find an integer limit <span
+class="math inline">\(U\)</span> such that the CDF at <span
+class="math inline">\(U\)</span> is exactly 97.5%, i.e. usually <span
+class="math inline">\(F(q_{0.975})&gt;0.975\)</span>. Because we only
+sound alarms if <span class="math inline">\(y_{t_0} &gt; U\)</span>,
+i.e. the probability for this to occur is even smaller, namely, <span
+class="math inline">\(1-F(q_{0.975}+1)\)</span>.</p>
 <p>Note that in the above simulation study the binomial and
 beta-binomial models are in advantage, because the model used to
 simulate data is identical and closely identical, respectively, to how
@@ -555,7 +558,7 @@ data-cites="sarma_etal2018">Sarma et al. (2018)</span> paper are
 previous colleagues, which I have published together with.</p>
 <h2 class="unnumbered" id="literature">Literature</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-arts_etal2004" class="csl-entry" role="listitem">
 Arts, G. R. J., F. P. A. Coolen, and P. van der Laan. 2004.
 <span>“Nonparametric Predictive Inference in Statistical Process

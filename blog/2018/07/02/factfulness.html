@@ -311,13 +311,14 @@ of the mixture distribution and <span class="math inline">\(n\)</span>
 is the total world population. The mountain plot below shows this for a
 given partition with <span
 class="math inline">\(n=7,305,116,647\)</span>. Note that <span
-class="math inline">\(2.5\cdot 10^8\)</span> corresponds to 250 mio
-people. Also note the <span class="math inline">\(\log_2\)</span>
-x-axis, and hence (on the linear scale) unequally wide intervals of the
-partitioning. Contrary to <em>Factfulness</em>’, I prefer to make this
-more explicit by indicating the intervals explicitly on the x-axis of
-the mountain plot, because it is about number of people in certain
-<strong>income brackets</strong>.</p>
+class="math inline">\(2.5\cdot
+10^8\)</span> corresponds to 250 mio people. Also note the <span
+class="math inline">\(\log_2\)</span> x-axis, and hence (on the linear
+scale) unequally wide intervals of the partitioning. Contrary to
+<em>Factfulness</em>’, I prefer to make this more explicit by indicating
+the intervals explicitly on the x-axis of the mountain plot, because it
+is about number of people in certain <strong>income
+brackets</strong>.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Function to prepare the data.frame to be used in a mountain plot</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>make_mountain_df <span class="ot">&lt;-</span> <span class="cf">function</span>(gm_df, <span class="at">log2x=</span><span class="fu">seq</span>(<span class="sc">-</span><span class="dv">2</span>,<span class="dv">9</span>,<span class="at">by=</span><span class="fl">0.25</span>)) {</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="do">##Make a data.frame containing the intervals with appropriate annotation</span></span>
@@ -451,7 +452,7 @@ src="/blog/figure/source/2018-07-02-factfulness/moving-mountains.gif" />
 </center>
 <h2 class="unnumbered" id="literature">Literature</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-vanzanden_etal2011" class="csl-entry" role="listitem">
 van Zanden, J. L., J. Baten, P. Foldvari, and B. van Leeuwen. 2011.
 <span>“<span class="nocase">The Changing Shape of Global Inequality -

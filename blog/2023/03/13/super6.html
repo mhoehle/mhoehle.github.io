@@ -675,7 +675,7 @@ four other strategies.</p>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>player_names <span class="ot">&lt;-</span> <span class="fu">names</span>(player_list)</span></code></pre></div>
 <p>We now consider all possible matches of these players. This can be
 games ranging from just 2 of the players to all 5 of them.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>n_players <span class="ot">&lt;-</span> 2L<span class="sc">:</span><span class="fu">length</span>(player_names)</span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>n_players <span class="ot">&lt;-</span> <span class="dv">2</span><span class="dt">L</span><span class="sc">:</span><span class="fu">length</span>(player_names)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>matches <span class="ot">&lt;-</span> <span class="fu">map</span>(n_players, <span class="cf">function</span>(m) {</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  utils<span class="sc">::</span><span class="fu">combn</span>(player_names, <span class="at">m=</span>m, <span class="at">simplify=</span><span class="cn">FALSE</span>)</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">%&gt;%</span> <span class="fu">setNames</span>(n_players)</span>
@@ -1057,7 +1057,7 @@ class="math inline">\(n=2\)</span> scenario remains even when both
 players use the <code>jehn</code> optimal winning strategy.</p>
 <h2 class="unnumbered" id="literature">Literature</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-jehn2021" class="csl-entry" role="listitem">
 Jehn, Rüdiger. 2021. <span>“Optimum Strategies for the Game Super
 Six.”</span> arXiv. <a

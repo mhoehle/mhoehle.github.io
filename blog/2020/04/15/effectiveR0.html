@@ -256,7 +256,7 @@ approach. In code:</p>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param GT_obj PMF of the generation time R0.GT object </span></span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param half_window_width Integer denoting the half-window width</span></span>
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>est_rt_exp <span class="ot">&lt;-</span> <span class="cf">function</span>(ts, GT_obj, <span class="at">half_window_width=</span>3L) {</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>est_rt_exp <span class="ot">&lt;-</span> <span class="cf">function</span>(ts, GT_obj, <span class="at">half_window_width=</span><span class="dv">3</span><span class="dt">L</span>) {</span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Loop over all time points where the sliding window fits in</span></span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">&lt;-</span> <span class="fu">sapply</span>((half_window_width<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(<span class="fu">length</span>(ts)<span class="sc">-</span>half_window_width), <span class="cf">function</span>(t) {</span>
 <span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Define the sliding window</span></span>
@@ -277,8 +277,8 @@ approach. In code:</p>
 <h3 id="rki-method">RKI Method</h3>
 <p>In a recent <a
 href="https://www.rki.de/DE/Content/Infekt/EpidBull/Archiv/2020/Ausgaben/17_20_SARS-CoV2_vorab.pdf?__blob=publicationFile">report</a>
-[<span class="citation" data-cites="anderheiden_hamouda2020">an der
-Heiden and Hamouda (2020)</span>]<a href="#fn1" class="footnote-ref"
+<span class="citation" data-cites="anderheiden_hamouda2020">(an der
+Heiden and Hamouda 2020)</span><a href="#fn1" class="footnote-ref"
 id="fnref1" role="doc-noteref"><sup>1</sup></a> the RKI described their
 method for computing <span class="math inline">\(R_e(t)\)</span> as part
 of the COVID-19 outbreak as follows (p. 13): <em>For a constant
@@ -309,7 +309,7 @@ the last of the 8 values used in the computation.</p>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param ts - Vector of integer values containing the time series of incident cases</span></span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @param GT - PMF of the generation time is a fixed point mass at the value GT.</span></span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>est_rt_rki_last <span class="ot">&lt;-</span> <span class="cf">function</span>(ts, <span class="at">GT=</span>4L) {</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>est_rt_rki_last <span class="ot">&lt;-</span> <span class="cf">function</span>(ts, <span class="at">GT=</span><span class="dv">4</span><span class="dt">L</span>) {</span>
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sanity check</span></span>
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.integer</span>(GT) <span class="sc">|</span> <span class="sc">!</span>(GT<span class="sc">&gt;</span><span class="dv">0</span>)) <span class="fu">stop</span>(<span class="st">&quot;GT has to be postive integer.&quot;</span>)</span>
 <span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Estimate, if s=1 is t-7</span></span>
@@ -346,7 +346,7 @@ configurations.</p>
 <p>We compute and plot of the <span
 class="math inline">\(R_e(t)\)</span> estimates:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># RKI method as specified in 2020-04-24 version of the article</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>rt_rki_last <span class="ot">&lt;-</span> <span class="fu">est_rt_rki_last</span>(out<span class="sc">$</span>y  <span class="sc">%&gt;%</span> <span class="fu">setNames</span>(out<span class="sc">$</span>Date), <span class="at">GT=</span>4L)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>rt_rki_last <span class="ot">&lt;-</span> <span class="fu">est_rt_rki_last</span>(out<span class="sc">$</span>y  <span class="sc">%&gt;%</span> <span class="fu">setNames</span>(out<span class="sc">$</span>Date), <span class="at">GT=</span><span class="dv">4</span><span class="dt">L</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Exponential growth with discrete Laplace transform of a GT \equiv = 4 distribution</span></span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>rt_exp2 <span class="ot">&lt;-</span> <span class="fu">est_rt_exp</span>( out<span class="sc">$</span>y <span class="sc">%&gt;%</span> <span class="fu">setNames</span>(out<span class="sc">$</span>Date), <span class="at">GT_obj=</span>R0<span class="sc">::</span><span class="fu">generation.time</span>(<span class="st">&quot;empirical&quot;</span>, <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>)), <span class="at">half_window_width=</span><span class="dv">3</span>)</span>
@@ -466,7 +466,7 @@ href="https://epiforecasts.io/covid/">Temporal variation in transmission
 during the COVID-19 outbreak</a> by the LSHTM.</p>
 <h2 class="unnumbered" id="literature">Literature</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-anderheiden_hamouda2020" class="csl-entry" role="listitem">
 an der Heiden, M., and O. Hamouda. 2020. <span>“Schätzung Der Aktuellen
 Entwicklung Der SARS-CoV-2-Epidemie in Deutsch-Land –

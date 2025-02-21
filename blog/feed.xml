@@ -6,9 +6,1124 @@
 </description>
     <link>https://mhoehle.github.io/blog/</link>
     <atom:link href="https://mhoehle.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 13 Feb 2024 23:02:48 +0100</pubDate>
-    <lastBuildDate>Tue, 13 Feb 2024 23:02:48 +0100</lastBuildDate>
-    <generator>Jekyll v4.2.2</generator>
+    <pubDate>Fri, 21 Feb 2025 11:16:31 +0100</pubDate>
+    <lastBuildDate>Fri, 21 Feb 2025 11:16:31 +0100</lastBuildDate>
+    <generator>Jekyll v4.4.1</generator>
+    
+      <item>
+        <title>Risky Risk Results</title>
+        <description>&lt;h2 id=&quot;abstract&quot;&gt;Abstract:&lt;/h2&gt;
+&lt;p&gt;We determine the probabilities of winning battles in the dice-based
+board game &lt;strong&gt;Risk&lt;/strong&gt; by counting and using Markov chains.
+The results show that if the battle is executed with 5 or more armies,
+the attacker has a slight advantage when both the attacker and defender
+start with the same number of armies.&lt;/p&gt;
+&lt;center&gt;
+&lt;img src=&quot;/blog/figure/source/2025-02-21-risk/Risk-dice-example.jpg&quot; /&gt;
+&lt;br&gt; Image source: &lt;a
+href=&quot;https://en.wikipedia.org/wiki/Image:Risk-dice-example.jpg&quot;&gt;Wikipedia&lt;/a&gt;
+&lt;/center&gt;
+&lt;p&gt;&lt;br&gt;
+&lt;a rel=&quot;license&quot; href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;&lt;img alt=&quot;Creative Commons License&quot; style=&quot;border-width:0&quot; src=&quot;https://i.creativecommons.org/l/by-sa/4.0/88x31.png&quot;/&gt;&lt;/a&gt;
+This work is licensed under a &lt;a rel=&quot;license&quot;
+href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;Creative Commons
+Attribution-ShareAlike 4.0 International License&lt;/a&gt;. The &lt;a
+href=&quot;https://raw.githubusercontent.com/mhoehle/mhoehle.github.io/master/_source/2025-02-21-risk.Rmd&quot;&gt;R-markdown
+source code of this blog&lt;/a&gt; is available under a &lt;a
+href=&quot;https://www.gnu.org/licenses/gpl-3.0.html&quot;&gt;GNU General Public
+License (GPL v3)&lt;/a&gt; license from GitHub.&lt;/p&gt;
+&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;While watching yet another &lt;a
+href=&quot;https://www.youtube.com/watch?v=RdooKXXcWWc&quot;&gt;episode of
+Numberphile&lt;/a&gt;, I was puzzled by a statement from &lt;a
+href=&quot;https://www.simonyi.ox.ac.uk/&quot;&gt;Marcus du Sautoy&lt;/a&gt; about how
+people initially got the analysis of probabilities in the &lt;a
+href=&quot;https://en.wikipedia.org/wiki/Risk_(game)&quot;&gt;game of Risk&lt;/a&gt; wrong.
+Digging a little deeper, &lt;span class=&quot;citation&quot;
+data-cites=&quot;dusautoy2023&quot;&gt;du Sautoy (2023)&lt;/span&gt; on pp. 306-307 refers
+to erroneous probability calculations made by &lt;span class=&quot;citation&quot;
+data-cites=&quot;tan1997&quot;&gt;Tan (1997)&lt;/span&gt;, which were subsequently
+corrected by &lt;span class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne
+(2003)&lt;/span&gt; using counting techniques. What surprised me was that
+&lt;span class=&quot;citation&quot; data-cites=&quot;tan1997&quot;&gt;Tan (1997)&lt;/span&gt; could have
+easily spotted the error with a simple Monte Carlo simulation (see
+Appendix 1). This story about risky risk results for Risk has become a
+motivating example in my &lt;em&gt;Probability 101&lt;/em&gt; class on why Monte
+Carlo simulations are important.&lt;/p&gt;
+&lt;p&gt;In what follows, I shall focus on computing the necessary
+probabilities by counting. Several literature sources, including the
+aforementioned &lt;span class=&quot;citation&quot; data-cites=&quot;tan1997&quot;&gt;Tan
+(1997)&lt;/span&gt;, &lt;span class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne
+(2003)&lt;/span&gt;, as well as &lt;span class=&quot;citation&quot;
+data-cites=&quot;pierce_wooster2015&quot;&gt;Pierce and Wooster (2015)&lt;/span&gt; and
+&lt;span class=&quot;citation&quot; data-cites=&quot;hendel_etal2015&quot;&gt;Hendel et al.
+(2015)&lt;/span&gt;, calculate the probabilities. However, I was not able to
+find any publicly available programming code to verify their claims.
+Hence, the goal of this post is to provide literate programming style
+documented open-source R code to compute these probabilities.&lt;/p&gt;
+&lt;h2 id=&quot;mathematical-description-of-a-single-battle&quot;&gt;Mathematical
+Description of a Single Battle&lt;/h2&gt;
+&lt;p&gt;In the &lt;a href=&quot;https://en.wikipedia.org/wiki/Risk_(game)&quot;&gt;Game of
+Risk&lt;/a&gt; a single battle between &lt;span class=&quot;math inline&quot;&gt;\(a\)&lt;/span&gt;
+attacking armies and &lt;span class=&quot;math inline&quot;&gt;\(d\)&lt;/span&gt; defending
+armies is carried out as follows: Both the attacker and the defender
+roll one six-sided die for each of their armies inolved in the battle.
+The highest die of the attacker is then compared to the highest die of
+the defender. If the attacker’s die is higher, then the defender loses
+one army, otherwise the attacker loses one army. If both the attacker
+and the defender use more than one army, the next-highest dice are
+compared, and the process is repeated. The game imposes the restrictions
+&lt;span class=&quot;math inline&quot;&gt;\(a \in {1,2,3}\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(d \in {1,2}\)&lt;/span&gt; for a single battle.&lt;/p&gt;
+&lt;p&gt;Denote by &lt;span class=&quot;math inline&quot;&gt;\(Y_{1}, \ldots, Y_{a}\)&lt;/span&gt;
+independent random variables representing the outcomes of the &lt;span
+class=&quot;math inline&quot;&gt;\(a\)&lt;/span&gt; dice rolled by the attacker. Similarly,
+denote by &lt;span class=&quot;math inline&quot;&gt;\(Z_{1}, \ldots, Z_{d}\)&lt;/span&gt;
+independent random variables representing the outcomes of the defender’s
+&lt;span class=&quot;math inline&quot;&gt;\(d\)&lt;/span&gt; dice. Each of these &lt;span
+class=&quot;math inline&quot;&gt;\(a+d\)&lt;/span&gt; random variables follows a discrete
+uniform distribution, i.e. &lt;span
+class=&quot;math inline&quot;&gt;\(U(\{1,\ldots,6\})\)&lt;/span&gt;. Furthermore, let &lt;span
+class=&quot;math inline&quot;&gt;\(Y_{(1)}\geq \cdots \geq Y_{(a)}\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(Z_{(1)}\geq \cdots \geq Z_{(d)}\)&lt;/span&gt; denote
+the ordered outcomes of the attacker’s and defender’s dice,
+respectively.&lt;/p&gt;
+&lt;p&gt;The result of the first comparison is that the defender loses an
+army, if &lt;span class=&quot;math inline&quot;&gt;\(Y_{(1)}&amp;gt;Z_{(1)}\)&lt;/span&gt;;
+otherwise, the attacker loses an army. If a second comparison is to be
+made – that is, if &lt;span class=&quot;math inline&quot;&gt;\(\min(a,d)=2\)&lt;/span&gt; –
+then the defender loses an army if &lt;span
+class=&quot;math inline&quot;&gt;\(Y_{(2)}&amp;gt;Z_{(2)}\)&lt;/span&gt;; otherwise the
+attacker loses an army. Hence, a random variable describing the number
+of armies the defender loses in an &lt;span
+class=&quot;math inline&quot;&gt;\(a\)&lt;/span&gt; vs. &lt;span
+class=&quot;math inline&quot;&gt;\(d\)&lt;/span&gt; battle is &lt;span class=&quot;math display&quot;&gt;\[
+D = \sum_{i=1}^{\min(a,d)} I(Y_{(i)}&amp;gt;Z_{(i)}),
+\]&lt;/span&gt; where &lt;span class=&quot;math inline&quot;&gt;\(I(\cdot)\)&lt;/span&gt; is an
+indicator function that equals 1 if its argument is true and 0
+otherwise. The variable &lt;span class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; has
+support on the integer values &lt;span
+class=&quot;math inline&quot;&gt;\(0,\ldots,\min(a,d)\)&lt;/span&gt;. Similarly, the number
+of armies the attacker loses is &lt;span class=&quot;math inline&quot;&gt;\(A =
+\min(a,d) - D\)&lt;/span&gt;. Example: In the splash picture of the abstract,
+the attacker rolled 4,3,3 (red dice) and the defender 3,2 (white dice).
+Since &lt;span class=&quot;math inline&quot;&gt;\(4&amp;gt;3\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(3&amp;gt;2\)&lt;/span&gt;, the defender loses two armies in
+this specific battle.&lt;/p&gt;
+&lt;p&gt;Denote by &lt;span class=&quot;math inline&quot;&gt;\(p_{adk}\)&lt;/span&gt; the
+probability that a single battle between &lt;span
+class=&quot;math inline&quot;&gt;\(a\)&lt;/span&gt; attacking armies and &lt;span
+class=&quot;math inline&quot;&gt;\(d\)&lt;/span&gt; defending armies results in the
+defender losing &lt;span class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt; armies, &lt;span
+class=&quot;math inline&quot;&gt;\(k=0,\ldots,\min(a,d)\)&lt;/span&gt;. This probability
+can be computed by dividing the number of favourable outcomes by the
+total number of possible outcomes:&lt;/p&gt;
+&lt;p&gt;&lt;span class=&quot;math display&quot;&gt;\[\begin{align}  
+p_{adk} = \frac{1}{6^{a+d}}\sum_{y_1=0}^6 \cdots \sum_{y_a=0}^6
+\sum_{z_1=0}^6 \cdots \sum_{z_d=0}^6
+I\left(\left\{\sum_{j=1}^{\min(a,d)} I(y_{(j)}&amp;gt;z_{(j)})\right\} =
+k\right)
+\end{align}\]&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;Although this formula may look involved, the &lt;span
+class=&quot;math inline&quot;&gt;\(6^{a+d}\)&lt;/span&gt; is just the number of possible
+outcomes when throwing &lt;span class=&quot;math inline&quot;&gt;\(a+d\)&lt;/span&gt; dice and
+the summation over the indicator function is just a way to count all
+favourable configurations in the Cartesian product sample space &lt;span
+class=&quot;math inline&quot;&gt;\(\{1,\ldots,6\}^{a+d}\)&lt;/span&gt;. Since the maximum
+values for &lt;span class=&quot;math inline&quot;&gt;\(a\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(d\)&lt;/span&gt; in Risk are 3 and 2, respectively, the
+dimension of the product space will be no larger than &lt;span
+class=&quot;math inline&quot;&gt;\(6^5=`6^5`\)&lt;/span&gt;, which is tractable.&lt;/p&gt;
+&lt;h2 id=&quot;computation&quot;&gt;Computation&lt;/h2&gt;
+&lt;p&gt;We start the R code by defining that we look at outcomes of the dice
+D6, i.e. the sample space of one dice is &lt;span
+class=&quot;math inline&quot;&gt;\(\Omega = \{1,\ldots,6\}\)&lt;/span&gt;.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a href=&quot;#cb1-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Sample space for one dice throw&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb1-2&quot;&gt;&lt;a href=&quot;#cb1-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;Omega &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;We then write a function, which uses the &lt;code&gt;expand_grid()&lt;/code&gt;
+function repeatedly in order to generate the Cartesian product &lt;span
+class=&quot;math inline&quot;&gt;\(\Omega^\text{nDice}\)&lt;/span&gt; for &lt;span
+class=&quot;math inline&quot;&gt;\(\text{nDice}\in\mathbb{N}\)&lt;/span&gt; dice.
+Furthermore, we add a column containing the probability for each element
+in this sample space, i.e. the probability is &lt;span
+class=&quot;math inline&quot;&gt;\(1/|\Omega|^{\text{nDice}}=1/6^{\text{nDice}}\)&lt;/span&gt;,
+since the dice are assumed to be fair.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a href=&quot;#cb2-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Do expand_grid on the \Omega set sequentially a given number of nDice times. &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-2&quot;&gt;&lt;a href=&quot;#cb2-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# At the end we have nDice columns.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-3&quot;&gt;&lt;a href=&quot;#cb2-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-4&quot;&gt;&lt;a href=&quot;#cb2-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# @param nDice (integer) We compute \Omega_{dice}^{nDice}&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-5&quot;&gt;&lt;a href=&quot;#cb2-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# @param Omega (vector of integers) The faces on the dice.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-6&quot;&gt;&lt;a href=&quot;#cb2-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-7&quot;&gt;&lt;a href=&quot;#cb2-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# @return Tibble with nDice columns containing all |\Omega_{dice}|^{nDice} possible outcomes and a column stating the probability of each element in this sample space, i.e. 1/|\Omega_{dice}^{nDice}|.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-8&quot;&gt;&lt;a href=&quot;#cb2-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb2-9&quot;&gt;&lt;a href=&quot;#cb2-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;sample_space &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(nDice, &lt;span class=&quot;at&quot;&gt;Omega=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;6&lt;/span&gt;) {&lt;/span&gt;
+&lt;span id=&quot;cb2-10&quot;&gt;&lt;a href=&quot;#cb2-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt; &lt;span class=&quot;fu&quot;&gt;expand_grid&lt;/span&gt;(&lt;span class=&quot;sc&quot;&gt;!!!&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;replicate&lt;/span&gt;(nDice, Omega, &lt;span class=&quot;at&quot;&gt;simplify =&lt;/span&gt; &lt;span class=&quot;cn&quot;&gt;FALSE&lt;/span&gt;)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb2-11&quot;&gt;&lt;a href=&quot;#cb2-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;   &lt;span class=&quot;fu&quot;&gt;setNames&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;str_c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;D&amp;quot;&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;L&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;nDice)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb2-12&quot;&gt;&lt;a href=&quot;#cb2-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;prob =&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;length&lt;/span&gt;(Omega)&lt;span class=&quot;sc&quot;&gt;^&lt;/span&gt;nDice))&lt;/span&gt;
+&lt;span id=&quot;cb2-13&quot;&gt;&lt;a href=&quot;#cb2-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Instead of calculating a matrix containing all possible outcomes of
+the &lt;span class=&quot;math inline&quot;&gt;\(a+d\)&lt;/span&gt; dice, as in the sum-formula
+above, and then handling the sorting, we divide the problem into two
+tasks:&lt;/p&gt;
+&lt;ol type=&quot;1&quot;&gt;
+&lt;li&gt;Calculate all possible outcomes and their probabilities when sorting
+the outcome of the attacker’s &lt;span class=&quot;math inline&quot;&gt;\(a\)&lt;/span&gt;
+dices&lt;/li&gt;
+&lt;li&gt;Calculate all possible outcomes and their probabilities when sorting
+the outcome of the attacker’s &lt;span class=&quot;math inline&quot;&gt;\(d\)&lt;/span&gt;
+dices&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Since the dice throws of the attacker and defender are independent,
+we can then compute the required joint distribution by multiplying the
+two marginal distributions found in 1. and 2.&lt;/p&gt;
+&lt;p&gt;As a consequence we write a function that returns all possible
+outcomes of &lt;span class=&quot;math inline&quot;&gt;\(Y_{(1)} \leq \ldots \leq
+Y_{(\text{nCompare})}\)&lt;/span&gt; obtained after ordering the outcome of
+dice, i.e. &lt;span class=&quot;math inline&quot;&gt;\(Y_{(1)} \leq \ldots \leq
+Y_{(\text{nDice})}\)&lt;/span&gt; with &lt;span
+class=&quot;math inline&quot;&gt;\(\text{nCompare} \leq \text{nDice}\)&lt;/span&gt;. To be
+compatible with the game of risk &lt;span
+class=&quot;math inline&quot;&gt;\(\text{nCompare}\in\{1,2\}\)&lt;/span&gt;. We compute the
+associated probabilities by adding up the underlying entries of the
+Cartesian sample space.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb3&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb3-1&quot;&gt;&lt;a href=&quot;#cb3-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;combos_sorted &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;nDice=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;nCompare=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;min&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;,nDice), &lt;span class=&quot;at&quot;&gt;base_name =&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&amp;quot;y&amp;quot;&lt;/span&gt;) {&lt;/span&gt;
+&lt;span id=&quot;cb3-2&quot;&gt;&lt;a href=&quot;#cb3-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Generate all outcomes and make a label&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-3&quot;&gt;&lt;a href=&quot;#cb3-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# which identifies which of the sorted bins the outcome belongs to&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-4&quot;&gt;&lt;a href=&quot;#cb3-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  combos &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sample_space&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;nDice=&lt;/span&gt;nDice) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-5&quot;&gt;&lt;a href=&quot;#cb3-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;rowwise&lt;/span&gt;() &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb3-6&quot;&gt;&lt;a href=&quot;#cb3-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;combo_sorted =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;str_c&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;sort&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;c_across&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;all_of&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;paste0&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;D&amp;quot;&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;nDice))), &lt;span class=&quot;at&quot;&gt;decreasing=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;collapse=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;&amp;quot;&lt;/span&gt;),&lt;/span&gt;
+&lt;span id=&quot;cb3-7&quot;&gt;&lt;a href=&quot;#cb3-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;           &lt;span class=&quot;at&quot;&gt;combo_label =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;str_sub&lt;/span&gt;(combo_sorted, &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, nCompare)) &lt;/span&gt;
+&lt;span id=&quot;cb3-8&quot;&gt;&lt;a href=&quot;#cb3-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
+&lt;span id=&quot;cb3-9&quot;&gt;&lt;a href=&quot;#cb3-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Count accoring&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-10&quot;&gt;&lt;a href=&quot;#cb3-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  combos_summed &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; combos &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;group_by&lt;/span&gt;(combo_label) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-11&quot;&gt;&lt;a href=&quot;#cb3-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;n=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;n&lt;/span&gt;(), &lt;span class=&quot;at&quot;&gt;prob=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(prob)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb3-12&quot;&gt;&lt;a href=&quot;#cb3-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;arrange&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;desc&lt;/span&gt;(combo_label)) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb3-13&quot;&gt;&lt;a href=&quot;#cb3-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;co&quot;&gt;# We use the notation by Osborn (2009) and denote the columns y^{(1)} \geq y^{(2)} \geq y^{(3)}&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-14&quot;&gt;&lt;a href=&quot;#cb3-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;separate_wider_position&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;cols =&lt;/span&gt; combo_label, &lt;span class=&quot;at&quot;&gt;widths =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;set_names&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;rep&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;, nCompare), &lt;span class=&quot;at&quot;&gt;nm=&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;str_c&lt;/span&gt;(base_name, &lt;span class=&quot;st&quot;&gt;&amp;quot;_{(&amp;quot;&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;nCompare,&lt;span class=&quot;st&quot;&gt;&amp;quot;)}&amp;quot;&lt;/span&gt;)))&lt;/span&gt;
+&lt;span id=&quot;cb3-15&quot;&gt;&lt;a href=&quot;#cb3-15&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-16&quot;&gt;&lt;a href=&quot;#cb3-16&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Done&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb3-17&quot;&gt;&lt;a href=&quot;#cb3-17&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;return&lt;/span&gt;(combos_summed)&lt;/span&gt;
+&lt;span id=&quot;cb3-18&quot;&gt;&lt;a href=&quot;#cb3-18&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;As an example:&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb4&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb4-1&quot;&gt;&lt;a href=&quot;#cb4-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;combos_sorted&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;nDice=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;nCompare=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 21 × 4
+##   `y_{(1)}` `y_{(2)}`     n   prob
+##   &amp;lt;chr&amp;gt;     &amp;lt;chr&amp;gt;     &amp;lt;int&amp;gt;  &amp;lt;dbl&amp;gt;
+## 1 6         6            16 0.0741
+## 2 6         5            27 0.125 
+## 3 6         4            21 0.0972
+## 4 6         3            15 0.0694
+## 5 6         2             9 0.0417
+## # ℹ 16 more rows&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This can then be combined to obtain the joint distribution of the
+sorted dice to be compared.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb6&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb6-1&quot;&gt;&lt;a href=&quot;#cb6-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;joint_combos_sorted &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(a, d) {&lt;/span&gt;
+&lt;span id=&quot;cb6-2&quot;&gt;&lt;a href=&quot;#cb6-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Sort the throws of the attacker and defender&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb6-3&quot;&gt;&lt;a href=&quot;#cb6-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  Y &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;combos_sorted&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;nDice=&lt;/span&gt;a, &lt;span class=&quot;at&quot;&gt;base_name=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;y&amp;quot;&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb6-4&quot;&gt;&lt;a href=&quot;#cb6-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  Z &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;combos_sorted&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;nDice=&lt;/span&gt;d, &lt;span class=&quot;at&quot;&gt;base_name=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;z&amp;quot;&lt;/span&gt;) &lt;/span&gt;
+&lt;span id=&quot;cb6-5&quot;&gt;&lt;a href=&quot;#cb6-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
+&lt;span id=&quot;cb6-6&quot;&gt;&lt;a href=&quot;#cb6-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Make a tibble with all combinations of the a vs. d armies fight&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb6-7&quot;&gt;&lt;a href=&quot;#cb6-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  joint &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; Y &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cross_join&lt;/span&gt;(Z) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb6-8&quot;&gt;&lt;a href=&quot;#cb6-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;prob =&lt;/span&gt; prob.x &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; prob.y,&lt;/span&gt;
+&lt;span id=&quot;cb6-9&quot;&gt;&lt;a href=&quot;#cb6-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;           &lt;span class=&quot;at&quot;&gt;n =&lt;/span&gt; n.x &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; n.y) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb6-10&quot;&gt;&lt;a href=&quot;#cb6-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;select&lt;/span&gt;(&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;n.x, &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;n.y, &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;prob.x, &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;prob.y)&lt;/span&gt;
+&lt;span id=&quot;cb6-11&quot;&gt;&lt;a href=&quot;#cb6-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
+&lt;span id=&quot;cb6-12&quot;&gt;&lt;a href=&quot;#cb6-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;#Done&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb6-13&quot;&gt;&lt;a href=&quot;#cb6-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;return&lt;/span&gt;(joint)&lt;/span&gt;
+&lt;span id=&quot;cb6-14&quot;&gt;&lt;a href=&quot;#cb6-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which for a single &lt;span class=&quot;math inline&quot;&gt;\(a=3\)&lt;/span&gt; vs. &lt;span
+class=&quot;math inline&quot;&gt;\(d=2\)&lt;/span&gt; battle would look like:&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb7&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb7-1&quot;&gt;&lt;a href=&quot;#cb7-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;head&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;joint_combos_sorted&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;n=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 3 × 6
+##   `y_{(1)}` `y_{(2)}` `z_{(1)}` `z_{(2)}`    prob     n
+##   &amp;lt;chr&amp;gt;     &amp;lt;chr&amp;gt;     &amp;lt;chr&amp;gt;     &amp;lt;chr&amp;gt;       &amp;lt;dbl&amp;gt; &amp;lt;int&amp;gt;
+## 1 6         6         6         6         0.00206    16
+## 2 6         6         6         5         0.00412    32
+## 3 6         6         6         4         0.00412    32&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;We can now compute &lt;span class=&quot;math inline&quot;&gt;\(p_{adk}\)&lt;/span&gt; by
+comparing &lt;span class=&quot;math inline&quot;&gt;\(Y_{(i)}&amp;gt;Z_{(i)}\)&lt;/span&gt; for
+all relevant &lt;span class=&quot;math inline&quot;&gt;\(i=1,\ldots,\min(a,d)\)&lt;/span&gt;
+and summing all outcomes where the defender loses &lt;span
+class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt; armies:&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb9&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb9-1&quot;&gt;&lt;a href=&quot;#cb9-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;do&quot;&gt;########################################################################&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-2&quot;&gt;&lt;a href=&quot;#cb9-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Distribution over the number of armies that defender is losing,&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-3&quot;&gt;&lt;a href=&quot;#cb9-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# when attacker is using A armies and defender is using D armies.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-4&quot;&gt;&lt;a href=&quot;#cb9-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# &lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-5&quot;&gt;&lt;a href=&quot;#cb9-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# @param A Number of armies (=dice) the attacker sends into the battle&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-6&quot;&gt;&lt;a href=&quot;#cb9-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# @param D Number of armies (=dice) the defender sends into the fight&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-7&quot;&gt;&lt;a href=&quot;#cb9-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-8&quot;&gt;&lt;a href=&quot;#cb9-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# @return A tibble containing all possible outcomes of the battle in terms&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-9&quot;&gt;&lt;a href=&quot;#cb9-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;#         of losses for attacker and defender.&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-10&quot;&gt;&lt;a href=&quot;#cb9-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;do&quot;&gt;########################################################################&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-11&quot;&gt;&lt;a href=&quot;#cb9-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;p_lose_ad &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;) {&lt;/span&gt;
+&lt;span id=&quot;cb9-12&quot;&gt;&lt;a href=&quot;#cb9-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# All joint combinations of attacker and defender&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-13&quot;&gt;&lt;a href=&quot;#cb9-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  joint &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;joint_combos_sorted&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;a, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;d)&lt;/span&gt;
+&lt;span id=&quot;cb9-14&quot;&gt;&lt;a href=&quot;#cb9-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
+&lt;span id=&quot;cb9-15&quot;&gt;&lt;a href=&quot;#cb9-15&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Number of dice to compare&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-16&quot;&gt;&lt;a href=&quot;#cb9-16&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  nCompare &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;pmin&lt;/span&gt;(a, d)&lt;/span&gt;
+&lt;span id=&quot;cb9-17&quot;&gt;&lt;a href=&quot;#cb9-17&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
+&lt;span id=&quot;cb9-18&quot;&gt;&lt;a href=&quot;#cb9-18&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# I find this loop version easier to understand&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-19&quot;&gt;&lt;a href=&quot;#cb9-19&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# than a corresponding tidyverse version&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-20&quot;&gt;&lt;a href=&quot;#cb9-20&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; (k &lt;span class=&quot;cf&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;seq_len&lt;/span&gt;(nCompare)) {&lt;/span&gt;
+&lt;span id=&quot;cb9-21&quot;&gt;&lt;a href=&quot;#cb9-21&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    joint[, &lt;span class=&quot;fu&quot;&gt;str_c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;lose_D_pos&amp;quot;&lt;/span&gt;, k)] &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; (joint[,&lt;span class=&quot;fu&quot;&gt;str_c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;y_{(&amp;quot;&lt;/span&gt;,k,&lt;span class=&quot;st&quot;&gt;&amp;quot;)}&amp;quot;&lt;/span&gt;)] &lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt; joint[,&lt;span class=&quot;fu&quot;&gt;str_c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;z_{(&amp;quot;&lt;/span&gt;,k,&lt;span class=&quot;st&quot;&gt;&amp;quot;)}&amp;quot;&lt;/span&gt;)])&lt;/span&gt;
+&lt;span id=&quot;cb9-22&quot;&gt;&lt;a href=&quot;#cb9-22&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  }&lt;/span&gt;
+&lt;span id=&quot;cb9-23&quot;&gt;&lt;a href=&quot;#cb9-23&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
+&lt;span id=&quot;cb9-24&quot;&gt;&lt;a href=&quot;#cb9-24&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Total sum of armies lost by defender and attacker, respectively&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-25&quot;&gt;&lt;a href=&quot;#cb9-25&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  joint &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; joint &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb9-26&quot;&gt;&lt;a href=&quot;#cb9-26&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;lose_D =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;rowSums&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;select&lt;/span&gt;(., &lt;span class=&quot;fu&quot;&gt;matches&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;^lose_D_pos[0-9]+&amp;quot;&lt;/span&gt;))),&lt;/span&gt;
+&lt;span id=&quot;cb9-27&quot;&gt;&lt;a href=&quot;#cb9-27&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;           &lt;span class=&quot;at&quot;&gt;lose_A =&lt;/span&gt; nCompare &lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt; lose_D)  &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb9-28&quot;&gt;&lt;a href=&quot;#cb9-28&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;select&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;starts_with&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;y&amp;quot;&lt;/span&gt;), &lt;span class=&quot;fu&quot;&gt;starts_with&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;z&amp;quot;&lt;/span&gt;), prob, lose_A, lose_D) &lt;/span&gt;
+&lt;span id=&quot;cb9-29&quot;&gt;&lt;a href=&quot;#cb9-29&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;/span&gt;
+&lt;span id=&quot;cb9-30&quot;&gt;&lt;a href=&quot;#cb9-30&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Add up probabilities for all combos yielding a specific&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-31&quot;&gt;&lt;a href=&quot;#cb9-31&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# lose_A, lose_D combo&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-32&quot;&gt;&lt;a href=&quot;#cb9-32&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  res &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; joint &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;group_by&lt;/span&gt;(lose_A, lose_D) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb9-33&quot;&gt;&lt;a href=&quot;#cb9-33&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;prob =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(prob), &lt;span class=&quot;at&quot;&gt;.groups=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&amp;quot;drop&amp;quot;&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb9-34&quot;&gt;&lt;a href=&quot;#cb9-34&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;fu&quot;&gt;arrange&lt;/span&gt;(lose_D)&lt;/span&gt;
+&lt;span id=&quot;cb9-35&quot;&gt;&lt;a href=&quot;#cb9-35&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-36&quot;&gt;&lt;a href=&quot;#cb9-36&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Done&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb9-37&quot;&gt;&lt;a href=&quot;#cb9-37&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;return&lt;/span&gt;(res)&lt;/span&gt;
+&lt;span id=&quot;cb9-38&quot;&gt;&lt;a href=&quot;#cb9-38&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;To test the function, we compute &lt;span
+class=&quot;math inline&quot;&gt;\((p_{320},p_{321},p_{322})\)&lt;/span&gt;, which &lt;span
+class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne (2003)&lt;/span&gt; found to
+be &lt;span class=&quot;math inline&quot;&gt;\((2275, 2611,
+2890)/7776=(0.293,0.336,0.372)\)&lt;/span&gt;:&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb10&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb10-1&quot;&gt;&lt;a href=&quot;#cb10-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# 3 vs. 2 battle&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb10-2&quot;&gt;&lt;a href=&quot;#cb10-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;p_lose_ad&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 3 × 3
+##   lose_A lose_D  prob
+##    &amp;lt;dbl&amp;gt;  &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+## 1      2      0 0.293
+## 2      1      1 0.336
+## 3      0      2 0.372&lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb12&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb12-1&quot;&gt;&lt;a href=&quot;#cb12-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Check that p_lose_ad is correct for p_{32k}, k=0,1,2&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb12-2&quot;&gt;&lt;a href=&quot;#cb12-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;all.equal&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;p_lose_ad&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;pull&lt;/span&gt;(prob), &lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;2275&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;2611&lt;/span&gt;, &lt;span class=&quot;dv&quot;&gt;2890&lt;/span&gt;)&lt;span class=&quot;sc&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;7776&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## [1] TRUE&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;An alternative verification is to use the &lt;a
+href=&quot;https://topps.diku.dk/torbenm/troll.msp&quot;&gt;Troll dice roller and
+probability calculator&lt;/a&gt; by &lt;a
+href=&quot;http://hjemmesider.diku.dk/~torbenm/&quot;&gt;Torben Æ. Mogensen&lt;/a&gt; using
+the following syntax:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;a:=3d6;b:=2d6;
+count {(max a)&amp;gt;(max b),(min largest 2 a)&amp;gt;(min b)}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Troll computes the probability distribution as:&lt;/p&gt;
+&lt;center&gt;
+&lt;img src=&quot;/blog/figure/source/2025-02-21-risk/troll_riskroll.png&quot; /&gt;
+&lt;br&gt; Figure 1: Results for the 3 vs. 2 risk roll in Troll.
+&lt;/center&gt;
+&lt;p&gt;
+&lt;p&gt;Note that for the &lt;span class=&quot;math inline&quot;&gt;\(p_{32k},
+k=0,1,2\)&lt;/span&gt; setup, &lt;span class=&quot;citation&quot; data-cites=&quot;tan1997&quot;&gt;Tan
+(1997)&lt;/span&gt; instead obtained &lt;span class=&quot;math inline&quot;&gt;\((0.237,
+0.504, 0.259)\)&lt;/span&gt;, which differs substantially from the correct
+result. See Appendix 2 for a discussion of his calculations.&lt;/p&gt;
+&lt;p&gt;The complete table of probabilities for all possible single battle
+attacker vs. defender configurations can now be computed as follows:&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb15&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb15-1&quot;&gt;&lt;a href=&quot;#cb15-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;state_change &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;expand_grid&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;rowwise&lt;/span&gt;() &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb15-2&quot;&gt;&lt;a href=&quot;#cb15-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;prob =&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;list&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;p_lose_ad&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;a, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;d))) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb15-3&quot;&gt;&lt;a href=&quot;#cb15-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;unnest&lt;/span&gt;(prob)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 14 × 4
+##        a     d     k  prob
+##    &amp;lt;int&amp;gt; &amp;lt;int&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+##  1     1     1     0 0.583
+##  2     1     1     1 0.417
+##  3     1     2     0 0.745
+##  4     1     2     1 0.255
+##  5     2     1     0 0.421
+##  6     2     1     1 0.579
+##  7     2     2     0 0.448
+##  8     2     2     1 0.324
+##  9     2     2     2 0.228
+## 10     3     1     0 0.340
+## 11     3     1     1 0.660
+## 12     3     2     0 0.293
+## 13     3     2     1 0.336
+## 14     3     2     2 0.372&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Voila! The values align with those in Table 2 of &lt;span
+class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne (2003)&lt;/span&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;repeated-battles-using-markov-chains&quot;&gt;Repeated Battles using
+Markov Chains&lt;/h2&gt;
+&lt;p&gt;Once the probabilities for army losses of a single battle have been
+computed, the natural follow-up question is: what happens if the
+attacker decides to continue the attack? Assume that the attacker
+continues to battle with as many armies as possible until either the
+attacker has no armies left to attack with or the defender is destroyed,
+i.e. has no armies left. What is the probability of an attacker with
+&lt;span class=&quot;math inline&quot;&gt;\(A\geq 1\)&lt;/span&gt; armies winning such a
+repeated attack against a defender with &lt;span
+class=&quot;math inline&quot;&gt;\(D\geq 1\)&lt;/span&gt; armies?&lt;/p&gt;
+&lt;p&gt;As stated in &lt;span class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne
+(2003)&lt;/span&gt;, this is elegantly solved using Markov chains. Denote by
+&lt;span class=&quot;math inline&quot;&gt;\((A,D)\)&lt;/span&gt; the current state of the
+chain with &lt;span class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; attacking armies and
+&lt;span class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; defending armies. Assuming that
+both attacker and defender use as many dice possible, i.e. &lt;span
+class=&quot;math inline&quot;&gt;\(a=\min(3,A)\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(d=\min(2,D)\)&lt;/span&gt;, the next battle would be a 3
+vs. 2 battle if &lt;span class=&quot;math inline&quot;&gt;\(A\geq 3\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(D\geq 2\)&lt;/span&gt;. Hence, the attacker can lose
+&lt;span class=&quot;math inline&quot;&gt;\(0,1,2\)&lt;/span&gt; armies, while the defender
+can lose &lt;span class=&quot;math inline&quot;&gt;\(0,1,2\)&lt;/span&gt; armies. No matter
+the outcome, 2 armies will be lost in the battle. Therefore, the new
+state is: &lt;span class=&quot;math display&quot;&gt;\[
+(A,D) \longrightarrow \left\{
+\begin{array}{cl}
+(A-2, D) &amp;amp; \text{with probability } \pi_{320} \\
+(A-1, D-1) &amp;amp; \text{with probability } \pi_{321} \\
+(A, D-2) &amp;amp; \text{with probability } \pi_{322}
+\end{array}
+\right.
+\]&lt;/span&gt; If &lt;span class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; and/or &lt;span
+class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; are smaller than 3 and 2 the transition
+and its probability changes accordingly. Note that once either &lt;span
+class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; or &lt;span
+class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; is zero, the state is absorbing,
+meaning it is no longer possible to continue the battle, and the state
+will remain the same. If after updating &lt;span
+class=&quot;math inline&quot;&gt;\(A=0\)&lt;/span&gt;, the attacker has lost the fight&lt;a
+href=&quot;#fn1&quot; class=&quot;footnote-ref&quot; id=&quot;fnref1&quot;
+role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/a&gt;. However, if &lt;span
+class=&quot;math inline&quot;&gt;\(D = 0\)&lt;/span&gt;, the defender loses, and the
+attacker conquers the country.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb17&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb17-1&quot;&gt;&lt;a href=&quot;#cb17-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Armies at the start of the battle&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb17-2&quot;&gt;&lt;a href=&quot;#cb17-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;A &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;10&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb17-3&quot;&gt;&lt;a href=&quot;#cb17-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;D &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;10&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb17-4&quot;&gt;&lt;a href=&quot;#cb17-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;size_state_space &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; (A&lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;)&lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt;(D&lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Suppose we start with &lt;span class=&quot;math inline&quot;&gt;\(A=10\)&lt;/span&gt;
+attacking armies and &lt;span class=&quot;math inline&quot;&gt;\(D=10\)&lt;/span&gt; defending
+armies. The corresponding state space of the Markov chain is &lt;span
+class=&quot;math inline&quot;&gt;\(\{(A, D), A\in\{0,\ldots,10\}, D\in
+\{0,\ldots,10\}\}\)&lt;/span&gt;. Mapping this to a vector means creating a
+vector of length &lt;span class=&quot;math inline&quot;&gt;\(11 \times 11=121\)&lt;/span&gt;.
+Hence, the transition matrix &lt;span class=&quot;math inline&quot;&gt;\(P\)&lt;/span&gt; will
+be &lt;span class=&quot;math inline&quot;&gt;\((121\times121)\)&lt;/span&gt; matrix. We
+implement this in the function &lt;code&gt;transition_matrix(A, D)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The vector representing the situation with &lt;span
+class=&quot;math inline&quot;&gt;\(10\)&lt;/span&gt; attacking armies and 10 defending
+armies would be &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{x}_0=(0,\ldots,0,
+1)^\top\)&lt;/span&gt;. The development in probabilities over the state space
+after a single battle can then be represented as &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{x}_1 =
+\mathbf{x}_0^\top\mathbf{P}\)&lt;/span&gt;. Starting in state &lt;span
+class=&quot;math inline&quot;&gt;\((10,10)\)&lt;/span&gt; we can thus go to either &lt;span
+class=&quot;math inline&quot;&gt;\((8,10)\)&lt;/span&gt;, &lt;span
+class=&quot;math inline&quot;&gt;\((9,9)\)&lt;/span&gt; or &lt;span
+class=&quot;math inline&quot;&gt;\((10,8)\)&lt;/span&gt; and we recognize &lt;span
+class=&quot;math inline&quot;&gt;\(p_{320}\)&lt;/span&gt;, &lt;span
+class=&quot;math inline&quot;&gt;\(p_{321}\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(p_{322}\)&lt;/span&gt; as the transition
+probabilities.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb18&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb18-1&quot;&gt;&lt;a href=&quot;#cb18-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x0 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; states&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;state &lt;span class=&quot;sc&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sprintf&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;%2d-%2d&amp;quot;&lt;/span&gt;,A,D) &lt;span class=&quot;co&quot;&gt;# &amp;quot;10-10&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb18-2&quot;&gt;&lt;a href=&quot;#cb18-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x1 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;t&lt;/span&gt;(x0) &lt;span class=&quot;sc&quot;&gt;%*%&lt;/span&gt; P&lt;/span&gt;
+&lt;span id=&quot;cb18-3&quot;&gt;&lt;a href=&quot;#cb18-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x1[,x1&lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;##     08-10     09-09     10-08 
+## 0.2925669 0.3357767 0.3716564&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Subsequent battles are implemented as &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{x}_{i+1} = \mathbf{x}_{i}^\top
+\mathbf{P}\)&lt;/span&gt;. For each single battle, the total number of armies
+will decrease by at least 1 army (and most likely 2). Starting with
+&lt;span class=&quot;math inline&quot;&gt;\(A+D\)&lt;/span&gt; armies means that after &lt;span
+class=&quot;math inline&quot;&gt;\(A+D\)&lt;/span&gt; battles we are guaranteed to have
+reached an absorbing state&lt;a href=&quot;#fn2&quot; class=&quot;footnote-ref&quot;
+id=&quot;fnref2&quot; role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt;. Considering &lt;span
+class=&quot;math display&quot;&gt;\[
+\mathbf{x}_{A+D} = \mathbf{x}_{0}^\top \mathbf{P}^{A+D} =
+\mathbf{x}_{0}^\top \underbrace{\mathbf{P} \cdots
+\mathbf{P}}_{\text{$A+D$ times}}
+\]&lt;/span&gt; we compute&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb20&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb20-1&quot;&gt;&lt;a href=&quot;#cb20-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x_AD &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;t&lt;/span&gt;(x0) &lt;span class=&quot;sc&quot;&gt;%*%&lt;/span&gt; (P &lt;span class=&quot;sc&quot;&gt;%^%&lt;/span&gt; (A&lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;D))&lt;/span&gt;
+&lt;span id=&quot;cb20-2&quot;&gt;&lt;a href=&quot;#cb20-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;round&lt;/span&gt;(x_AD[,x_AD&lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;], &lt;span class=&quot;at&quot;&gt;digits=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## 00-01 00-02 00-03 00-04 00-05 00-06 00-07 00-08 00-09 00-10 01-00 02-00 03-00 04-00 05-00 06-00 07-00 08-00 09-00 10-00 
+## 0.042 0.081 0.072 0.070 0.056 0.047 0.031 0.021 0.009 0.003 0.030 0.059 0.092 0.096 0.087 0.077 0.059 0.039 0.021 0.007&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Summing up all probabilities where the defender has zero armies gives
+us the probability that the attacker wins the battle, i.e.&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb22&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb22-1&quot;&gt;&lt;a href=&quot;#cb22-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(x_AD[,&lt;span class=&quot;fu&quot;&gt;str_detect&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;colnames&lt;/span&gt;(x_AD), &lt;span class=&quot;st&quot;&gt;&amp;quot;-00&amp;quot;&lt;/span&gt;)])&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## [1] 0.5675929&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This probability matches the value 0.568 reported in Table 3 of &lt;span
+class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne (2003)&lt;/span&gt;. By
+calculating &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{P}^{A+D}\)&lt;/span&gt; once,
+we can change the initial state vector &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{x}_0\)&lt;/span&gt; to compute the probability
+of the attacker winning for each of the &lt;span class=&quot;math inline&quot;&gt;\(A
+\times D\)&lt;/span&gt; possible initial values. The values match those in
+Table 3 of &lt;span class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne
+(2003)&lt;/span&gt;.&lt;/p&gt;
+&lt;table class=&quot;table table-striped&quot; style=&quot;margin-left: auto; margin-right: auto;&quot;&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style=&quot;empty-cells: hide;border-bottom:hidden;&quot; colspan=&quot;1&quot;&gt;
+&lt;/th&gt;
+&lt;th style=&quot;border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; &quot; colspan=&quot;10&quot;&gt;
+&lt;div style=&quot;border-bottom: 1px solid #ddd; padding-bottom: 5px; &quot;&gt;
+D
+&lt;/div&gt;
+&lt;/th&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+A
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+1
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+2
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+3
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+4
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+5
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+6
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+7
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+8
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+9
+&lt;/th&gt;
+&lt;th style=&quot;text-align:center;&quot;&gt;
+10
+&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.417&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.106&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.027&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.007&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.002&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.000&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.000&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.000&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.000&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.000&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.754&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.363&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.206&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.091&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.049&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.021&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.011&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.005&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.003&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.001&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.916&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.656&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.470&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.315&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.206&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.134&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.084&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.054&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.033&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.021&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+4
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.972&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.785&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.642&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.477&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.359&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.253&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.181&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.123&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.086&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.057&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+5
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.990&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.890&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.769&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.638&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.506&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.397&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.297&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.224&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.162&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.118&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+6
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.997&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.934&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.857&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.745&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.638&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.521&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.423&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.329&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.258&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.193&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+7
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.999&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.967&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.910&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.834&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.736&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.640&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.536&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.446&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.357&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.287&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+8
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;1.000&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.980&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.947&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.888&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.818&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.730&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.643&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.547&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.464&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.380&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+9
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;1.000&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.990&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.967&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.930&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.873&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.808&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.726&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.646&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.558&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: white !important;&quot;&gt;0.480&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center;width: 1cm; border-right:1px solid;&quot;&gt;
+10
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;1.000&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.994&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.981&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.954&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.916&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.861&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.800&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.724&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.650&lt;/span&gt;
+&lt;/td&gt;
+&lt;td style=&quot;text-align:center;width: 3cm; &quot;&gt;
+&lt;span
+style=&quot;     border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: lightgreen !important;&quot;&gt;0.568&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;
+&lt;p&gt;All cells with a probability greater than 0.5 are colored green in
+the table. We observe that from 5 and beyond the attacker has a slight
+advantage when &lt;span class=&quot;math inline&quot;&gt;\(A=D\)&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;Below, the situation for &lt;span class=&quot;math inline&quot;&gt;\(A,D\)&lt;/span&gt; up
+to 50 is illustrated a little differently: for any given value of &lt;span
+class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt;, the image shows in green all values of
+&lt;span class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt;, where the probability for the
+attacker to win is above 50%.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2025-02-21-risk/BIGTABLE_PLOT-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;Looking at the smallest &lt;span class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; with a
+win probability of more than 50% for a given &lt;span
+class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt;, we see that this line is below the
+&lt;span class=&quot;math inline&quot;&gt;\(A=D\)&lt;/span&gt; line. This shows that the
+attacker has a slight advantage. Furthermore, the smallest such &lt;span
+class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; can be found approximately as &lt;span
+class=&quot;math inline&quot;&gt;\(A_{\min} \approx 1.2204 + 0.8525\cdot
+D\)&lt;/span&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;discussion&quot;&gt;Discussion&lt;/h2&gt;
+&lt;p&gt;Counting is a powerful technique in combinatorics and dice-based
+probabilities. The counting can be implemented on a computer by
+representing the full sample space using tables or arrays. The risk of
+making mistakes when counting in such structures is often lower than in
+more involved probability calculations, e.g. order statistics or
+conditional distributions. However, in many combinatorical problems the
+state space quickly exceeds manageable sizes. Monte Carlo simulation
+offers a quick alternative for verifying probability calculations, and
+is effective even in untractably large state spaces.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;TLDR&lt;/strong&gt;: For situations where &lt;span
+class=&quot;math inline&quot;&gt;\(A \geq 5\)&lt;/span&gt;, attack if &lt;span
+class=&quot;math inline&quot;&gt;\(A \geq 1.2204 + 0.8525\cdot D\)&lt;/span&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;appendix-1-monte-carlo-simulation&quot;&gt;Appendix 1: Monte Carlo
+Simulation&lt;/h2&gt;
+&lt;p&gt;Just for completeness: Below is a simulation function for determining
+the &lt;span class=&quot;math inline&quot;&gt;\(p_{adk}\)&lt;/span&gt; probabilities by Monte
+Carlo simulation. It requires little thinking, is fast and accurate
+enough to spot the errors in the &lt;span class=&quot;citation&quot;
+data-cites=&quot;tan1997&quot;&gt;Tan (1997)&lt;/span&gt; paper:&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb24&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb24-1&quot;&gt;&lt;a href=&quot;#cb24-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Simulate a single a vs. d army battle&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-2&quot;&gt;&lt;a href=&quot;#cb24-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;single_battle &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a =&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;d =&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;) {&lt;/span&gt;
+&lt;span id=&quot;cb24-3&quot;&gt;&lt;a href=&quot;#cb24-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Sort the dice&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-4&quot;&gt;&lt;a href=&quot;#cb24-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  y_sorted &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sort&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;sample&lt;/span&gt;(Omega, &lt;span class=&quot;at&quot;&gt;size =&lt;/span&gt; a, &lt;span class=&quot;at&quot;&gt;replace =&lt;/span&gt; &lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;dec =&lt;/span&gt; &lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb24-5&quot;&gt;&lt;a href=&quot;#cb24-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  z_sorted &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sort&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;sample&lt;/span&gt;(Omega, &lt;span class=&quot;at&quot;&gt;size =&lt;/span&gt; d, &lt;span class=&quot;at&quot;&gt;replace =&lt;/span&gt; &lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;), &lt;span class=&quot;at&quot;&gt;dec =&lt;/span&gt; &lt;span class=&quot;cn&quot;&gt;TRUE&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb24-6&quot;&gt;&lt;a href=&quot;#cb24-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-7&quot;&gt;&lt;a href=&quot;#cb24-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Number of comparisons&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-8&quot;&gt;&lt;a href=&quot;#cb24-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  nCompares &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;min&lt;/span&gt;(a, d)&lt;/span&gt;
+&lt;span id=&quot;cb24-9&quot;&gt;&lt;a href=&quot;#cb24-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-10&quot;&gt;&lt;a href=&quot;#cb24-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;# Logischer Vektor mit Länge #Vergleiche, der TRUE enthält&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-11&quot;&gt;&lt;a href=&quot;#cb24-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;co&quot;&gt;#für A gewinnt Würfelvergleich und FALSE sonst&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-12&quot;&gt;&lt;a href=&quot;#cb24-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  lose_D &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; (y_sorted[&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;nCompares] &lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt; z_sorted[&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;nCompares])&lt;/span&gt;
+&lt;span id=&quot;cb24-13&quot;&gt;&lt;a href=&quot;#cb24-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-14&quot;&gt;&lt;a href=&quot;#cb24-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;return&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(lose_D))&lt;/span&gt;
+&lt;span id=&quot;cb24-15&quot;&gt;&lt;a href=&quot;#cb24-15&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}&lt;/span&gt;
+&lt;span id=&quot;cb24-16&quot;&gt;&lt;a href=&quot;#cb24-16&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-17&quot;&gt;&lt;a href=&quot;#cb24-17&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Calc p_{32k}, k=0,1,2&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb24-18&quot;&gt;&lt;a href=&quot;#cb24-18&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;prop.table&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;table&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;replicate&lt;/span&gt;(&lt;span class=&quot;fl&quot;&gt;1e5&lt;/span&gt;, &lt;span class=&quot;fu&quot;&gt;single_battle&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;))))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## 
+##       0       1       2 
+## 0.29136 0.33852 0.37012&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&quot;appendix-2&quot;&gt;Appendix 2&lt;/h2&gt;
+&lt;p&gt;&lt;span class=&quot;citation&quot; data-cites=&quot;tan1997&quot;&gt;Tan (1997)&lt;/span&gt;
+calculated for example &lt;span class=&quot;math display&quot;&gt;\[\begin{align*}
+\pi_{322}
+&amp;amp;= P(Y_{(1)}&amp;gt;Z_{(1)} \cap Y_{(2)}&amp;gt;Z_{(2)}) \\
+&amp;amp;= P(Y_{(1)}&amp;gt;Z_{(1)}) P(Y_{(2)}&amp;gt;Z_{(2)}) \\
+&amp;amp;= \cdots,
+\end{align*}\]&lt;/span&gt; but the 2nd step is wrong, because it assumes
+independence of the events &lt;span
+class=&quot;math inline&quot;&gt;\(Y_{(1)}&amp;gt;Z_{(1)}\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(Y_{(2)}&amp;gt;Z_{(2)}\)&lt;/span&gt;. This is not the case,
+as seen from the following R output:&lt;/p&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb26&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb26-1&quot;&gt;&lt;a href=&quot;#cb26-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Joint distribution of the two events&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb26-2&quot;&gt;&lt;a href=&quot;#cb26-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;f_Y12Z12 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;joint_combos_sorted&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;a=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;d=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb26-3&quot;&gt;&lt;a href=&quot;#cb26-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;y_{(1)}&amp;gt;z_{(1)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;y_{(1)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;z_{(1)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;,&lt;/span&gt;
+&lt;span id=&quot;cb26-4&quot;&gt;&lt;a href=&quot;#cb26-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;         &lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;y_{(2)}&amp;gt;z_{(2)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;y_{(2)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;z_{(2)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb26-5&quot;&gt;&lt;a href=&quot;#cb26-5&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;group_by&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;y_{(1)}&amp;gt;z_{(1)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;,&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;y_{(2)}&amp;gt;z_{(2)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb26-6&quot;&gt;&lt;a href=&quot;#cb26-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;prob=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(prob), &lt;span class=&quot;at&quot;&gt;.groups =&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&amp;quot;keep&amp;quot;&lt;/span&gt;)&lt;/span&gt;
+&lt;span id=&quot;cb26-7&quot;&gt;&lt;a href=&quot;#cb26-7&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb26-8&quot;&gt;&lt;a href=&quot;#cb26-8&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Marginal distribution of each event&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb26-9&quot;&gt;&lt;a href=&quot;#cb26-9&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;f_Y1Z1 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; f_Y12Z12 &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;group_by&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;y_{(1)}&amp;gt;z_{(1)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;prob=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(prob))&lt;/span&gt;
+&lt;span id=&quot;cb26-10&quot;&gt;&lt;a href=&quot;#cb26-10&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;f_Y2Z2 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; f_Y12Z12 &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;group_by&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;at&quot;&gt;y_{(2)}&amp;gt;z_{(2)}&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;`&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;summarise&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;prob=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(prob))&lt;/span&gt;
+&lt;span id=&quot;cb26-11&quot;&gt;&lt;a href=&quot;#cb26-11&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb26-12&quot;&gt;&lt;a href=&quot;#cb26-12&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Joint prob when **assuming independence**&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb26-13&quot;&gt;&lt;a href=&quot;#cb26-13&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;f_Y12Z12_indep &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;cross_join&lt;/span&gt;(f_Y1Z1, f_Y2Z2) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb26-14&quot;&gt;&lt;a href=&quot;#cb26-14&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;prob_indep =&lt;/span&gt; prob.x &lt;span class=&quot;sc&quot;&gt;*&lt;/span&gt; prob.y) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;span id=&quot;cb26-15&quot;&gt;&lt;a href=&quot;#cb26-15&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;select&lt;/span&gt;(&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;prob.x,&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;prob.y)&lt;/span&gt;
+&lt;span id=&quot;cb26-16&quot;&gt;&lt;a href=&quot;#cb26-16&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
+&lt;span id=&quot;cb26-17&quot;&gt;&lt;a href=&quot;#cb26-17&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# Compare to the true joint distribution: this is definitely not the same!&lt;/span&gt;&lt;/span&gt;
+&lt;span id=&quot;cb26-18&quot;&gt;&lt;a href=&quot;#cb26-18&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;inner_join&lt;/span&gt;(f_Y12Z12, f_Y12Z12_indep, &lt;span class=&quot;at&quot;&gt;by=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;c&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;y_{(1)}&amp;gt;z_{(1)}&amp;quot;&lt;/span&gt;, &lt;span class=&quot;st&quot;&gt;&amp;quot;y_{(2)}&amp;gt;z_{(2)}&amp;quot;&lt;/span&gt;))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 4 × 4
+## # Groups:   y_{(1)}&amp;gt;z_{(1)}, y_{(2)}&amp;gt;z_{(2)} [4]
+##   `y_{(1)}&amp;gt;z_{(1)}` `y_{(2)}&amp;gt;z_{(2)}`   prob prob_indep
+##   &amp;lt;lgl&amp;gt;             &amp;lt;lgl&amp;gt;              &amp;lt;dbl&amp;gt;      &amp;lt;dbl&amp;gt;
+## 1 FALSE             FALSE             0.293       0.207
+## 2 FALSE             TRUE              0.236       0.321
+## 3 TRUE              FALSE             0.0999      0.185
+## 4 TRUE              TRUE              0.372       0.286&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;From the above output we notice that the correct joint distribution&lt;a
+href=&quot;#fn3&quot; class=&quot;footnote-ref&quot; id=&quot;fnref3&quot;
+role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;3&lt;/sup&gt;&lt;/a&gt; of the two events cannot be computed
+by simply multiplying the marginals. Hence, the two events are not
+independent.&lt;/p&gt;
+&lt;p&gt;The reason is that using order statistics induces dependencies. For
+example &lt;span class=&quot;math inline&quot;&gt;\(P(Z_{(1)}=z_1, Z_{(2)}=z_2) \neq
+P(Z_{(1)}=z_1) P(Z_{(2)}=z_2)\)&lt;/span&gt;. Although the dice &lt;span
+class=&quot;math inline&quot;&gt;\(Z_1\)&lt;/span&gt; and &lt;span
+class=&quot;math inline&quot;&gt;\(Z_2\)&lt;/span&gt; are independent, the corresponding
+variables of the order statistics are dependent: knowing something about
+the higher of the two dice gives you information about the lower of the
+two. For example if you know that &lt;span
+class=&quot;math inline&quot;&gt;\(Z_{(1)}=1\)&lt;/span&gt;, then you know for sure that
+&lt;span class=&quot;math inline&quot;&gt;\(Z_{(2)}=1\)&lt;/span&gt;. This dependence extends
+to comparisons with the attacker’s dice.&lt;/p&gt;
+&lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
+&lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
+&lt;div id=&quot;ref-dusautoy2023&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+du Sautoy, M. 2023. &lt;em&gt;Around the World in 80 Games&lt;/em&gt;. 4th Estate.
+&lt;a
+href=&quot;https://www.simonyi.ox.ac.uk/books/around-the-world-in-80-games/&quot;&gt;https://www.simonyi.ox.ac.uk/books/around-the-world-in-80-games/&lt;/a&gt;.
+&lt;/div&gt;
+&lt;div id=&quot;ref-hendel_etal2015&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Hendel, S., C. Hoffman, C. Manack, and A. Wagaman. 2015. &lt;span&gt;“Taking
+the Risk Out of RISK: Conquer Odds in the Board Game RISK.”&lt;/span&gt; &lt;a
+href=&quot;https://arxiv.org/abs/1512.04333&quot;&gt;https://arxiv.org/abs/1512.04333&lt;/a&gt;.
+&lt;/div&gt;
+&lt;div id=&quot;ref-osborne2003&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Osborne, Jason A. 2003. &lt;span&gt;“Markov Chains for the RISK Board Game
+Revisited.”&lt;/span&gt; &lt;em&gt;Mathematics Magazine&lt;/em&gt; 76 (2): 129–35. &lt;a
+href=&quot;http://www.jstor.org/stable/3219306&quot;&gt;http://www.jstor.org/stable/3219306&lt;/a&gt;.
+&lt;/div&gt;
+&lt;div id=&quot;ref-pierce_wooster2015&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Pierce, P., and R. Wooster. 2015. &lt;span&gt;“Conquer the World with Markov
+Chains.”&lt;/span&gt; &lt;em&gt;Math Horizons&lt;/em&gt; 22 (4): pp. 18–21. &lt;a
+href=&quot;https://www.jstor.org/stable/10.4169/mathhorizons.22.4.18&quot;&gt;https://www.jstor.org/stable/10.4169/mathhorizons.22.4.18&lt;/a&gt;.
+&lt;/div&gt;
+&lt;div id=&quot;ref-tan1997&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Tan, Bariş. 1997. &lt;span&gt;“Markov Chains and the RISK Board Game.”&lt;/span&gt;
+&lt;em&gt;Mathematics Magazine&lt;/em&gt; 70 (5): 349–57. &lt;a
+href=&quot;http://www.jstor.org/stable/2691171&quot;&gt;http://www.jstor.org/stable/2691171&lt;/a&gt;.
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;section id=&quot;footnotes&quot; class=&quot;footnotes footnotes-end-of-document&quot;
+role=&quot;doc-endnotes&quot;&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id=&quot;fn1&quot;&gt;&lt;p&gt;Since the rules of Risk only allow attacking with one
+army less than hosted in the country the attack originates from, the
+attacker would still have one army left once &lt;span
+class=&quot;math inline&quot;&gt;\(A=0\)&lt;/span&gt;. Thus, the country is not yet lost
+but could be vulnerable to subsequent attacks in future rounds.&lt;a
+href=&quot;#fnref1&quot; class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li id=&quot;fn2&quot;&gt;&lt;p&gt;Note: With this argument we take a more direct route
+than &lt;span class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne
+(2003)&lt;/span&gt;, who also arranges the transition matrix notationally into
+absorbing and transient states and looks at the steady state
+distribution.&lt;a href=&quot;#fnref2&quot; class=&quot;footnote-back&quot;
+role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li id=&quot;fn3&quot;&gt;&lt;p&gt;Obtained by counting using the involved
+sum-sum-indicator formula from above.&lt;a href=&quot;#fnref3&quot;
+class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/section&gt;
+</description>
+        <pubDate>Fri, 21 Feb 2025 00:00:00 +0100</pubDate>
+        <link>https://mhoehle.github.io/blog/2025/02/21/risk.html</link>
+        <guid isPermaLink="true">https://mhoehle.github.io/blog/2025/02/21/risk.html</guid>
+        
+        <category>rstats</category>
+        
+        <category>probability</category>
+        
+        <category>game theory</category>
+        
+        
+      </item>
     
       <item>
         <title>Guess My Name with Decision Trees</title>
@@ -556,7 +1671,7 @@ class=&quot;citation&quot; data-cites=&quot;langseth_jensen2003&quot;&gt;(Langse
 2003)&lt;/span&gt;.&lt;/p&gt;
 &lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 &lt;div id=&quot;ref-hastie_etal2017&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Hastie, T., R. Tibshirani, and J. Friedman. 2017. &lt;em&gt;The Elements of
 Statistical Learning&lt;/em&gt;. 2nd ed. Springer.
@@ -970,7 +2085,7 @@ U(i/j-1/k/0)]}_{\text{stick into hole}} \\
 +  U(i-1/k/j+1/1)]}_{\text{take stick from lid}}
 \end{align*}
 \]&lt;/span&gt; and the action to stop has value &lt;span
-class=&quot;math inline&quot;&gt;\(R(i-1/k/j+1/1) + U(i-1/k/j+1/1)\)&lt;/span&gt;.&lt;/p&gt;
+class=&quot;math inline&quot;&gt;\(R(i-1/k/j+1/1) +  U(i-1/k/j+1/1)\)&lt;/span&gt;.&lt;/p&gt;
 &lt;h2 id=&quot;value-iteration&quot;&gt;Value Iteration&lt;/h2&gt;
 &lt;p&gt;We use &lt;strong&gt;value iteration&lt;/strong&gt; &lt;span class=&quot;citation&quot;
 data-cites=&quot;russell_norvig2020&quot;&gt;(Sect. 17.2.1, Russell and Norvig
@@ -1007,8 +2122,8 @@ class=&quot;math inline&quot;&gt;\(\delta \gets |U(s&amp;#39;)-U(s)|\)&lt;/span&
 &lt;p&gt;The optimal action for state &lt;span class=&quot;math inline&quot;&gt;\(s\)&lt;/span&gt;
 is thus the action maximing the sum term in Step 2a, i.e. &lt;span
 class=&quot;math inline&quot;&gt;\(\pi(s) = \operatorname{argmax}_{a\in
-\mathcal{A}(s)} \sum_{s&amp;#39;}P(s&amp;#39;| s,a) \left[ R(s,a,s&amp;#39;) +
-\max_{a&amp;#39;} U(s&amp;#39;) \right]\)&lt;/span&gt;. Either one computes this at
+\mathcal{A}(s)} \sum_{s&amp;#39;}P(s&amp;#39;| s,a) \left[ R(s,a,s&amp;#39;)
++  \max_{a&amp;#39;} U(s&amp;#39;) \right]\)&lt;/span&gt;. Either one computes this at
 the end of the algorithm or one adds this book-keeping step as part of
 step 2a in the value iteration algorithm. Technically, &lt;span
 class=&quot;math inline&quot;&gt;\(\pi\approx \pi^*\)&lt;/span&gt;, i.e. we only obtain an
@@ -1363,7 +2478,7 @@ class=&quot;sourceCode python&quot;&gt;&lt;code class=&quot;sourceCode python&qu
 &lt;span id=&quot;cb4-217&quot;&gt;&lt;a href=&quot;#cb4-217&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;# print(s_best.to_string(index=False))&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h2 class=&quot;unnumbered&quot; id=&quot;references&quot;&gt;References&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 &lt;div id=&quot;ref-jehn2021&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Jehn, Rüdiger. 2021. &lt;span&gt;“Optimum Strategies for the Game Super
 Six.”&lt;/span&gt; arXiv. &lt;a
@@ -2005,7 +3120,7 @@ four other strategies.&lt;/p&gt;
 &lt;span id=&quot;cb5-6&quot;&gt;&lt;a href=&quot;#cb5-6&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;player_names &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;names&lt;/span&gt;(player_list)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;We now consider all possible matches of these players. This can be
 games ranging from just 2 of the players to all 5 of them.&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb6&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb6-1&quot;&gt;&lt;a href=&quot;#cb6-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;n_players &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; 2L&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;length&lt;/span&gt;(player_names)&lt;/span&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb6&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb6-1&quot;&gt;&lt;a href=&quot;#cb6-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;n_players &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;L&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;length&lt;/span&gt;(player_names)&lt;/span&gt;
 &lt;span id=&quot;cb6-2&quot;&gt;&lt;a href=&quot;#cb6-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;matches &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;map&lt;/span&gt;(n_players, &lt;span class=&quot;cf&quot;&gt;function&lt;/span&gt;(m) {&lt;/span&gt;
 &lt;span id=&quot;cb6-3&quot;&gt;&lt;a href=&quot;#cb6-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  utils&lt;span class=&quot;sc&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;combn&lt;/span&gt;(player_names, &lt;span class=&quot;at&quot;&gt;m=&lt;/span&gt;m, &lt;span class=&quot;at&quot;&gt;simplify=&lt;/span&gt;&lt;span class=&quot;cn&quot;&gt;FALSE&lt;/span&gt;)&lt;/span&gt;
 &lt;span id=&quot;cb6-4&quot;&gt;&lt;a href=&quot;#cb6-4&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;}) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;setNames&lt;/span&gt;(n_players)&lt;/span&gt;
@@ -2387,7 +3502,7 @@ class=&quot;math inline&quot;&gt;\(n=2\)&lt;/span&gt; scenario remains even when
 players use the &lt;code&gt;jehn&lt;/code&gt; optimal winning strategy.&lt;/p&gt;
 &lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 &lt;div id=&quot;ref-jehn2021&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Jehn, Rüdiger. 2021. &lt;span&gt;“Optimum Strategies for the Game Super
 Six.”&lt;/span&gt; arXiv. &lt;a
@@ -2509,7 +3624,7 @@ in order to have &lt;span class=&quot;math inline&quot;&gt;\(y\)&lt;/span&gt; ru
 16, which is easier for the subsequent plotting. Applying the R function
 to an appropriate grid of values (and reversing the index directions to
 account for the horizontal plotting direction):&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb3&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb3-1&quot;&gt;&lt;a href=&quot;#cb3-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;im &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;expand_grid&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;105L, &lt;span class=&quot;at&quot;&gt;y=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;16L) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb3&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb3-1&quot;&gt;&lt;a href=&quot;#cb3-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;im &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;expand_grid&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;x=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;105&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;L&lt;/span&gt;, &lt;span class=&quot;at&quot;&gt;y=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;L&lt;/span&gt;) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
 &lt;span id=&quot;cb3-2&quot;&gt;&lt;a href=&quot;#cb3-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;rowwise&lt;/span&gt;() &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;/span&gt;
 &lt;span id=&quot;cb3-3&quot;&gt;&lt;a href=&quot;#cb3-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;z=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;tupper&lt;/span&gt;(&lt;span class=&quot;dv&quot;&gt;105&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;x, &lt;span class=&quot;dv&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;-&lt;/span&gt;y, &lt;span class=&quot;at&quot;&gt;k=&lt;/span&gt;k))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;The result can then easily plotted:&lt;/p&gt;
@@ -2678,7 +3793,7 @@ class=&quot;math inline&quot;&gt;\(k\)&lt;/span&gt; equal to&lt;/p&gt;
 Happy self-referential plotting!&lt;/p&gt;
 &lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 &lt;div id=&quot;ref-tupper2001&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Tupper, Jeff. 2001. &lt;span&gt;“Reliable Two-Dimensional Graphing Methods for
 Mathematical Formulae with Two Free Variables.”&lt;/span&gt; In
@@ -2841,7 +3956,7 @@ time for the 3x3x3 Rubik’s cube as a function of time since first WCA
 competition&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 &lt;div id=&quot;ref-fenske_etal2013&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Fenske, N., L. Fahrmeir, P. Rzehak, and M. Höhle. 2013. &lt;span&gt;“Boosting
 Structured Additive Quantile Regression for Longitudinal Childhood
@@ -3034,7 +4149,7 @@ group.&lt;/p&gt;
 &lt;span id=&quot;cb6-3&quot;&gt;&lt;a href=&quot;#cb6-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;fu&quot;&gt;mutate&lt;/span&gt;(&lt;span class=&quot;at&quot;&gt;date=&lt;/span&gt;&lt;span class=&quot;fu&quot;&gt;max&lt;/span&gt;(partition_dates) &lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;diff&lt;/span&gt;(partition_dates) &lt;span class=&quot;sc&quot;&gt;%&amp;gt;%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;mean&lt;/span&gt;())&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Our goal is now to partition the 71 students in
 &lt;code&gt;current_frame&lt;/code&gt;. For each of the &lt;span
-class=&quot;math inline&quot;&gt;\({71 \choose 2 }= 2485\)&lt;/span&gt; possible pairs of
+class=&quot;math inline&quot;&gt;\({71  \choose 2 }= 2485\)&lt;/span&gt; possible pairs of
 students in that class, we determine how long ago it has been, since
 they were in the same group the last time. This can be done using the
 internal package function &lt;code&gt;partitions_to_distance&lt;/code&gt;:&lt;/p&gt;
@@ -3143,7 +4258,7 @@ implementation of MDGP solver of &lt;span class=&quot;citation&quot;
 data-cites=&quot;lai_hao2016&quot;&gt;Lai and Hao (2016)&lt;/span&gt;.&lt;/p&gt;
 &lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 &lt;div id=&quot;ref-lai_hao2016&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Lai, Xiangjing, and Jin-Kao Hao. 2016. &lt;span&gt;“Iterated Maxima Search for
 the Maximally Diverse Grouping Problem.”&lt;/span&gt; &lt;em&gt;European Journal of
@@ -4197,7 +5312,7 @@ data-cites=&quot;hoehle_mazick2010&quot;&gt;Höhle and Mazick (2010)&lt;/span&gt
 and feedback to the analysis in this blog post are much appretiated.&lt;/p&gt;
 &lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 &lt;div id=&quot;ref-aburto_etal2021&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Aburto, José Manuel, Jonas Schöley, Luyin Zhang, Ilya Kashnitsky,
 Charles Rahal, Trifon I. Missov, Melinda C. Mills, Jennifer B. Dowd, and
@@ -4688,7 +5803,7 @@ available &lt;a
 href=&quot;https://staff.math.su.se/hoehle/blog/2021/03/01/mortadj.html&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
-role=&quot;list&quot;&gt;
+data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 &lt;div id=&quot;ref-hoehle_mazick2010&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Höhle, M., and A. Mazick. 2010. &lt;span&gt;“Aberration Detection in
 &lt;span&gt;R&lt;/span&gt; Illustrated by &lt;span&gt;D&lt;/span&gt;anish Mortality
@@ -4762,138 +5877,6 @@ role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
         <category>SARS-CoV-2</category>
         
         <category>demography</category>
-        
-        
-      </item>
-    
-      <item>
-        <title>The Mathematics and Statistics of Infectious Disease Outbreaks</title>
-        <description>&lt;h2 id=&quot;abstract&quot;&gt;Abstract:&lt;/h2&gt;
-&lt;p&gt;Slides, R code and video lectures of our 2020 &lt;em&gt;The Mathematics and
-Statistics of Infectious Disease Outbreaks&lt;/em&gt; summer course at
-Stockholm University are made available to a wider audience.&lt;/p&gt;
-&lt;p&gt;
-&lt;center&gt;
-&lt;img src=&quot;/blog/figure/source/2020-11-20-infepi/youtube.png&quot; width=&quot;550&quot;&gt;
-&lt;/center&gt;
-&lt;p&gt;&lt;br&gt;
-&lt;a rel=&quot;license&quot; href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;&lt;img alt=&quot;Creative Commons License&quot; style=&quot;border-width:0&quot; src=&quot;https://i.creativecommons.org/l/by-sa/4.0/88x31.png&quot;/&gt;&lt;/a&gt;
-This work is licensed under a &lt;a rel=&quot;license&quot;
-href=&quot;http://creativecommons.org/licenses/by-sa/4.0/&quot;&gt;Creative Commons
-Attribution-ShareAlike 4.0 International License&lt;/a&gt;. The
-markdown+Rknitr source code of this blog is available under a &lt;a
-href=&quot;https://www.gnu.org/licenses/gpl-3.0.html&quot;&gt;GNU General Public
-License (GPL v3)&lt;/a&gt; license from github.&lt;/p&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
-&lt;p&gt;During the 2020 summer &lt;a
-href=&quot;https://staff.math.su.se/tom.britton/&quot;&gt;Tom Britton&lt;/a&gt; and I gave
-a course on &lt;em&gt;The Mathematics and Statistics of Infectious Disease
-Outbreaks&lt;/em&gt; at the &lt;a href=&quot;https://www.math.su.se&quot;&gt;Department of
-Mathematics, Stockholm University, Sweden&lt;/a&gt;. Pre-requisites for the
-course were undergraduate knowledge of mathematics (e.g. differential
-equations, optimization) and statistics (e.g. random variables,
-distributions, maximum likelihood inference) as well as some programming
-skills in a language with a data science component (python, R, Julia,
-matlab, …).&lt;/p&gt;
-Now the course is done, we have decided to share all our course
-material, consisting of slides, R code and video lectures. The main page
-for navigating the material is on GitHub:
-&lt;p&gt;
-&lt;center&gt;
-&lt;a
-href=&quot;https://github.com/hoehleatsu/mt3002-summer2020&quot;&gt;https://github.com/hoehleatsu/mt3002-summer2020&lt;/a&gt;
-&lt;/center&gt;
-&lt;p&gt;
-&lt;p&gt;which, e.g., links to the &lt;a
-href=&quot;https://www.youtube.com/playlist?list=PLl_ncesshp_C-URStf-LwhYCbFGE70_jq&quot;&gt;Youtube
-playlist&lt;/a&gt; containing the videos.&lt;/p&gt;
-&lt;h2 id=&quot;course-content&quot;&gt;Course content&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Introduction to the Course [&lt;a
-href=&quot;https://video.su.se/media/Introduction+to+the+Course+%28Tom+Britton%29/0_scrd1q6o/356471&quot;&gt;Tom
-Britton&lt;/a&gt; | &lt;a href=&quot;https://video.su.se/media/t/0_rqwxd9zg&quot;&gt;Michael
-Höhle&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L01: Mathematical Modelling [&lt;a
-href=&quot;https://video.su.se/media/L01+-+Mathematical+Modelling+%281+2%29/0_g9pf4rnh/356471&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L01+-+Mathematical+Modelling+%282+2%29/0_qdurs7hj&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L02: Simulation and Fitting of Epidemic Models [&lt;a
-href=&quot;https://video.su.se/media/L02+-+Simulation+and+Fitting+of+Epidemic+Models+%281+3%29/0_j0v2lslj&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L02+-+Simulation+and+Fitting+of+Epidemic+Models+%282+3%29/0_p4629rt7&quot;&gt;Part
-2&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L02+-+Simulation+and+Fitting+of+Epidemic+Models+%283+3%29/0_3yjyzq0q&quot;&gt;Part
-3&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L03: Timing and observations + Endemic models [&lt;a
-href=&quot;https://video.su.se/media/L03+-+Timing+and+observations+%2B+Endemic+models+%281+2%29/0_10homfzz&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L03+-+Timing+and+observations+%2B+Endemic+models+%282+2%29/0_1p5i3vsj/356471&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L04: Estimating Reproduction Numbers [&lt;a
-href=&quot;https://video.su.se/media/L04+-+Estimation+reproduction+numbers+%281+2%29/0_w12jeszk&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L04+-+Estimating+Reproduction+Numbers+%282+2%29/0_bopogny5&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L05: Effective Reproduction Number [&lt;a
-href=&quot;https://video.su.se/media/L05+-+Effective+Reproduction+Number+%281+2%29/0_u3b1j7rk&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L05+-+Effective+Reproduction+Number+%282+2%29/0_38cwcho8&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L06: Latencies and Delays [&lt;a
-href=&quot;https://video.su.se/media/+L06+-+Latencies+and+Delays+%281+2%29/0_vrzkcn4s&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L06+-+Latencies+and+Delays+%282+2%29/0_0xu0jgzy&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L07: Vaccination, other Preventive Measures and Uncertainties [&lt;a
-href=&quot;https://video.su.se/media/L07+-+Vaccination%2C+other+preventive+measures+and+uncertainties+%281+2%29/0_9oson513/356471&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L07+-+Vaccination%2C+other+preventive+measures+and+uncertainties+%282+2%29/0_7rrq3ug7/356471&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L08: Modeling using Networks and other Heterogeneities [&lt;a
-href=&quot;https://video.su.se/media/L08+-+Modeling+using+networks+and+other+heterogeneities+%281+2%29/0_y4jqv270/356471&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L08+-+Modeling+using+networks+and+other+heterogeneities+%282+2%29/0_0mweom9s/356471&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L09: Univariate Outbreak Detection [&lt;a
-href=&quot;https://video.su.se/media/L09+-+Univariate+outbreak+detection+%281+2%29/0_imgomlwy/356471&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L09+-+Univariate+outbreak+detection+%282+2%29/0_ifu44eas/356471&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L10: Multivariate Outbreak Detection [&lt;a
-href=&quot;https://video.su.se/media/L10+-+Multivariate+outbreak+detection+%281+2%29/0_uithqyum&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L10+-+Multivariate+outbreak+detection+%282+2%29/0_mmol88iy&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L11: COVID-19 (I): Reproduction Number and Herd Immunity [&lt;a
-href=&quot;https://video.su.se/media/L11+-+COVID-19+%281+2%29/0_dk0ztmz6/356471&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L11+-+COVID-19+%282+2%29/0_j1xks7xm&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;li&gt;L12: COVID-19 (II): Digital Contact Tracing [&lt;a
-href=&quot;https://video.su.se/media/L12+-+Digital+Contact+Tracing+%281+2%29/0_9chh75x5&quot;&gt;Part
-1&lt;/a&gt; | &lt;a
-href=&quot;https://video.su.se/media/L12+-+Digital+Contact+Tracing+%282+2%29/0_pbdfeaov&quot;&gt;Part
-2&lt;/a&gt;]&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id=&quot;discussion&quot;&gt;Discussion&lt;/h2&gt;
-&lt;p&gt;We hope the material can be of value for those interested in the
-field, e.g., new Ph.D. students in epidemic modelling, infectious
-disease epidemiologists with a like for the quantitative side of
-matters, and for those who just want to improve their armchair
-epidemiology skills.&lt;/p&gt;
-</description>
-        <pubDate>Fri, 20 Nov 2020 00:00:00 +0100</pubDate>
-        <link>https://mhoehle.github.io/blog/2020/11/20/infepi.html</link>
-        <guid isPermaLink="true">https://mhoehle.github.io/blog/2020/11/20/infepi.html</guid>
-        
-        <category>rstats</category>
-        
-        <category>COVID-19</category>
-        
-        <category>SARS-CoV-2</category>
-        
-        <category>mathematical modelling</category>
         
         
       </item>

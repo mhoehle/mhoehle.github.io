@@ -201,7 +201,7 @@ group.</p>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">date=</span><span class="fu">max</span>(partition_dates) <span class="sc">+</span> <span class="fu">diff</span>(partition_dates) <span class="sc">%&gt;%</span> <span class="fu">mean</span>())</span></code></pre></div>
 <p>Our goal is now to partition the 71 students in
 <code>current_frame</code>. For each of the <span
-class="math inline">\({71 \choose 2 }= 2485\)</span> possible pairs of
+class="math inline">\({71  \choose 2 }= 2485\)</span> possible pairs of
 students in that class, we determine how long ago it has been, since
 they were in the same group the last time. This can be done using the
 internal package function <code>partitions_to_distance</code>:</p>
@@ -310,7 +310,7 @@ implementation of MDGP solver of <span class="citation"
 data-cites="lai_hao2016">Lai and Hao (2016)</span>.</p>
 <h2 class="unnumbered" id="literature">Literature</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" role="list">
 <div id="ref-lai_hao2016" class="csl-entry" role="listitem">
 Lai, Xiangjing, and Jin-Kao Hao. 2016. <span>“Iterated Maxima Search for
 the Maximally Diverse Grouping Problem.”</span> <em>European Journal of
