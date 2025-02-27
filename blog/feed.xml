@@ -6,8 +6,8 @@
 </description>
     <link>https://mhoehle.github.io/blog/</link>
     <atom:link href="https://mhoehle.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 24 Feb 2025 09:27:51 +0100</pubDate>
-    <lastBuildDate>Mon, 24 Feb 2025 09:27:51 +0100</lastBuildDate>
+    <pubDate>Thu, 27 Feb 2025 13:25:55 +0100</pubDate>
+    <lastBuildDate>Thu, 27 Feb 2025 13:25:55 +0100</lastBuildDate>
     <generator>Jekyll v4.4.1</generator>
     
       <item>
@@ -379,12 +379,12 @@ state is: &lt;span class=&quot;math display&quot;&gt;\[
 \end{array}
 \right.
 \]&lt;/span&gt; If &lt;span class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; and/or &lt;span
-class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; are smaller than 3 and 2 the transition
-and its probability changes accordingly. Note that once either &lt;span
-class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; or &lt;span
-class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; is zero, the state is absorbing,
-meaning it is no longer possible to continue the battle, and the state
-will remain the same. If after updating &lt;span
+class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; are smaller than 3 and 2, the
+transitions and its probabilities changes accordingly. Note that once
+either &lt;span class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; or &lt;span
+class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; is zero, the state is
+&lt;em&gt;absorbing&lt;/em&gt;, meaning it is no longer possible to continue the
+battle, and the state will remain the same. If after updating &lt;span
 class=&quot;math inline&quot;&gt;\(A=0\)&lt;/span&gt;, the attacker has lost the fight&lt;a
 href=&quot;#fn1&quot; class=&quot;footnote-ref&quot; id=&quot;fnref1&quot;
 role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/a&gt;. However, if &lt;span
@@ -401,8 +401,15 @@ class=&quot;math inline&quot;&gt;\(\{(A, D), A\in\{0,\ldots,10\}, D\in
 \{0,\ldots,10\}\}\)&lt;/span&gt;. Mapping this to a vector means creating a
 vector of length &lt;span class=&quot;math inline&quot;&gt;\(11 \times 11=121\)&lt;/span&gt;.
 Hence, the transition matrix &lt;span class=&quot;math inline&quot;&gt;\(P\)&lt;/span&gt; will
-be &lt;span class=&quot;math inline&quot;&gt;\((121\times121)\)&lt;/span&gt; matrix. We
-implement this in the function &lt;code&gt;transition_matrix(A, D)&lt;/code&gt;.&lt;/p&gt;
+be &lt;span class=&quot;math inline&quot;&gt;\((121\times121)\)&lt;/span&gt; matrix. We also
+note that the transition matrix will be sparse, i.e. only a couple of
+its cells will be non-zero. As a consequence, we can use appropriate
+storage techniques from the &lt;a
+href=&quot;https://cran.r-project.org/web/packages/Matrix/index.html&quot;&gt;&lt;code&gt;Matrix&lt;/code&gt;&lt;/a&gt;
+package to make efficient use of sparseness for example when doing
+matrix multiplications. The function
+&lt;code&gt;transition_matrix(A, D)&lt;/code&gt; handles all these steps and sets up
+the transition matrix &lt;code&gt;P&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;The vector representing the situation with &lt;span
 class=&quot;math inline&quot;&gt;\(10\)&lt;/span&gt; attacking armies and 10 defending
 armies would be &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{x}_0=(0,\ldots,0,
@@ -420,7 +427,7 @@ class=&quot;math inline&quot;&gt;\(p_{322}\)&lt;/span&gt; as the transition
 probabilities.&lt;/p&gt;
 &lt;div class=&quot;sourceCode&quot; id=&quot;cb19&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb19-1&quot;&gt;&lt;a href=&quot;#cb19-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x0 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; states&lt;span class=&quot;sc&quot;&gt;$&lt;/span&gt;state &lt;span class=&quot;sc&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;sprintf&lt;/span&gt;(&lt;span class=&quot;st&quot;&gt;&amp;quot;%2d-%2d&amp;quot;&lt;/span&gt;,A,D) &lt;span class=&quot;co&quot;&gt;# &amp;quot;10-10&amp;quot;&lt;/span&gt;&lt;/span&gt;
 &lt;span id=&quot;cb19-2&quot;&gt;&lt;a href=&quot;#cb19-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x1 &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;t&lt;/span&gt;(x0) &lt;span class=&quot;sc&quot;&gt;%*%&lt;/span&gt; P&lt;/span&gt;
-&lt;span id=&quot;cb19-3&quot;&gt;&lt;a href=&quot;#cb19-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x1[,x1&lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;span id=&quot;cb19-3&quot;&gt;&lt;a href=&quot;#cb19-3&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x1[, &lt;span class=&quot;fu&quot;&gt;as.logical&lt;/span&gt;(x1&lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;)]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;pre&gt;&lt;code&gt;##     08-10     09-09     10-08 
 ## 0.2925669 0.3357767 0.3716564&lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;Subsequent battles are implemented as &lt;span
@@ -429,15 +436,20 @@ class=&quot;math inline&quot;&gt;\(\mathbf{x}_{i+1} = \mathbf{x}_{i}^\top
 will decrease by at least 1 army (and most likely 2). Starting with
 &lt;span class=&quot;math inline&quot;&gt;\(A+D\)&lt;/span&gt; armies means that after &lt;span
 class=&quot;math inline&quot;&gt;\(A+D\)&lt;/span&gt; battles we are guaranteed to have
-reached an absorbing state&lt;a href=&quot;#fn2&quot; class=&quot;footnote-ref&quot;
-id=&quot;fnref2&quot; role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt;. Considering &lt;span
+reached an absorbing state, i.e. a state which is characterized by
+either its first or second component being zero, i.e. the absorbing
+states are &lt;span
+class=&quot;math inline&quot;&gt;\((0,D),(0,D-1),\ldots,(0,1),(1,0),\ldots,(A-1,0),(A,0)\)&lt;/span&gt;.
+Note that there are exactly &lt;span class=&quot;math inline&quot;&gt;\(A+D\)&lt;/span&gt;
+absorving states, because the outcome &lt;span
+class=&quot;math inline&quot;&gt;\((0,0)\)&lt;/span&gt; can not occur. Considering &lt;span
 class=&quot;math display&quot;&gt;\[
 \mathbf{x}_{A+D} = \mathbf{x}_{0}^\top \mathbf{P}^{A+D} =
 \mathbf{x}_{0}^\top \underbrace{\mathbf{P} \cdots
 \mathbf{P}}_{\text{$A+D$ times}}
 \]&lt;/span&gt; we compute&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb21&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb21-1&quot;&gt;&lt;a href=&quot;#cb21-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x_AD &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;t&lt;/span&gt;(x0) &lt;span class=&quot;sc&quot;&gt;%*%&lt;/span&gt; (P &lt;span class=&quot;sc&quot;&gt;%^%&lt;/span&gt; (A&lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;D))&lt;/span&gt;
-&lt;span id=&quot;cb21-2&quot;&gt;&lt;a href=&quot;#cb21-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;round&lt;/span&gt;(x_AD[,x_AD&lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;], &lt;span class=&quot;at&quot;&gt;digits=&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;sourceCode&quot; id=&quot;cb21&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb21-1&quot;&gt;&lt;a href=&quot;#cb21-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x_AD &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;t&lt;/span&gt;(x0) &lt;span class=&quot;sc&quot;&gt;%*%&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;matpow&lt;/span&gt;(P, A&lt;span class=&quot;sc&quot;&gt;+&lt;/span&gt;D)&lt;/span&gt;
+&lt;span id=&quot;cb21-2&quot;&gt;&lt;a href=&quot;#cb21-2&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;x_AD[, &lt;span class=&quot;fu&quot;&gt;as.logical&lt;/span&gt;(x_AD&lt;span class=&quot;sc&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;)]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;pre&gt;&lt;code&gt;## 00-01 00-02 00-03 00-04 00-05 00-06 00-07 00-08 00-09 00-10 01-00 02-00 03-00 04-00 05-00 06-00 07-00 08-00 09-00 10-00 
 ## 0.042 0.081 0.072 0.070 0.056 0.047 0.031 0.021 0.009 0.003 0.030 0.059 0.092 0.096 0.087 0.077 0.059 0.039 0.021 0.007&lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;Summing up all probabilities where the defender has zero armies gives
@@ -445,14 +457,17 @@ us the probability that the attacker wins the battle, i.e.&lt;/p&gt;
 &lt;div class=&quot;sourceCode&quot; id=&quot;cb23&quot;&gt;&lt;pre class=&quot;sourceCode r&quot;&gt;&lt;code class=&quot;sourceCode r&quot;&gt;&lt;span id=&quot;cb23-1&quot;&gt;&lt;a href=&quot;#cb23-1&quot; aria-hidden=&quot;true&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;fu&quot;&gt;sum&lt;/span&gt;(x_AD[,&lt;span class=&quot;fu&quot;&gt;str_detect&lt;/span&gt;(&lt;span class=&quot;fu&quot;&gt;colnames&lt;/span&gt;(x_AD), &lt;span class=&quot;st&quot;&gt;&amp;quot;-00&amp;quot;&lt;/span&gt;)])&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;pre&gt;&lt;code&gt;## [1] 0.5675929&lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;This probability matches the value 0.568 reported in Table 3 of &lt;span
-class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne (2003)&lt;/span&gt;. By
-calculating &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{P}^{A+D}\)&lt;/span&gt; once,
-we can change the initial state vector &lt;span
-class=&quot;math inline&quot;&gt;\(\mathbf{x}_0\)&lt;/span&gt; to compute the probability
-of the attacker winning for each of the &lt;span class=&quot;math inline&quot;&gt;\(A
-\times D\)&lt;/span&gt; possible initial values. The values match those in
-Table 3 of &lt;span class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne
-(2003)&lt;/span&gt;.&lt;/p&gt;
+class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne (2003)&lt;/span&gt;. Note
+that the above &lt;span class=&quot;math inline&quot;&gt;\((A+D)\)&lt;/span&gt;-move
+computations takes a more direct route for the computation than &lt;span
+class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne (2003)&lt;/span&gt; – see
+Appendix 3. By calculating &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{P}^{A+D}\)&lt;/span&gt; once, we can change the
+initial state vector &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{x}_0\)&lt;/span&gt;
+to compute the probability of the attacker winning for each of the &lt;span
+class=&quot;math inline&quot;&gt;\(A \times D\)&lt;/span&gt; possible initial values. The
+values match those in Table 3 of &lt;span class=&quot;citation&quot;
+data-cites=&quot;osborne2003&quot;&gt;Osborne (2003)&lt;/span&gt;.&lt;/p&gt;
 &lt;table class=&quot;table table-striped&quot; style=&quot;margin-left: auto; margin-right: auto;&quot;&gt;
 &lt;thead&gt;
 &lt;tr&gt;
@@ -971,6 +986,43 @@ attacker has a slight advantage. Furthermore, the smallest such &lt;span
 class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; can be found approximately as &lt;span
 class=&quot;math inline&quot;&gt;\(A_{\min} \approx 1.2204 + 0.8525\cdot
 D\)&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;Another way to illustrate the findings is by slicing the table of
+probabilities for a given value of &lt;span
+class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt;. In the previous plot, slices for &lt;span
+class=&quot;math inline&quot;&gt;\(D=15,25,35\)&lt;/span&gt; are shown. Given the value of
+&lt;span class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt;, the corresponding probability
+for the attacker to win as a function of the number of attacking armies
+is shown below:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2025-02-21-risk/AS_FUNC_OF_A-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;The vertical line in each plot shows the smallest number of attacking
+armies, s.t. the probability of the attacker winning is greater than
+50%. The values are 14,23,31, respectively.&lt;/p&gt;
+&lt;p&gt;To get an impression of how many armies are lost as part of an &lt;span
+class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt; vs. &lt;span
+class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; battle, let &lt;span
+class=&quot;math inline&quot;&gt;\(\Delta\)&lt;/span&gt; denote a random variable
+describing the number of armies the attacker has left at the end of the
+battle minus the number of armies the defender has left at the end. Note
+that since the battle ended, either the attacker or the defender must
+have zero armies left. The support of &lt;span
+class=&quot;math inline&quot;&gt;\(\Delta\)&lt;/span&gt; is &lt;span
+class=&quot;math inline&quot;&gt;\(\{-D,\ldots,-1,1,\ldots,A\}\)&lt;/span&gt;; below is
+shown the corresponding probability mass function (PMF) of &lt;span
+class=&quot;math inline&quot;&gt;\(\Delta\)&lt;/span&gt; for the 50 vs. 50 battle.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/blog/figure/source/2025-02-21-risk/PLOT_DIFF-1.png&quot; style=&quot;display: block; margin: auto;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;Note that if &lt;span class=&quot;math inline&quot;&gt;\(\Delta&amp;gt;0\)&lt;/span&gt;, then
+the attacker wins. Hence, for better visualization, the plot of this
+sawtooth shaped PMF is colored using the two outcomes of the battle. The
+overall probability for the attacker to win is 73.6%, which can be found
+as the sum of the cyan bars. If focus is restricted to the number of
+armies the attacker loses during the attack, one could instead consider
+&lt;span class=&quot;math inline&quot;&gt;\(L:=\max(0,\Delta)\)&lt;/span&gt;, which
+corresponds to stacking all red bars of the PMF in the value 0, while
+keeping the cyan part. The expected number of armies the attacker looses
+in a battle won is then &lt;span
+class=&quot;math inline&quot;&gt;\(A-\operatorname{E}(L|L&amp;gt;0)\)&lt;/span&gt;, which for
+the given 50 vs. 50 battle means that the attacker is expected to lose
+37.8 armies when winning.&lt;/p&gt;
 &lt;h2 id=&quot;discussion&quot;&gt;Discussion&lt;/h2&gt;
 &lt;p&gt;Counting is a powerful technique in combinatorics and dice-based
 probabilities. The counting can be implemented on a computer by
@@ -1050,8 +1102,8 @@ as seen from the following R output:&lt;/p&gt;
 ## 3 TRUE              FALSE             0.0999      0.185
 ## 4 TRUE              TRUE              0.372       0.286&lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;From the above output we notice that the correct joint distribution&lt;a
-href=&quot;#fn3&quot; class=&quot;footnote-ref&quot; id=&quot;fnref3&quot;
-role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;3&lt;/sup&gt;&lt;/a&gt; of the two events cannot be computed
+href=&quot;#fn2&quot; class=&quot;footnote-ref&quot; id=&quot;fnref2&quot;
+role=&quot;doc-noteref&quot;&gt;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt; of the two events cannot be computed
 by simply multiplying the marginals. Hence, the two events are not
 independent.&lt;/p&gt;
 &lt;p&gt;The reason is that using order statistics induces dependencies. For
@@ -1065,6 +1117,87 @@ two. For example if you know that &lt;span
 class=&quot;math inline&quot;&gt;\(Z_{(1)}=1\)&lt;/span&gt;, then you know for sure that
 &lt;span class=&quot;math inline&quot;&gt;\(Z_{(2)}=1\)&lt;/span&gt;. This dependence extends
 to comparisons with the attacker’s dice.&lt;/p&gt;
+&lt;h2 id=&quot;appendix-3&quot;&gt;Appendix 3&lt;/h2&gt;
+&lt;p&gt;&lt;span class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne (2003)&lt;/span&gt;
+partitions the state space into transient and absorbing states and forms
+the transition matrix as a &lt;span class=&quot;math inline&quot;&gt;\(2\times
+2\)&lt;/span&gt; block matrix between the two types, i.e. its &lt;a
+href=&quot;https://en.wikipedia.org/wiki/Absorbing_Markov_chain#Canonical_form&quot;&gt;&lt;strong&gt;canonical
+form&lt;/strong&gt;&lt;/a&gt; &lt;span class=&quot;citation&quot;
+data-cites=&quot;grinstead_snell1997&quot;&gt;(Grinstead and Snell 1997, Sect.
+11.2)&lt;/span&gt; &lt;span class=&quot;math display&quot;&gt;\[
+\mathbf{P} =
+\begin{bmatrix}
+\mathbf{Q} &amp;amp; \mathbf{R} \\
+\mathbf{0} &amp;amp; \mathbf{I}
+\end{bmatrix},
+\]&lt;/span&gt; where &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{Q}\)&lt;/span&gt; is the
+&lt;span class=&quot;math inline&quot;&gt;\((AD\times AD)\)&lt;/span&gt; transition matrix
+between transient states and &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{R}\)&lt;/span&gt; is the &lt;span
+class=&quot;math inline&quot;&gt;\(AD\times (A+D)\)&lt;/span&gt; transition matrix between
+a transient state and an absorbing state. Finally, &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{0}\)&lt;/span&gt; is the &lt;span
+class=&quot;math inline&quot;&gt;\((A+D)\times AD\)&lt;/span&gt; matrix of zeros, and &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{I}\)&lt;/span&gt; is the &lt;span
+class=&quot;math inline&quot;&gt;\((A+D)\times(A+D)\)&lt;/span&gt; identity matrix.
+Altogether, &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{P}\)&lt;/span&gt; has
+dimension &lt;span class=&quot;math inline&quot;&gt;\((AD+(A+D)) \times
+(AD+(A+D))\)&lt;/span&gt;, which corresponds to the &lt;span
+class=&quot;math inline&quot;&gt;\((A+1)\times (D+1)\)&lt;/span&gt; dimension in the
+previous treatment, but explicitly disregards the (unreachable) state
+&lt;span class=&quot;math inline&quot;&gt;\((0,0)\)&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;Consider the probability that the Markov Chain &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{X}\)&lt;/span&gt; at some point in time –
+without loss of generality we can assume this to be time 0 – is in state
+&lt;span class=&quot;math inline&quot;&gt;\(\mathbf{i}=(a,d)\)&lt;/span&gt;, &lt;span
+class=&quot;math inline&quot;&gt;\(a,d\geq 1\)&lt;/span&gt; and then eventually moves on to
+the absorbing state &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{j}\)&lt;/span&gt; in
+&lt;span class=&quot;math inline&quot;&gt;\(n\)&lt;/span&gt; steps, i.e. &lt;span
+class=&quot;math display&quot;&gt;\[
+\begin{align*}
+f_{\mathbf{ij}}^{(n)} &amp;amp;= P( \mathbf{X}_{n}=
+\mathbf{j}  |  \mathbf{X}_0=\mathbf{i} ) =
+\sum_{\mathbf{x}_{n-1}} \cdots \sum_{\mathbf{x}_1} P( \mathbf{X}_{n}=
+\mathbf{j}, \mathbf{X}_{n-1}= \mathbf{x}_{n-1},\ldots,  \mathbf{X}_{1}=
+\mathbf{x}_{1}|  \mathbf{X}_0=\mathbf{i} ) \\
+&amp;amp;= \sum_{\mathbf{x}_{n-1}} \cdots \sum_{\mathbf{x}_1} P(
+\mathbf{X}_{n}= \mathbf{j}| \mathbf{X}_{n-1}= \mathbf{x}_{n-1})\cdots
+P(\mathbf{X}_{1}= \mathbf{x}_{1}|  \mathbf{X}_0=\mathbf{i})
+\end{align*}
+\]&lt;/span&gt; Let &lt;span class=&quot;math inline&quot;&gt;\(\mathbf{F}^{(n)}\)&lt;/span&gt; be
+the &lt;span class=&quot;math inline&quot;&gt;\(AD\times (A+D)\)&lt;/span&gt; matrix of all
+&lt;span class=&quot;math inline&quot;&gt;\(f_{\mathbf{ij}}^{(n)}\)&lt;/span&gt;’s. Since the
+first &lt;span class=&quot;math inline&quot;&gt;\(n-1\)&lt;/span&gt; moves have to be between
+transient states and the last move has to be a move between a transient
+state and an absorving state, we have &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{F}^{(n)}=\mathbf{Q}^{n-1}
+\mathbf{R}\)&lt;/span&gt; when we define &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{Q}^{0}=\mathbf{I}\)&lt;/span&gt;. Summing over
+all possible sequence lengths &lt;span class=&quot;math inline&quot;&gt;\(n\)&lt;/span&gt;
+gives us the probability to &lt;em&gt;eventually&lt;/em&gt; go from &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{i}\)&lt;/span&gt; to &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{j}\)&lt;/span&gt;, i.e.  &lt;span
+class=&quot;math display&quot;&gt;\[
+\mathbf{F} = \sum_{n=1}^\infty \mathbf{F}^{(n)} = \sum_{n=1}^\infty
+\mathbf{Q}^{n-1} \mathbf{R} = \left(\sum_{n=1}^\infty \mathbf{Q}^{n-1}
+\right) \mathbf{R} = (\mathbf{I}-\mathbf{Q})^{-1} \mathbf{R},
+\]&lt;/span&gt; where the last equality follows from properties of the &lt;a
+href=&quot;https://en.wikipedia.org/wiki/Absorbing_Markov_chain#Fundamental_matrix&quot;&gt;fundamental
+matrix&lt;/a&gt; of the absorbing Markov chain &lt;span class=&quot;citation&quot;
+data-cites=&quot;grinstead_snell1997&quot;&gt;(Grinstead and Snell 1997, Thm.
+11.4)&lt;/span&gt;. The statement of the above equation corresponds to Theorem
+11.6. in &lt;span class=&quot;citation&quot;
+data-cites=&quot;grinstead_snell1997&quot;&gt;Grinstead and Snell (1997)&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;The probability that the attacker wins from a given initial condition
+&lt;span class=&quot;math inline&quot;&gt;\(\mathbf{i}\)&lt;/span&gt; can then be found by
+summing all entries of the &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{i}\)&lt;/span&gt;’th row of &lt;span
+class=&quot;math inline&quot;&gt;\(\mathbf{F}\)&lt;/span&gt; corresponding to states where
+the defender has zero armies (and hence lost). One advantage of using
+the canonical form to compute the attacker’s win probabilities is that
+it is much faster to compute once &lt;span class=&quot;math inline&quot;&gt;\(A\)&lt;/span&gt;
+and &lt;span class=&quot;math inline&quot;&gt;\(D\)&lt;/span&gt; are big.&lt;/p&gt;
 &lt;h2 class=&quot;unnumbered&quot; id=&quot;literature&quot;&gt;Literature&lt;/h2&gt;
 &lt;div id=&quot;refs&quot; class=&quot;references csl-bib-body hanging-indent&quot;
 data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
@@ -1072,6 +1205,11 @@ data-entry-spacing=&quot;0&quot; role=&quot;list&quot;&gt;
 du Sautoy, M. 2023. &lt;em&gt;Around the World in 80 Games&lt;/em&gt;. 4th Estate.
 &lt;a
 href=&quot;https://www.simonyi.ox.ac.uk/books/around-the-world-in-80-games/&quot;&gt;https://www.simonyi.ox.ac.uk/books/around-the-world-in-80-games/&lt;/a&gt;.
+&lt;/div&gt;
+&lt;div id=&quot;ref-grinstead_snell1997&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
+Grinstead, C. M., and J. L. Snell. 1997. &lt;em&gt;Introduction to
+Probability&lt;/em&gt;. 2nd ed. American Mathematical Society. &lt;a
+href=&quot;https://math.dartmouth.edu/~prob/prob/prob.pdf&quot;&gt;https://math.dartmouth.edu/~prob/prob/prob.pdf&lt;/a&gt;.
 &lt;/div&gt;
 &lt;div id=&quot;ref-hendel_etal2015&quot; class=&quot;csl-entry&quot; role=&quot;listitem&quot;&gt;
 Hendel, S., C. Hoffman, C. Manack, and A. Wagaman. 2015. &lt;span&gt;“Taking
@@ -1104,14 +1242,8 @@ attacker would still have one army left once &lt;span
 class=&quot;math inline&quot;&gt;\(A=0\)&lt;/span&gt;. Thus, the country is not yet lost
 but could be vulnerable to subsequent attacks in future rounds.&lt;a
 href=&quot;#fnref1&quot; class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;li id=&quot;fn2&quot;&gt;&lt;p&gt;Note: With this argument we take a more direct route
-than &lt;span class=&quot;citation&quot; data-cites=&quot;osborne2003&quot;&gt;Osborne
-(2003)&lt;/span&gt;, who also arranges the transition matrix notationally into
-absorbing and transient states and looks at the steady state
-distribution.&lt;a href=&quot;#fnref2&quot; class=&quot;footnote-back&quot;
-role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;li id=&quot;fn3&quot;&gt;&lt;p&gt;Obtained by counting using the involved
-sum-sum-indicator formula from above.&lt;a href=&quot;#fnref3&quot;
+&lt;li id=&quot;fn2&quot;&gt;&lt;p&gt;Obtained by counting using the involved
+sum-sum-indicator formula from above.&lt;a href=&quot;#fnref2&quot;
 class=&quot;footnote-back&quot; role=&quot;doc-backlink&quot;&gt;↩︎&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/section&gt;

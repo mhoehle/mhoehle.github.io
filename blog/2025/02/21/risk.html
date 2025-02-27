@@ -436,12 +436,12 @@ state is: <span class="math display">\[
 \end{array}
 \right.
 \]</span> If <span class="math inline">\(A\)</span> and/or <span
-class="math inline">\(D\)</span> are smaller than 3 and 2 the transition
-and its probability changes accordingly. Note that once either <span
-class="math inline">\(A\)</span> or <span
-class="math inline">\(D\)</span> is zero, the state is absorbing,
-meaning it is no longer possible to continue the battle, and the state
-will remain the same. If after updating <span
+class="math inline">\(D\)</span> are smaller than 3 and 2, the
+transitions and its probabilities changes accordingly. Note that once
+either <span class="math inline">\(A\)</span> or <span
+class="math inline">\(D\)</span> is zero, the state is
+<em>absorbing</em>, meaning it is no longer possible to continue the
+battle, and the state will remain the same. If after updating <span
 class="math inline">\(A=0\)</span>, the attacker has lost the fight<a
 href="#fn1" class="footnote-ref" id="fnref1"
 role="doc-noteref"><sup>1</sup></a>. However, if <span
@@ -458,8 +458,15 @@ class="math inline">\(\{(A, D), A\in\{0,\ldots,10\}, D\in
 \{0,\ldots,10\}\}\)</span>. Mapping this to a vector means creating a
 vector of length <span class="math inline">\(11 \times 11=121\)</span>.
 Hence, the transition matrix <span class="math inline">\(P\)</span> will
-be <span class="math inline">\((121\times121)\)</span> matrix. We
-implement this in the function <code>transition_matrix(A, D)</code>.</p>
+be <span class="math inline">\((121\times121)\)</span> matrix. We also
+note that the transition matrix will be sparse, i.e. only a couple of
+its cells will be non-zero. As a consequence, we can use appropriate
+storage techniques from the <a
+href="https://cran.r-project.org/web/packages/Matrix/index.html"><code>Matrix</code></a>
+package to make efficient use of sparseness for example when doing
+matrix multiplications. The function
+<code>transition_matrix(A, D)</code> handles all these steps and sets up
+the transition matrix <code>P</code>.</p>
 <p>The vector representing the situation with <span
 class="math inline">\(10\)</span> attacking armies and 10 defending
 armies would be <span class="math inline">\(\mathbf{x}_0=(0,\ldots,0,
@@ -477,7 +484,7 @@ class="math inline">\(p_{322}\)</span> as the transition
 probabilities.</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>x0 <span class="ot">&lt;-</span> states<span class="sc">$</span>state <span class="sc">==</span> <span class="fu">sprintf</span>(<span class="st">&quot;%2d-%2d&quot;</span>,A,D) <span class="co"># &quot;10-10&quot;</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>x1 <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> P</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>x1[,x1<span class="sc">&gt;</span><span class="dv">0</span>]</span></code></pre></div>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>x1[, <span class="fu">as.logical</span>(x1<span class="sc">&gt;</span><span class="dv">0</span>)]</span></code></pre></div>
 <pre><code>##     08-10     09-09     10-08 
 ## 0.2925669 0.3357767 0.3716564</code></pre>
 <p>Subsequent battles are implemented as <span
@@ -486,15 +493,20 @@ class="math inline">\(\mathbf{x}_{i+1} = \mathbf{x}_{i}^\top
 will decrease by at least 1 army (and most likely 2). Starting with
 <span class="math inline">\(A+D\)</span> armies means that after <span
 class="math inline">\(A+D\)</span> battles we are guaranteed to have
-reached an absorbing state<a href="#fn2" class="footnote-ref"
-id="fnref2" role="doc-noteref"><sup>2</sup></a>. Considering <span
+reached an absorbing state, i.e. a state which is characterized by
+either its first or second component being zero, i.e. the absorbing
+states are <span
+class="math inline">\((0,D),(0,D-1),\ldots,(0,1),(1,0),\ldots,(A-1,0),(A,0)\)</span>.
+Note that there are exactly <span class="math inline">\(A+D\)</span>
+absorving states, because the outcome <span
+class="math inline">\((0,0)\)</span> can not occur. Considering <span
 class="math display">\[
 \mathbf{x}_{A+D} = \mathbf{x}_{0}^\top \mathbf{P}^{A+D} =
 \mathbf{x}_{0}^\top \underbrace{\mathbf{P} \cdots
 \mathbf{P}}_{\text{$A+D$ times}}
 \]</span> we compute</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>x_AD <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> (P <span class="sc">%^%</span> (A<span class="sc">+</span>D))</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(x_AD[,x_AD<span class="sc">&gt;</span><span class="dv">0</span>], <span class="at">digits=</span><span class="dv">3</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>x_AD <span class="ot">&lt;-</span> <span class="fu">t</span>(x0) <span class="sc">%*%</span> <span class="fu">matpow</span>(P, A<span class="sc">+</span>D)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>x_AD[, <span class="fu">as.logical</span>(x_AD<span class="sc">&gt;</span><span class="dv">0</span>)]</span></code></pre></div>
 <pre><code>## 00-01 00-02 00-03 00-04 00-05 00-06 00-07 00-08 00-09 00-10 01-00 02-00 03-00 04-00 05-00 06-00 07-00 08-00 09-00 10-00 
 ## 0.042 0.081 0.072 0.070 0.056 0.047 0.031 0.021 0.009 0.003 0.030 0.059 0.092 0.096 0.087 0.077 0.059 0.039 0.021 0.007</code></pre>
 <p>Summing up all probabilities where the defender has zero armies gives
@@ -502,14 +514,17 @@ us the probability that the attacker wins the battle, i.e.</p>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(x_AD[,<span class="fu">str_detect</span>(<span class="fu">colnames</span>(x_AD), <span class="st">&quot;-00&quot;</span>)])</span></code></pre></div>
 <pre><code>## [1] 0.5675929</code></pre>
 <p>This probability matches the value 0.568 reported in Table 3 of <span
-class="citation" data-cites="osborne2003">Osborne (2003)</span>. By
-calculating <span class="math inline">\(\mathbf{P}^{A+D}\)</span> once,
-we can change the initial state vector <span
-class="math inline">\(\mathbf{x}_0\)</span> to compute the probability
-of the attacker winning for each of the <span class="math inline">\(A
-\times D\)</span> possible initial values. The values match those in
-Table 3 of <span class="citation" data-cites="osborne2003">Osborne
-(2003)</span>.</p>
+class="citation" data-cites="osborne2003">Osborne (2003)</span>. Note
+that the above <span class="math inline">\((A+D)\)</span>-move
+computations takes a more direct route for the computation than <span
+class="citation" data-cites="osborne2003">Osborne (2003)</span> – see
+Appendix 3. By calculating <span
+class="math inline">\(\mathbf{P}^{A+D}\)</span> once, we can change the
+initial state vector <span class="math inline">\(\mathbf{x}_0\)</span>
+to compute the probability of the attacker winning for each of the <span
+class="math inline">\(A \times D\)</span> possible initial values. The
+values match those in Table 3 of <span class="citation"
+data-cites="osborne2003">Osborne (2003)</span>.</p>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
@@ -1028,6 +1043,43 @@ attacker has a slight advantage. Furthermore, the smallest such <span
 class="math inline">\(A\)</span> can be found approximately as <span
 class="math inline">\(A_{\min} \approx 1.2204 + 0.8525\cdot
 D\)</span>.</p>
+<p>Another way to illustrate the findings is by slicing the table of
+probabilities for a given value of <span
+class="math inline">\(D\)</span>. In the previous plot, slices for <span
+class="math inline">\(D=15,25,35\)</span> are shown. Given the value of
+<span class="math inline">\(D\)</span>, the corresponding probability
+for the attacker to win as a function of the number of attacking armies
+is shown below:</p>
+<p><img src="/blog/figure/source/2025-02-21-risk/AS_FUNC_OF_A-1.png" style="display: block; margin: auto;" /></p>
+<p>The vertical line in each plot shows the smallest number of attacking
+armies, s.t. the probability of the attacker winning is greater than
+50%. The values are 14,23,31, respectively.</p>
+<p>To get an impression of how many armies are lost as part of an <span
+class="math inline">\(A\)</span> vs. <span
+class="math inline">\(D\)</span> battle, let <span
+class="math inline">\(\Delta\)</span> denote a random variable
+describing the number of armies the attacker has left at the end of the
+battle minus the number of armies the defender has left at the end. Note
+that since the battle ended, either the attacker or the defender must
+have zero armies left. The support of <span
+class="math inline">\(\Delta\)</span> is <span
+class="math inline">\(\{-D,\ldots,-1,1,\ldots,A\}\)</span>; below is
+shown the corresponding probability mass function (PMF) of <span
+class="math inline">\(\Delta\)</span> for the 50 vs. 50 battle.</p>
+<p><img src="/blog/figure/source/2025-02-21-risk/PLOT_DIFF-1.png" style="display: block; margin: auto;" /></p>
+<p>Note that if <span class="math inline">\(\Delta&gt;0\)</span>, then
+the attacker wins. Hence, for better visualization, the plot of this
+sawtooth shaped PMF is colored using the two outcomes of the battle. The
+overall probability for the attacker to win is 73.6%, which can be found
+as the sum of the cyan bars. If focus is restricted to the number of
+armies the attacker loses during the attack, one could instead consider
+<span class="math inline">\(L:=\max(0,\Delta)\)</span>, which
+corresponds to stacking all red bars of the PMF in the value 0, while
+keeping the cyan part. The expected number of armies the attacker looses
+in a battle won is then <span
+class="math inline">\(A-\operatorname{E}(L|L&gt;0)\)</span>, which for
+the given 50 vs. 50 battle means that the attacker is expected to lose
+37.8 armies when winning.</p>
 <h2 id="discussion">Discussion</h2>
 <p>Counting is a powerful technique in combinatorics and dice-based
 probabilities. The counting can be implemented on a computer by
@@ -1107,8 +1159,8 @@ as seen from the following R output:</p>
 ## 3 TRUE              FALSE             0.0999      0.185
 ## 4 TRUE              TRUE              0.372       0.286</code></pre>
 <p>From the above output we notice that the correct joint distribution<a
-href="#fn3" class="footnote-ref" id="fnref3"
-role="doc-noteref"><sup>3</sup></a> of the two events cannot be computed
+href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a> of the two events cannot be computed
 by simply multiplying the marginals. Hence, the two events are not
 independent.</p>
 <p>The reason is that using order statistics induces dependencies. For
@@ -1122,6 +1174,87 @@ two. For example if you know that <span
 class="math inline">\(Z_{(1)}=1\)</span>, then you know for sure that
 <span class="math inline">\(Z_{(2)}=1\)</span>. This dependence extends
 to comparisons with the attacker’s dice.</p>
+<h2 id="appendix-3">Appendix 3</h2>
+<p><span class="citation" data-cites="osborne2003">Osborne (2003)</span>
+partitions the state space into transient and absorbing states and forms
+the transition matrix as a <span class="math inline">\(2\times
+2\)</span> block matrix between the two types, i.e. its <a
+href="https://en.wikipedia.org/wiki/Absorbing_Markov_chain#Canonical_form"><strong>canonical
+form</strong></a> <span class="citation"
+data-cites="grinstead_snell1997">(Grinstead and Snell 1997, Sect.
+11.2)</span> <span class="math display">\[
+\mathbf{P} =
+\begin{bmatrix}
+\mathbf{Q} &amp; \mathbf{R} \\
+\mathbf{0} &amp; \mathbf{I}
+\end{bmatrix},
+\]</span> where <span class="math inline">\(\mathbf{Q}\)</span> is the
+<span class="math inline">\((AD\times AD)\)</span> transition matrix
+between transient states and <span
+class="math inline">\(\mathbf{R}\)</span> is the <span
+class="math inline">\(AD\times (A+D)\)</span> transition matrix between
+a transient state and an absorbing state. Finally, <span
+class="math inline">\(\mathbf{0}\)</span> is the <span
+class="math inline">\((A+D)\times AD\)</span> matrix of zeros, and <span
+class="math inline">\(\mathbf{I}\)</span> is the <span
+class="math inline">\((A+D)\times(A+D)\)</span> identity matrix.
+Altogether, <span class="math inline">\(\mathbf{P}\)</span> has
+dimension <span class="math inline">\((AD+(A+D)) \times
+(AD+(A+D))\)</span>, which corresponds to the <span
+class="math inline">\((A+1)\times (D+1)\)</span> dimension in the
+previous treatment, but explicitly disregards the (unreachable) state
+<span class="math inline">\((0,0)\)</span>.</p>
+<p>Consider the probability that the Markov Chain <span
+class="math inline">\(\mathbf{X}\)</span> at some point in time –
+without loss of generality we can assume this to be time 0 – is in state
+<span class="math inline">\(\mathbf{i}=(a,d)\)</span>, <span
+class="math inline">\(a,d\geq 1\)</span> and then eventually moves on to
+the absorbing state <span class="math inline">\(\mathbf{j}\)</span> in
+<span class="math inline">\(n\)</span> steps, i.e. <span
+class="math display">\[
+\begin{align*}
+f_{\mathbf{ij}}^{(n)} &amp;= P( \mathbf{X}_{n}=
+\mathbf{j}  |  \mathbf{X}_0=\mathbf{i} ) =
+\sum_{\mathbf{x}_{n-1}} \cdots \sum_{\mathbf{x}_1} P( \mathbf{X}_{n}=
+\mathbf{j}, \mathbf{X}_{n-1}= \mathbf{x}_{n-1},\ldots,  \mathbf{X}_{1}=
+\mathbf{x}_{1}|  \mathbf{X}_0=\mathbf{i} ) \\
+&amp;= \sum_{\mathbf{x}_{n-1}} \cdots \sum_{\mathbf{x}_1} P(
+\mathbf{X}_{n}= \mathbf{j}| \mathbf{X}_{n-1}= \mathbf{x}_{n-1})\cdots
+P(\mathbf{X}_{1}= \mathbf{x}_{1}|  \mathbf{X}_0=\mathbf{i})
+\end{align*}
+\]</span> Let <span class="math inline">\(\mathbf{F}^{(n)}\)</span> be
+the <span class="math inline">\(AD\times (A+D)\)</span> matrix of all
+<span class="math inline">\(f_{\mathbf{ij}}^{(n)}\)</span>’s. Since the
+first <span class="math inline">\(n-1\)</span> moves have to be between
+transient states and the last move has to be a move between a transient
+state and an absorving state, we have <span
+class="math inline">\(\mathbf{F}^{(n)}=\mathbf{Q}^{n-1}
+\mathbf{R}\)</span> when we define <span
+class="math inline">\(\mathbf{Q}^{0}=\mathbf{I}\)</span>. Summing over
+all possible sequence lengths <span class="math inline">\(n\)</span>
+gives us the probability to <em>eventually</em> go from <span
+class="math inline">\(\mathbf{i}\)</span> to <span
+class="math inline">\(\mathbf{j}\)</span>, i.e.  <span
+class="math display">\[
+\mathbf{F} = \sum_{n=1}^\infty \mathbf{F}^{(n)} = \sum_{n=1}^\infty
+\mathbf{Q}^{n-1} \mathbf{R} = \left(\sum_{n=1}^\infty \mathbf{Q}^{n-1}
+\right) \mathbf{R} = (\mathbf{I}-\mathbf{Q})^{-1} \mathbf{R},
+\]</span> where the last equality follows from properties of the <a
+href="https://en.wikipedia.org/wiki/Absorbing_Markov_chain#Fundamental_matrix">fundamental
+matrix</a> of the absorbing Markov chain <span class="citation"
+data-cites="grinstead_snell1997">(Grinstead and Snell 1997, Thm.
+11.4)</span>. The statement of the above equation corresponds to Theorem
+11.6. in <span class="citation"
+data-cites="grinstead_snell1997">Grinstead and Snell (1997)</span>.</p>
+<p>The probability that the attacker wins from a given initial condition
+<span class="math inline">\(\mathbf{i}\)</span> can then be found by
+summing all entries of the <span
+class="math inline">\(\mathbf{i}\)</span>’th row of <span
+class="math inline">\(\mathbf{F}\)</span> corresponding to states where
+the defender has zero armies (and hence lost). One advantage of using
+the canonical form to compute the attacker’s win probabilities is that
+it is much faster to compute once <span class="math inline">\(A\)</span>
+and <span class="math inline">\(D\)</span> are big.</p>
 <h2 class="unnumbered" id="literature">Literature</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
 data-entry-spacing="0" role="list">
@@ -1129,6 +1262,11 @@ data-entry-spacing="0" role="list">
 du Sautoy, M. 2023. <em>Around the World in 80 Games</em>. 4th Estate.
 <a
 href="https://www.simonyi.ox.ac.uk/books/around-the-world-in-80-games/">https://www.simonyi.ox.ac.uk/books/around-the-world-in-80-games/</a>.
+</div>
+<div id="ref-grinstead_snell1997" class="csl-entry" role="listitem">
+Grinstead, C. M., and J. L. Snell. 1997. <em>Introduction to
+Probability</em>. 2nd ed. American Mathematical Society. <a
+href="https://math.dartmouth.edu/~prob/prob/prob.pdf">https://math.dartmouth.edu/~prob/prob/prob.pdf</a>.
 </div>
 <div id="ref-hendel_etal2015" class="csl-entry" role="listitem">
 Hendel, S., C. Hoffman, C. Manack, and A. Wagaman. 2015. <span>“Taking
@@ -1161,14 +1299,8 @@ attacker would still have one army left once <span
 class="math inline">\(A=0\)</span>. Thus, the country is not yet lost
 but could be vulnerable to subsequent attacks in future rounds.<a
 href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>Note: With this argument we take a more direct route
-than <span class="citation" data-cites="osborne2003">Osborne
-(2003)</span>, who also arranges the transition matrix notationally into
-absorbing and transient states and looks at the steady state
-distribution.<a href="#fnref2" class="footnote-back"
-role="doc-backlink">↩︎</a></p></li>
-<li id="fn3"><p>Obtained by counting using the involved
-sum-sum-indicator formula from above.<a href="#fnref3"
+<li id="fn2"><p>Obtained by counting using the involved
+sum-sum-indicator formula from above.<a href="#fnref2"
 class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
