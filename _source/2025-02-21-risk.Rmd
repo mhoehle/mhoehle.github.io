@@ -25,7 +25,7 @@ options(width=150, scipen=1e3)
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(knitr))
 # Packages specific for the post
-suppressPackageStartupMessages(library(expm)) #matrix multiplication as power
+suppressPackageStartupMessages(library(Matrix)) #Sparse matrix etc.
 suppressPackageStartupMessages(library(kableExtra))
 
 # Non CRAN packages
@@ -274,7 +274,7 @@ $$
 \end{array}
 \right.
 $$
-If $A$ and/or $D$ are smaller than 3 and 2 the transition and its probability changes accordingly. Note that once either $A$ or $D$ is zero, the state is absorbing, meaning it is no longer possible to continue the battle, and the state will remain the same. If after updating $A=0$, the attacker has lost the fight^[Since the rules of Risk only allow attacking with one army less than hosted in the country the attack originates from, the attacker would still have one army left once $A=0$. Thus, the country is not yet lost but could be vulnerable to subsequent attacks in future rounds.]. However, if $D = 0$, the defender loses, and the attacker conquers the country.
+If $A$ and/or $D$ are smaller than 3 and 2, the transitions and its probabilities changes accordingly. Note that once either $A$ or $D$ is zero, the state is *absorbing*, meaning it is no longer possible to continue the battle, and the state will remain the same. If after updating $A=0$, the attacker has lost the fight^[Since the rules of Risk only allow attacking with one army less than hosted in the country the attack originates from, the attacker would still have one army left once $A=0$. Thus, the country is not yet lost but could be vulnerable to subsequent attacks in future rounds.]. However, if $D = 0$, the defender loses, and the attacker conquers the country.
 
 ```{r ARMIES_START}
 # Armies at the start of the battle
@@ -283,7 +283,7 @@ D <- 10
 size_state_space <- (A+1)*(D+1)
 ```
 
-Suppose we start with $A=`r A`$ attacking armies and $D=`r D`$ defending armies. The corresponding state space of the Markov chain is $\{(A, D), A\in\{0,\ldots,`r A`\}, D\in \{0,\ldots,`r D`\}\}$. Mapping this to a vector means creating a vector of length $`r A+1` \times `r D+1`=`r (A+1)*(D+1)`$. Hence, the transition matrix $P$ will be $(`r size_state_space`\times`r size_state_space`)$ matrix. We implement this in the function `transition_matrix(A, D)`.
+Suppose we start with $A=`r A`$ attacking armies and $D=`r D`$ defending armies. The corresponding state space of the Markov chain is $\{(A, D), A\in\{0,\ldots,`r A`\}, D\in \{0,\ldots,`r D`\}\}$. Mapping this to a vector means creating a vector of length $`r A+1` \times `r D+1`=`r (A+1)*(D+1)`$. Hence, the transition matrix $P$ will be $(`r size_state_space`\times`r size_state_space`)$ matrix. We also note that the transition matrix will be sparse, i.e. only a couple of its cells will be non-zero. As a consequence, we can use appropriate storage techniques from the [`Matrix`](https://cran.r-project.org/web/packages/Matrix/index.html) package to make efficient use of sparseness for example when doing matrix multiplications. The function `transition_matrix(A, D)` handles all these steps and sets up the transition matrix `P`. 
 
 ```{r MARKOV, echo=FALSE}
 ########################################################################
@@ -315,13 +315,22 @@ if (FALSE) {
 
 
 ```{r, echo=FALSE}
-# Build the transition matrix of the Markov chain
+# Build the transition matrix of the Markov chain for all transitions of an A vs. D attack
+#
+# @param A Number of attacking armies
+# @param D Number of defending armies
+# @verbose Print additional information, e.g. a progress indicator
+#
+# @return Sparse (A+1)(D+1) \times (A+1)(D+1) transition matrix 
+
 transition_matrix <- function(A, D, verbose=FALSE) {
   #Setup the matrix
   P <- matrix(0, nrow=nrow(states), ncol=nrow(states), dimnames=list(states$state, states$state))
   for (i in 1:nrow(states)) {
     # Calculate p_{ij} 
-    
+    if (verbose & (i %% round(0.1*nrow(states)) == 0)) {
+      cat(str_c(round(100*(i / nrow(states)),digits=0), "% "))
+    }
     # Extract the number of attacker and defender armies
     from_attacker <- states[i,] %>% pull(attacker)
     from_defender <- states[i,] %>% pull(defender)
@@ -347,46 +356,50 @@ transition_matrix <- function(A, D, verbose=FALSE) {
       idx_set <- ad_to_idx(to_state %>% pull(A), to_state %>% pull(D))
       
       # Update transition probability of each "new" state
-      for (k in seq_len(length(idx_set))) {
-        # Get idx of the state
-        j <-  ad_to_idx(to_state[k,] %>% pull(A), to_state[k,] %>% pull(D))
-        # Assure we haven't touched the cell yet
-        stopifnot(all.equal(P[i, j], 0))
-        if (verbose) cat("i=",i, "j=", j, prob=to_state[k,] %>% pull(prob),"\n")
-        # Set transition prob
-        P[i, j] <- to_state[k,] %>% pull(prob) 
-      }
+      P[i, idx_set] <- to_state %>% pull(prob)
     }
   }
+  # Store as sparse matrix
+  P <- Matrix(P, sparse=TRUE)
+  # Done
   return(P)
 }
 
+# Helper function to calculate matrix power, i.e. X^n, see answer in  https://stackoverflow.com/questions/3274818/matrix-power-in-r
+matpow <- function(X, n) Reduce(`%*%`, replicate(n, X, simplify = FALSE))
+
+# Compute the transition matrix for the given A and D
 P <- transition_matrix(A=A, D=D)
-P_times_AD <- (P %^% (A+D))
+P_times_AD <- matpow(P, A+D)
 ```
 The vector representing the situation with $`r A`$ attacking armies and `r D` defending armies would be $\mathbf{x}_0=(0,\ldots,0, 1)^\top$. The development in  probabilities over the state space after a single battle can then be represented as $\mathbf{x}_1 = \mathbf{x}_0^\top\mathbf{P}$. Starting in state $(`r A`,`r D`)$ we can thus go to either $(`r A-2`,`r D`)$, $(`r A-1`,`r D-1`)$ or $(`r A`,`r D-2`)$ and we recognize $p_{320}$, $p_{321}$ and $p_{322}$ as the transition probabilities.
 
 ```{r}
 x0 <- states$state == sprintf("%2d-%2d",A,D) # "10-10"
 x1 <- t(x0) %*% P
-x1[,x1>0]
+x1[, as.logical(x1>0)]
 ```
 
-Subsequent battles are implemented as $\mathbf{x}_{i+1} = \mathbf{x}_{i}^\top \mathbf{P}$. For each single battle, the total number of armies will decrease by at least 1 army (and most likely 2). Starting with $A+D$ armies means that after $A+D$ battles we are guaranteed to have reached an absorbing state^[Note: With this argument we take a more direct route than @osborne2003, who also arranges the transition matrix notationally into absorbing and transient states and looks at the steady state distribution.]. Considering 
+Subsequent battles are implemented as $\mathbf{x}_{i+1} = \mathbf{x}_{i}^\top \mathbf{P}$. For each single battle, the total number of armies will decrease by at least 1 army (and most likely 2). Starting with $A+D$ armies means that after $A+D$ battles we are guaranteed to have reached an absorbing state, i.e. a state which is characterized by either its first or second component being zero, i.e. the absorbing states are $(0,D),(0,D-1),\ldots,(0,1),(1,0),\ldots,(A-1,0),(A,0)$. Note that there are exactly $A+D$ absorving states, because the outcome $(0,0)$ can not occur. Considering 
 $$
 \mathbf{x}_{A+D} = \mathbf{x}_{0}^\top \mathbf{P}^{A+D} = \mathbf{x}_{0}^\top \underbrace{\mathbf{P} \cdots \mathbf{P}}_{\text{$A+D$ times}}
 $$
 we compute
-```{r x_AD}
-x_AD <- t(x0) %*% (P %^% (A+D))
-round(x_AD[,x_AD>0], digits=3)
+```{r x_AD,results="hide"}
+x_AD <- t(x0) %*% matpow(P, A+D)
+x_AD[, as.logical(x_AD>0)]
 ```
+```{r x_AD_print, echo=FALSE}
+round(x_AD[, as.logical(x_AD>0)], digits=3)
+```
+
 Summing up all probabilities where the defender has zero armies gives us the probability that the attacker wins the battle, i.e.
 ```{r p_A_win_x20}
 sum(x_AD[,str_detect(colnames(x_AD), "-00")])
 ```
 
-This probability matches the value 0.568 reported in Table 3 of @osborne2003. By calculating $\mathbf{P}^{A+D}$ once, we can change the initial state vector $\mathbf{x}_0$ to compute the probability of the attacker winning for each of the $A \times D$ possible initial values. The values match those in Table 3 of @osborne2003. 
+This probability matches the value 0.568 reported in Table 3 of @osborne2003. 
+Note that the above $(A+D)$-move computations takes a more direct route for the computation than @osborne2003 -- see Appendix 3. By calculating $\mathbf{P}^{A+D}$ once, we can change the initial state vector $\mathbf{x}_0$ to compute the probability of the attacker winning for each of the $A \times D$ possible initial values. The values match those in Table 3 of @osborne2003. 
 
 ```{r P_WIN_A, echo=FALSE}
 # Calculate the probability that the attacker wins from a given 
@@ -399,7 +412,7 @@ This probability matches the value 0.568 reported in Table 3 of @osborne2003. By
 p_A_wins <- function(A, D, P_times_AD=NULL) {
   if (is.null(P_times_AD)) {
     P <- transition_matrix(A=A, D=D)
-    P_times_AD <- (P %^% (A+D))
+    P_times_AD <- matpow(P, A+D)
   }
   # check that states contain the config
   stopifnot(nrow(states %>% filter(attacker == A & defender == D)) > 0)
@@ -434,6 +447,7 @@ tab %>%
 
 <p>All cells with a probability greater than 0.5 are colored green in the table. We observe that from 5 and beyond the attacker has a slight advantage when $A=D$.
 
+
 ```{r CONFIG_BIGTABLE, echo=FALSE}
 # Configuration of A and D for the big table
 A <- 50
@@ -448,7 +462,7 @@ states <- expand_grid(attacker=0:A, defender=0:D) %>%
   mutate(state=sprintf("%02d-%02d", attacker, defender))
 
 P <- transition_matrix(A=A, D=D)
-P_times_AD <- (P %^% (A+D))
+P_times_AD <- matpow(P, A+D)
 
 tab <- expand_grid(A=1:A, D=1:D) %>% 
   rowwise() %>% 
@@ -480,11 +494,88 @@ ggplot(tab_long, aes(x=D, y=A, fill=as.factor(prob))) +
   scale_fill_manual(name="P(Attacker wins > 0.5)", values=c("gray95", "lightgreen")) +
   geom_line(data=df) +
   geom_abline(slope=1, intercept=0, lty=2, col="gray") +
+  geom_vline(data=tibble(A=c(15,25,35)), aes(xintercept=A), lty=3, col="steelblue") +
   coord_equal() +
-  theme(legend.position="bottom")
+  scale_y_continuous(minor_breaks = seq(0,D,by=1)) +
+  scale_x_continuous(minor_breaks = seq(0,A,by=1)) +
+  theme(legend.position="bottom") 
 ```
 
 Looking at the smallest $A$ with a win probability of more than 50% for a given $D$, we see that this line is below the $A=D$ line. This shows that the attacker has a slight advantage. Furthermore, the smallest such $A$ can be found approximately as $A_{\min} \approx `r sprintf("%.4f + %.4f\\cdot D", coef(m)[1], coef(m)[2])`$.
+
+Another way to illustrate the findings is by slicing the table of probabilities for a given value of $D$. In the previous plot, slices for $D=15,25,35$ are shown. Given the value of $D$, the corresponding probability for the attacker to win as a function of the number of attacking armies is shown below:
+
+```{r AS_FUNC_OF_A, echo=FALSE}
+# Show as a function in A when D is fixed
+tab_df <- tab %>% select(A, `15`,`25`,`35`) %>% 
+  pivot_longer(cols=-A, values_to="prob", names_to="D") %>% 
+  mutate(D = as.numeric(D)) 
+
+# First A above 50%
+first_A_gt50 <- tab_df %>% group_by(D) %>% summarise(min_A = min(A[prob>0.5]))
+first_A <- left_join(first_A_gt50, tab_df, by=c("D", "min_A"="A")) %>% 
+  rename(A=min_A)
+
+# Show the graphs
+ggplot(tab_df, aes(x=A, y=prob)) + 
+  scale_x_continuous(breaks=seq(0,A, by=5), minor_breaks = seq(0,A,by=1)) +
+  geom_line() +
+  geom_hline(yintercept=0.5, col="lightgreen", lty=2) +
+  geom_linerange(data=first_A, aes(ymin=0, ymax=prob), col="lightgreen", lty=2) +
+  ylab("P(Attacker wins)") +
+  xlab("Attacking armies") +
+  coord_cartesian(xlim=c(0,A)) + 
+  theme(panel.grid.minor = element_line(color = "gray80",
+                                  linewidth = 0.05,
+                                  linetype = 1)) +
+  facet_wrap(. ~ D)
+```
+
+The vertical line in each plot shows the smallest number of attacking armies, s.t. the probability of the attacker winning is greater than 50%. The values are `r str_c(first_A %>% pull(A), collapse=",")`, respectively.
+
+To get an impression of how many armies are lost as part of an $A$ vs. $D$ battle, let $\Delta$ denote a random variable describing the number of armies the attacker has left at the end of the battle minus the number of armies the defender has left at the end. Note that since the battle ended, either the attacker or the defender must have zero armies left.
+The support of $\Delta$ is $\{-D,\ldots,-1,1,\ldots,A\}$; below is shown the corresponding probability mass function (PMF) of $\Delta$ for the `r A` vs. `r D` battle.
+
+```{r PLOT_DIFF, echo=FALSE}
+# Start state
+pi_start <- (states$state == sprintf("%02d-%02d", A, D))
+P_times_AD <- matpow(P, A+D)
+pi_end <- pi_start %*% P_times_AD
+
+# Fetch prob of all absorbing states.
+absorbing <- states %>% filter(attacker==0 | defender==0) %>% 
+  # Make additional info
+  mutate(Delta = attacker - defender, 
+         W_wins = Delta > 0, 
+         L = pmax(0,Delta))
+
+df_Delta <- left_join(absorbing, tibble(state=colnames(pi_end), prob=as.numeric(pi_end)), by="state")
+
+# Show PMF
+ggplot(df_Delta) + geom_linerange(aes(x=Delta, ymin=0, ymax=prob, color=W_wins)) +
+  xlab(expression(delta)) +
+  ylab(expression(P(Delta==delta))) +
+  scale_color_discrete(name="Attacker wins") +
+  theme(legend.position="bottom")
+
+## Probability that attacker wins
+p_A_wins <- df_Delta %>% filter(L>0) %>% summarise(prob=sum(prob)) %>% as.numeric()
+
+# checksame probability in the earlier table
+if (FALSE) tab %>% filter(A==50) %>% select(`50`) 
+
+## Conditional expectation of armies lost given that A wins
+E_loss_given_A_wins <- df_Delta %>% 
+  # Determine conditional probability
+  filter(L>0) %>% 
+  mutate(prob = prob/sum(prob)) %>% 
+  # Compute E(L|L>0)
+  mutate(E_contrib = L*prob) %>% 
+  summarise(E=A - sum(E_contrib)) %>% 
+  as.numeric()
+```
+
+Note that if $\Delta>0$, then the attacker wins. Hence, for better visualization, the plot of this sawtooth shaped PMF is colored using the two outcomes of the battle. The overall probability for the attacker to win is `r sprintf("%.1f", 100*p_A_wins)`%, which can be found as the sum of the cyan bars. If focus is restricted to the number of armies the attacker loses during the attack, one could instead consider $L:=\max(0,\Delta)$, which corresponds to stacking all red bars of the PMF in the value 0, while keeping the cyan part. The expected number of armies the attacker looses in a battle won is then $A-\operatorname{E}(L|L>0)$, which for the given `r A` vs. `r D` battle means that the attacker is expected to lose `r sprintf("%.1f", E_loss_given_A_wins)` armies when winning.
 
 ## Discussion
 
@@ -551,5 +642,34 @@ From the above output we notice that the correct joint distribution^[Obtained by
 
 The reason is that using order statistics induces dependencies. For example $P(Z_{(1)}=z_1, Z_{(2)}=z_2) \neq P(Z_{(1)}=z_1) P(Z_{(2)}=z_2)$. Although the dice $Z_1$ and $Z_2$ are independent, the corresponding variables of the order statistics are dependent: knowing something about the higher of the two dice gives you information about the lower of the two. For example if you know that $Z_{(1)}=1$, then you know for sure that $Z_{(2)}=1$. This dependence extends to comparisons with the attacker's dice.
 
+## Appendix 3
+
+@osborne2003 partitions the state space into transient and absorbing states and forms the transition matrix as a $2\times 2$ block matrix between the two types, i.e. its [**canonical form**](https://en.wikipedia.org/wiki/Absorbing_Markov_chain#Canonical_form) [@grinstead_snell1997, Sect. 11.2]
+$$
+\mathbf{P} = 
+\begin{bmatrix} 
+\mathbf{Q} & \mathbf{R} \\
+\mathbf{0} & \mathbf{I}
+\end{bmatrix},
+$$
+where $\mathbf{Q}$ is the $(AD\times AD)$ transition matrix between transient states and
+$\mathbf{R}$ is the $AD\times (A+D)$ transition matrix between a transient state and an absorbing state. Finally, $\mathbf{0}$ is the $(A+D)\times AD$ matrix of zeros, and $\mathbf{I}$ is the $(A+D)\times(A+D)$ identity matrix. Altogether, $\mathbf{P}$ has dimension $(AD+(A+D)) \times (AD+(A+D))$, which corresponds to the $(A+1)\times (D+1)$ dimension in the previous treatment, but explicitly disregards the (unreachable) state $(0,0)$.
+
+Consider the probability that the Markov Chain $\mathbf{X}$ at some point in time -- without loss of generality we can assume this to be time 0 -- is in state $\mathbf{i}=(a,d)$, $a,d\geq 1$ and then eventually moves on to the absorbing state $\mathbf{j}$ in $n$ steps, i.e.
+$$
+\begin{align*}
+f_{\mathbf{ij}}^{(n)} &= P( \mathbf{X}_{n}= \mathbf{j}  |  \mathbf{X}_0=\mathbf{i} ) =
+\sum_{\mathbf{x}_{n-1}} \cdots \sum_{\mathbf{x}_1} P( \mathbf{X}_{n}= \mathbf{j}, \mathbf{X}_{n-1}= \mathbf{x}_{n-1},\ldots,  \mathbf{X}_{1}= \mathbf{x}_{1}|  \mathbf{X}_0=\mathbf{i} ) \\
+&= \sum_{\mathbf{x}_{n-1}} \cdots \sum_{\mathbf{x}_1} P( \mathbf{X}_{n}= \mathbf{j}| \mathbf{X}_{n-1}= \mathbf{x}_{n-1})\cdots P(\mathbf{X}_{1}= \mathbf{x}_{1}|  \mathbf{X}_0=\mathbf{i}) 
+\end{align*}
+$$
+Let $\mathbf{F}^{(n)}$ be the $AD\times (A+D)$ matrix of all $f_{\mathbf{ij}}^{(n)}$'s. Since the first $n-1$ moves have to be between transient states and the last move has to be a move between a transient state and an absorving state, we have $\mathbf{F}^{(n)}=\mathbf{Q}^{n-1} \mathbf{R}$ when we define $\mathbf{Q}^{0}=\mathbf{I}$. Summing over all possible sequence lengths $n$ gives us the probability to *eventually* go from $\mathbf{i}$ to $\mathbf{j}$, i.e. 
+$$
+\mathbf{F} = \sum_{n=1}^\infty \mathbf{F}^{(n)} = \sum_{n=1}^\infty \mathbf{Q}^{n-1} \mathbf{R} = \left(\sum_{n=1}^\infty \mathbf{Q}^{n-1} \right) \mathbf{R} = (\mathbf{I}-\mathbf{Q})^{-1} \mathbf{R},
+$$
+where the last equality follows from properties of the [fundamental matrix](https://en.wikipedia.org/wiki/Absorbing_Markov_chain#Fundamental_matrix) of the absorbing Markov chain [@grinstead_snell1997, Thm. 11.4]. The statement of the above equation corresponds to Theorem 11.6. in @grinstead_snell1997.
+
+The probability that the attacker wins from a given initial condition $\mathbf{i}$ can then be found by summing all entries of the $\mathbf{i}$'th row of $\mathbf{F}$ corresponding to states where the defender has zero armies (and hence lost). One advantage of 
+using the canonical form to compute the attacker's win probabilities is that it is much faster to compute once $A$ and $D$ are big.
 
 ## Literature
